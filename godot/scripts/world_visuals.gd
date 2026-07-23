@@ -10,7 +10,8 @@ var environment: Environment
 var sun: DirectionalLight3D
 var particles: GPUParticles3D
 var particle_material: ParticleProcessMaterial
-var day_time := 0.22
+var foliage_material_cache: Dictionary = {}
+var day_time: float = 0.22
 
 func build() -> void:
 	_build_environment()
@@ -20,7 +21,7 @@ func build() -> void:
 
 func update_world(delta: float, player_position: Vector3) -> void:
 	day_time = fmod(day_time + delta / 260.0, 1.0)
-	var daylight := clampf(sin(day_time * PI), 0.05, 1.0)
+	var daylight: float = clampf(sin(day_time * PI), 0.05, 1.0)
 	sun.rotation_degrees.x = day_time * 360.0 - 100.0
 	sun.light_energy = 0.18 + daylight * 1.55
 	environment.ambient_light_energy = 0.22 + daylight * 0.62
@@ -145,8 +146,8 @@ func _build_zone_props(root: Node3D, zone_index: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7000 + zone_index * 997
 	for i in range(34):
-		var angle := rng.randf_range(0.0, TAU)
-		var radius := rng.randf_range(22.0, 55.0)
+		var angle: float = rng.randf_range(0.0, TAU)
+		var radius: float = rng.randf_range(22.0, 55.0)
 		var position := Vector3(cos(angle) * radius, 1.7, sin(angle) * radius)
 		match zone_index:
 			0, 1:
@@ -185,7 +186,7 @@ func _build_tree(root: Node3D, position: Vector3, scale_value: float, palm: bool
 		cone.height = 6.5 * scale_value
 		crown.mesh = cone
 	crown.position = position + Vector3(0, 7.2 * scale_value, 0)
-	crown.material_override = _material(Color("25733d"), 0.82)
+	crown.material_override = _foliage_material(Color("25733d"), 0.26 if palm else 0.18)
 	root.add_child(crown)
 
 func _build_snow_pine(root: Node3D, position: Vector3, scale_value: float) -> void:
@@ -223,10 +224,10 @@ func _build_grass(root: Node3D, rng: RandomNumberGenerator) -> void:
 	blade.material = grass_material
 	multimesh.mesh = blade
 	for i in range(multimesh.instance_count):
-		var angle := rng.randf_range(0.0, TAU)
-		var radius := sqrt(rng.randf()) * 60.0
+		var angle: float = rng.randf_range(0.0, TAU)
+		var radius: float = sqrt(rng.randf()) * 60.0
 		var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU))
-		var scale_value := rng.randf_range(0.65, 1.35)
+		var scale_value: float = rng.randf_range(0.65, 1.35)
 		basis = basis.scaled(Vector3.ONE * scale_value)
 		multimesh.set_instance_transform(i, Transform3D(basis, Vector3(cos(angle) * radius, 1.58, sin(angle) * radius)))
 	var instance := MultiMeshInstance3D.new()
@@ -248,6 +249,17 @@ func _build_weather() -> void:
 	quad.size = Vector2(0.035, 0.65)
 	particles.draw_pass_1 = quad
 	add_child(particles)
+
+func _foliage_material(color: Color, strength: float) -> ShaderMaterial:
+	var key: String = color.to_html(false) + "_" + str(snappedf(strength, 0.01))
+	if foliage_material_cache.has(key):
+		return foliage_material_cache[key] as ShaderMaterial
+	var material := ShaderMaterial.new()
+	material.shader = load("res://shaders/foliage_wind.gdshader")
+	material.set_shader_parameter("foliage_color", color)
+	material.set_shader_parameter("wind_strength", strength)
+	foliage_material_cache[key] = material
+	return material
 
 func _material(color: Color, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
