@@ -8,12 +8,20 @@ var autosave_timer := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_force_phone_landscape()
 	save_data = SaveSystem.load_data()
 	VoiceFR.initialize(bool(save_data.get("voice", true)))
 	_build_world()
 	_build_ui()
 	_enter_menu()
 	VoiceFR.speak("Bienvenue dans CHK Pirate Warrior. L'Archipel des Quinet.")
+
+func _force_phone_landscape() -> void:
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	get_viewport().content_scale_size = Vector2i(1920, 864)
+	get_viewport().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	get_viewport().content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 
 func _process(delta: float) -> void:
 	if get_tree().paused:
