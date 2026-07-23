@@ -19,7 +19,7 @@ permissions:
 jobs:
   validation-et-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Récupérer le dépôt
@@ -31,12 +31,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Préparer Android
+      - name: Préparer Android et la signature debug
         shell: bash
         run: |
+          set -euo pipefail
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/null
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.1" \
+            "cmdline-tools;latest" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709" >/dev/null
+
           mkdir -p "$HOME/.android"
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
             keytool -genkeypair -v \
@@ -50,9 +58,23 @@ jobs:
               -dname "CN=Android Debug,O=CHK Pirate Warrior,C=FR" >/dev/null 2>&1
           fi
 
+          mkdir -p "$HOME/.local/share/godot/keystores"
+          cp "$HOME/.android/debug.keystore" "$HOME/.local/share/godot/keystores/debug.keystore"
+
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+
+          test -x "$ANDROID_SDK_ROOT/platform-tools/adb"
+          test -d "$ANDROID_SDK_ROOT/platforms/android-35"
+          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.1"
+          test -s "$HOME/.android/debug.keystore"
+
       - name: Installer Godot 4.6.3 officiel
         shell: bash
         run: |
+          set -euo pipefail
           curl -L --fail --retry 3 \
             -o godot.zip \
             https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
@@ -65,14 +87,19 @@ jobs:
       - name: Installer les modèles d’export Android
         shell: bash
         run: |
+          set -euo pipefail
           curl -L --fail --retry 3 \
             -o templates.tpz \
             https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
           rm -rf "$RUNNER_TEMP/export-templates"
           mkdir -p "$RUNNER_TEMP/export-templates"
           unzip -q templates.tpz -d "$RUNNER_TEMP/export-templates"
-          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.3.stable"
-          cp -R "$RUNNER_TEMP/export-templates/templates/." "$HOME/.local/share/godot/export_templates/4.6.3.stable/"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "$RUNNER_TEMP/export-templates/templates/." "$TEMPLATE_DIR/"
+          test -s "$TEMPLATE_DIR/android_debug.apk"
+          test -s "$TEMPLATE_DIR/android_release.apk"
+          test -s "$TEMPLATE_DIR/version.txt"
 
       - name: Importer et analyser le projet
         shell: bash
@@ -89,7 +116,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          "$GODOT_BIN" --headless --path godot \
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "Keystore=$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          "$GODOT_BIN" --verbose --headless --path godot \
             --export-debug "Android V2 Debug" \
             "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
           test -s build/CHK-Pirate-Warrior-V2-debug.apk
