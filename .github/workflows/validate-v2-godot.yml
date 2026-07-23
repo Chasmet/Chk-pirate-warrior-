@@ -159,51 +159,103 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Activer l’accélération du téléphone virtuel
+      - name: Installer le téléphone Android virtuel
         shell: bash
         run: |
+          set -euo pipefail
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Tester sur un téléphone Android virtuel
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_7_pro
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          disable-linux-hw-accel: false
-          emulator-boot-timeout: 600
-          script: |
-            set -euo pipefail
-            adb install -r build/CHK-Pirate-Warrior-V2-debug.apk
-            adb logcat -c
-            adb shell monkey -p fr.chk.piratewarrior.v2 -c android.intent.category.LAUNCHER 1
-            sleep 15
-            adb shell wm size | tee android-window.txt
-            adb shell dumpsys activity activities | grep -m 1 'mResumedActivity' | tee -a android-window.txt
-            adb shell dumpsys window displays | grep -E -m 3 'orientation|mCurrentFocus|mFocusedApp' | tee -a android-window.txt || true
-            adb exec-out screencap -p > android-emulator.png
-            python3 - <<'PY'
-            import struct
-            from pathlib import Path
-            path = Path('android-emulator.png')
-            assert path.stat().st_size > 10000, 'Capture Android vide'
-            with path.open('rb') as stream:
-                stream.seek(16)
-                width, height = struct.unpack('>II', stream.read(8))
-            print(f'Capture Android: {width}x{height}')
-            assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
-            PY
-            adb logcat -d > android-logcat.txt
-            if grep -E 'FATAL EXCEPTION|AndroidRuntime: FATAL|Process: fr.chk.piratewarrior.v2.*has died' android-logcat.txt; then
-              echo 'Crash Android détecté.'
-              exit 1
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" "emulator" "system-images;android-35;google_apis;x86_64" 2>&1 | tee emulator-install.log
+
+          AVDMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager"
+          echo no | "$AVDMANAGER" create avd \
+            --force \
+            --name chk_pixel \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_7_pro" 2>&1 | tee emulator-avd.log
+
+      - name: Lancer et tester le jeu sur Android virtuel
+        shell: bash
+        run: |
+          set -euo pipefail
+          EMULATOR="$ANDROID_SDK_ROOT/emulator/emulator"
+          ADB="$ANDROID_SDK_ROOT/platform-tools/adb"
+
+          "$EMULATOR" \
+            -avd chk_pixel \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -noaudio \
+            -no-boot-anim \
+            -no-snapshot \
+            -camera-back none \
+            -accel on > emulator-runtime.log 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+
+          DEVICE_READY=0
+          for attempt in $(seq 1 120); do
+            if "$ADB" devices | grep -q '^emulator-'; then
+              DEVICE_READY=1
+              break
             fi
-            grep -q 'fr.chk.piratewarrior.v2' android-window.txt
+            sleep 2
+          done
+          if [ "$DEVICE_READY" -ne 1 ]; then
+            echo "Le téléphone virtuel n’est pas apparu."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
+
+          "$ADB" wait-for-device
+          BOOT_READY=0
+          for attempt in $(seq 1 150); do
+            BOOT_COMPLETED=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOT_COMPLETED" = "1" ]; then
+              BOOT_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$BOOT_READY" -ne 1 ]; then
+            echo "Android n’a pas terminé son démarrage."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
+
+          "$ADB" shell settings put system accelerometer_rotation 0
+          "$ADB" shell settings put system user_rotation 0
+          "$ADB" install -r build/CHK-Pirate-Warrior-V2-debug.apk
+          "$ADB" logcat -c
+          "$ADB" shell monkey -p fr.chk.piratewarrior.v2 -c android.intent.category.LAUNCHER 1
+          sleep 18
+
+          "$ADB" shell wm size | tee android-window.txt
+          "$ADB" shell dumpsys activity activities | grep -m 1 'mResumedActivity' | tee -a android-window.txt
+          "$ADB" shell dumpsys window displays | grep -E -m 4 'orientation|mCurrentFocus|mFocusedApp' | tee -a android-window.txt || true
+          "$ADB" exec-out screencap -p > android-emulator.png
+
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          path = Path('android-emulator.png')
+          assert path.stat().st_size > 10000, 'Capture Android vide'
+          with path.open('rb') as stream:
+              stream.seek(16)
+              width, height = struct.unpack('>II', stream.read(8))
+          print(f'Capture Android: {width}x{height}')
+          assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
+          PY
+
+          "$ADB" logcat -d > android-logcat.txt
+          if grep -E 'FATAL EXCEPTION|AndroidRuntime: FATAL|Process: fr.chk.piratewarrior.v2.*has died' android-logcat.txt; then
+            echo 'Crash Android détecté.'
+            exit 1
+          fi
+          grep -q 'fr.chk.piratewarrior.v2' android-window.txt
 
       - name: Publier les journaux et la capture Android
         if: always()
@@ -216,6 +268,9 @@ jobs:
             godot-export.log
             apk-manifest.txt
             apk-sha256.txt
+            emulator-install.log
+            emulator-avd.log
+            emulator-runtime.log
             android-window.txt
             android-logcat.txt
             android-emulator.png
