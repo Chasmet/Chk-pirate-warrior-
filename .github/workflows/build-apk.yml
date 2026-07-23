@@ -30,10 +30,11 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Installer le SDK Android 37
+      - name: Installer le SDK Android 36
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;36.0.0"
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Tests et compilation
         run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
