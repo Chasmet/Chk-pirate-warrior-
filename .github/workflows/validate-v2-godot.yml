@@ -167,6 +167,12 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+          export ANDROID_SDK_HOME="$HOME"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_SDK_HOME=$ANDROID_SDK_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           "$SDKMANAGER" "emulator" "system-images;android-35;google_apis;x86_64" 2>&1 | tee emulator-install.log
 
@@ -177,10 +183,16 @@ jobs:
             --package "system-images;android-35;google_apis;x86_64" \
             --device "pixel_7_pro" 2>&1 | tee emulator-avd.log
 
+          "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | tee emulator-avd-list.log
+          grep -qx 'chk_pixel' emulator-avd-list.log
+          test -f "$ANDROID_AVD_HOME/chk_pixel.ini" || test -d "$ANDROID_AVD_HOME/chk_pixel.avd"
+
       - name: Lancer et tester le jeu sur Android virtuel
         shell: bash
         run: |
           set -euo pipefail
+          export ANDROID_SDK_HOME="${ANDROID_SDK_HOME:-$HOME}"
+          export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
           EMULATOR="$ANDROID_SDK_ROOT/emulator/emulator"
           ADB="$ANDROID_SDK_ROOT/platform-tools/adb"
 
@@ -270,6 +282,7 @@ jobs:
             apk-sha256.txt
             emulator-install.log
             emulator-avd.log
+            emulator-avd-list.log
             emulator-runtime.log
             android-window.txt
             android-logcat.txt
