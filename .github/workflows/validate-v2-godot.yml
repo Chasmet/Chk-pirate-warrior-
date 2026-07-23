@@ -111,6 +111,16 @@ jobs:
             exit 1
           fi
 
+      - name: Tester le démarrage réel du jeu
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --quit-after 180 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|Attempt to call|ERROR:" godot-runtime.log; then
+            echo "Une erreur est apparue pendant le démarrage du jeu."
+            exit 1
+          fi
+
       - name: Construire l’APK Godot V2
         shell: bash
         run: |
@@ -124,6 +134,19 @@ jobs:
             "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
           test -s build/CHK-Pirate-Warrior-V2-debug.apk
 
+      - name: Vérifier l’APK générée
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=build/CHK-Pirate-Warrior-V2-debug.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          unzip -l "$APK" | grep -q 'assets/project.binary'
+          unzip -l "$APK" | grep -q 'assets/scripts/main.gdc'
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libgodot_android.so'
+          unzip -l "$APK" | grep -q 'META-INF/ANDROIDD.RSA'
+          sha256sum "$APK" | tee apk-sha256.txt
+
       - name: Publier les journaux
         if: always()
         uses: actions/upload-artifact@v4
@@ -131,7 +154,9 @@ jobs:
           name: journaux-v2-godot
           path: |
             godot-validation.log
+            godot-runtime.log
             godot-export.log
+            apk-sha256.txt
           if-no-files-found: warn
           retention-days: 7
 
