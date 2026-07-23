@@ -13,7 +13,7 @@ var hero_id := "cheikh"
 var hero_visual: CharacterBody3D
 var move_input := Vector2.ZERO
 var camera_yaw := 0.0
-var camera_pitch := -0.22
+var camera_pitch := -0.18
 var health := 140.0
 var max_health := 140.0
 var energy := 100.0
@@ -21,7 +21,12 @@ var aura := 0.0
 var aura_time := 0.0
 var attack_cooldown := 0.0
 var skill_cooldown := 0.0
+var dodge_cooldown := 0.0
+var dodge_time := 0.0
+var dodge_direction := Vector3.ZERO
 var invulnerability := 0.0
+var combo_step := 0
+var combo_timer := 0.0
 var level := 1
 var xp := 0
 var coins := 0
@@ -47,29 +52,34 @@ func configure(data: Dictionary) -> void:
 func _physics_process(delta: float) -> void:
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
 	skill_cooldown = maxf(0.0, skill_cooldown - delta)
+	dodge_cooldown = maxf(0.0, dodge_cooldown - delta)
+	dodge_time = maxf(0.0, dodge_time - delta)
+	combo_timer = maxf(0.0, combo_timer - delta)
 	invulnerability = maxf(0.0, invulnerability - delta)
+	if combo_timer <= 0.0:
+		combo_step = 0
 	energy = minf(100.0 + float(training.get("energie", 0)) * 5.0, energy + delta * 8.0)
 	if aura_time > 0.0:
 		aura_time -= delta
 		if aura_time <= 0.0:
 			_set_aura_visual(false)
 
-	var keyboard := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var raw_input := move_input if move_input.length() > keyboard.length() else keyboard
-	var basis := Basis(Vector3.UP, camera_yaw)
-	var direction := basis * Vector3(raw_input.x, 0.0, raw_input.y)
-	if direction.length_squared() > 1.0:
-		direction = direction.normalized()
-	var speed := _movement_speed() * (1.28 if aura_time > 0.0 else 1.0)
-	velocity.x = move_toward(velocity.x, direction.x * speed, delta * 22.0)
-	velocity.z = move_toward(velocity.z, direction.z * speed, delta * 22.0)
+	var direction := _world_move_direction()
+	if dodge_time > 0.0:
+		velocity.x = dodge_direction.x * _dodge_speed()
+		velocity.z = dodge_direction.z * _dodge_speed()
+	else:
+		var speed := _movement_speed() * (1.28 if aura_time > 0.0 else 1.0)
+		velocity.x = move_toward(velocity.x, direction.x * speed, delta * 25.0)
+		velocity.z = move_toward(velocity.z, direction.z * speed, delta * 25.0)
+		if direction.length_squared() > 0.02:
+			var target_angle := atan2(-direction.x, -direction.z)
+			rotation.y = lerp_angle(rotation.y, target_angle, delta * 11.0)
 	if not is_on_floor():
 		velocity.y -= 24.0 * delta
-	if direction.length_squared() > 0.02:
-		var target_angle := atan2(-direction.x, -direction.z)
-		rotation.y = lerp_angle(rotation.y, target_angle, delta * 10.0)
 	move_and_slide()
 	_update_camera(delta)
+
 	if Input.is_action_just_pressed("attack"):
 		attack()
 	if Input.is_action_just_pressed("skill"):
@@ -78,14 +88,16 @@ func _physics_process(delta: float) -> void:
 		activate_aura()
 	if Input.is_action_just_pressed("switch_hero"):
 		switch_hero()
+	if InputMap.has_action("dodge") and Input.is_action_just_pressed("dodge"):
+		dodge()
 	_emit_stats()
 
 func set_move_input(value: Vector2) -> void:
-	move_input = value
+	move_input = value if value.length() >= 0.10 else Vector2.ZERO
 
 func add_camera_drag(relative: Vector2) -> void:
-	camera_yaw -= relative.x * 0.0045
-	camera_pitch = clampf(camera_pitch - relative.y * 0.0035, -0.65, 0.18)
+	camera_yaw -= relative.x * 0.0038
+	camera_pitch = clampf(camera_pitch - relative.y * 0.0030, -0.52, 0.12)
 
 func set_hero(new_hero_id: String) -> void:
 	if is_instance_valid(hero_visual):
@@ -106,40 +118,68 @@ func set_hero(new_hero_id: String) -> void:
 func switch_hero() -> void:
 	var index := HERO_ORDER.find(hero_id)
 	set_hero(HERO_ORDER[(index + 1) % HERO_ORDER.size()])
+	Input.vibrate_handheld(25)
 	VoiceFR.speak("Tu contrôles maintenant " + String(HeroFactory.HEROES[hero_id]["display_name"]) + ".")
 
 func attack() -> void:
-	if attack_cooldown > 0.0:
+	if attack_cooldown > 0.0 or dodge_time > 0.0:
 		return
-	attack_cooldown = 0.50 if hero_id == "cheikh" else 0.30 if hero_id == "yvane" else 0.40
-	var damage := _attack_damage()
-	var radius := 2.8 if hero_id == "cheikh" else 3.3 if hero_id == "yvane" else 3.0
-	var hits := _damage_nearby(damage, radius, 4.0)
+	_face_nearest_enemy(7.0)
+	combo_step = combo_step % 3 + 1
+	combo_timer = 0.95
+	var base_cooldown := 0.46 if hero_id == "cheikh" else 0.27 if hero_id == "yvane" else 0.35
+	attack_cooldown = base_cooldown * (1.18 if combo_step == 3 else 1.0)
+	var multiplier := 1.0 if combo_step == 1 else 1.18 if combo_step == 2 else 1.72
+	var damage := _attack_damage() * multiplier
+	var radius := (3.15 if hero_id == "cheikh" else 3.5 if hero_id == "yvane" else 3.25) + float(combo_step - 1) * 0.32
+	var push := 4.2 if combo_step < 3 else 8.5
+	var hits := _damage_nearby(damage, radius, push)
+	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.30 + float(combo_step) * 0.12)
+	Input.vibrate_handheld(22 if combo_step < 3 else 48)
 	if hits > 0:
-		aura = minf(100.0, aura + float(hits) * 7.0)
-		_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.25)
+		aura = minf(100.0, aura + float(hits) * (6.0 + combo_step))
 
 func skill() -> void:
-	if skill_cooldown > 0.0 or energy < 30.0:
+	if skill_cooldown > 0.0 or energy < 30.0 or dodge_time > 0.0:
 		return
-	skill_cooldown = 4.2 if hero_id == "cheikh" else 3.4 if hero_id == "yvane" else 3.8
+	_face_nearest_enemy(11.0)
+	skill_cooldown = 4.0 if hero_id == "cheikh" else 3.2 if hero_id == "yvane" else 3.6
 	energy -= 30.0
 	var damage := _skill_damage()
-	var radius := 6.4 if hero_id == "cheikh" else 7.5 if hero_id == "yvane" else 8.2
-	var hits := _damage_nearby(damage, radius, 10.0)
+	var radius := 6.8 if hero_id == "cheikh" else 7.8 if hero_id == "yvane" else 8.5
+	var hits := _damage_nearby(damage, radius, 11.0)
 	aura = minf(100.0, aura + float(hits) * 10.0 + 5.0)
-	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.65)
+	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.72)
+	Input.vibrate_handheld(80)
 	var skill_name := "Onde du capitaine" if hero_id == "cheikh" else "Éclair des sept vagues" if hero_id == "yvane" else "Atelier suprême Quinet"
 	VoiceFR.speak(skill_name + " !", true)
+
+func dodge() -> void:
+	if dodge_cooldown > 0.0 or dodge_time > 0.0:
+		return
+	var direction := _world_move_direction()
+	if direction.length_squared() < 0.02:
+		direction = -global_transform.basis.z
+		direction.y = 0.0
+		direction = direction.normalized()
+	dodge_direction = direction
+	dodge_time = 0.21 if hero_id == "yvane" else 0.18
+	dodge_cooldown = 0.62 if hero_id == "yvane" else 0.78
+	invulnerability = maxf(invulnerability, 0.38)
+	rotation.y = atan2(-direction.x, -direction.z)
+	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.18)
+	Input.vibrate_handheld(20)
 
 func activate_aura() -> void:
 	if aura < 100.0 or aura_time > 0.0:
 		return
 	aura = 0.0
 	aura_time = 16.0 + float(training.get("energie", 0))
+	invulnerability = maxf(invulnerability, 0.8)
 	_set_aura_visual(true)
 	_damage_nearby(_skill_damage() * 0.85, 9.5, 16.0)
 	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 1.0)
+	Input.vibrate_handheld(150)
 	var title := "Volonté du Premier Capitaine" if hero_id == "cheikh" else "Éclair Fantôme" if hero_id == "yvane" else "Génie Mécanique"
 	VoiceFR.speak(title + ". Déferlement d'énergie !", true)
 
@@ -154,6 +194,9 @@ func receive_damage(amount: float) -> void:
 	health -= amount / defense
 	invulnerability = 0.45
 	aura = minf(100.0, aura + amount * 0.45)
+	combo_step = 0
+	combo_timer = 0.0
+	Input.vibrate_handheld(65)
 	if health <= 0.0:
 		health = 0.0
 		player_defeated.emit()
@@ -182,6 +225,34 @@ func get_save_snapshot(zone: int) -> Dictionary:
 	save_data["training"] = training
 	return save_data
 
+func _world_move_direction() -> Vector3:
+	var keyboard := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var raw_input := move_input if move_input.length() > keyboard.length() else keyboard
+	var basis := Basis(Vector3.UP, camera_yaw)
+	var direction := basis * Vector3(raw_input.x, 0.0, raw_input.y)
+	if direction.length_squared() > 1.0:
+		direction = direction.normalized()
+	return direction
+
+func _face_nearest_enemy(search_radius: float) -> void:
+	var nearest: EnemyAI
+	var nearest_distance := search_radius
+	for node in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(node) or not node is EnemyAI:
+			continue
+		var enemy := node as EnemyAI
+		var offset := enemy.global_position - global_position
+		offset.y = 0.0
+		var distance := offset.length()
+		if distance < nearest_distance:
+			nearest = enemy
+			nearest_distance = distance
+	if is_instance_valid(nearest):
+		var target_direction := nearest.global_position - global_position
+		target_direction.y = 0.0
+		if target_direction.length_squared() > 0.01:
+			rotation.y = atan2(-target_direction.x, -target_direction.z)
+
 func _damage_nearby(damage: float, radius: float, push_power: float) -> int:
 	var hits := 0
 	for node in get_tree().get_nodes_in_group("enemies"):
@@ -191,7 +262,7 @@ func _damage_nearby(damage: float, radius: float, push_power: float) -> int:
 		var offset := enemy.global_position - global_position
 		offset.y = 0.0
 		if offset.length() <= radius:
-			var impulse := offset.normalized() * push_power
+			var impulse := offset.normalized() * push_power if offset.length_squared() > 0.001 else -global_transform.basis.z * push_power
 			enemy.take_damage(damage * (1.65 if aura_time > 0.0 else 1.0), impulse)
 			hits += 1
 	return hits
@@ -232,6 +303,10 @@ func _movement_speed() -> float:
 	var base := 6.3 if hero_id == "cheikh" else 8.6 if hero_id == "yvane" else 7.2
 	return base + float(training.get("vitesse", 0)) * 0.45 + float(level - 1) * 0.035
 
+func _dodge_speed() -> float:
+	var base := 18.5 if hero_id == "cheikh" else 24.0 if hero_id == "yvane" else 21.0
+	return base + float(training.get("vitesse", 0)) * 0.55
+
 func _attack_damage() -> float:
 	var base := 38.0 if hero_id == "cheikh" else 25.0 if hero_id == "yvane" else 29.0
 	return base + float(level - 1) * 4.0 + float(training.get("force", 0)) * 5.0
@@ -254,25 +329,25 @@ func _build_camera() -> void:
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "PivotCamera"
 	add_child(camera_pivot)
-	camera_pivot.position.y = 1.35
+	camera_pivot.position.y = 1.25
 	camera = Camera3D.new()
 	camera.name = "CameraJoueur"
 	camera.current = true
-	camera.fov = 62.0
+	camera.fov = 58.0
 	camera.near = 0.08
 	camera.far = 800.0
 	camera_pivot.add_child(camera)
-	camera.position = Vector3(0, 2.4, 7.8)
+	camera.position = Vector3(0, 1.72, 5.45)
 
 func _update_camera(delta: float) -> void:
 	if not is_instance_valid(camera_pivot):
 		return
-	camera_pivot.rotation.y = lerp_angle(camera_pivot.rotation.y, camera_yaw, delta * 10.0)
-	camera_pivot.rotation.x = lerpf(camera_pivot.rotation.x, camera_pitch, delta * 8.0)
+	camera_pivot.rotation.y = lerp_angle(camera_pivot.rotation.y, camera_yaw, delta * 11.0)
+	camera_pivot.rotation.x = lerpf(camera_pivot.rotation.x, camera_pitch, delta * 9.0)
 
 func _build_fx() -> void:
 	combat_fx = GPUParticles3D.new()
-	combat_fx.amount = 120
+	combat_fx.amount = 150
 	combat_fx.one_shot = true
 	combat_fx.explosiveness = 0.92
 	combat_fx.lifetime = 0.65
