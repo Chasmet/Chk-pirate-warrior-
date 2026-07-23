@@ -18,6 +18,7 @@ const ZONES := [
 
 var save_data: Dictionary = {}
 var player: PlayerController
+var hero_animator: QuinetHeroAnimator
 var visuals: WorldVisuals
 var current_zone := 0
 var zone_kills := 0
@@ -67,6 +68,10 @@ func _build_player() -> void:
 	player.name = "ÉquipageQuinet"
 	add_child(player)
 	player.configure(save_data)
+	hero_animator = QuinetHeroAnimator.new()
+	hero_animator.name = "AnimationHéros"
+	player.add_child(hero_animator)
+	hero_animator.bind(player)
 	player.enemy_defeated.connect(_on_enemy_defeated)
 	player.player_defeated.connect(_on_player_defeated)
 	player_ready.emit(player)
