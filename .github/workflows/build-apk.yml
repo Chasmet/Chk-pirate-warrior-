@@ -33,11 +33,21 @@ jobs:
       - name: Installer le SDK Android 36
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" >/dev/null
 
       - name: Tests et compilation
-        run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon --console=plain clean testDebugUnitTest lintDebug assembleDebug > gradle-build.log 2>&1
+          STATUS=$?
+          if [ "$STATUS" -ne 0 ]; then
+            echo "===== ERREUR DE COMPILATION ====="
+            grep -E -B 3 -A 8 "(^e: |error:|FAILURE:|What went wrong|Execution failed|BUILD FAILED|Could not|Exception)" gradle-build.log | tail -n 180 || tail -n 180 gradle-build.log
+            exit "$STATUS"
+          fi
+          tail -n 60 gradle-build.log
 
       - name: Renommer l'APK
         run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V1.apk
