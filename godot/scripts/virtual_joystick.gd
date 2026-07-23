@@ -1,4 +1,4 @@
-class_name VirtualJoystick
+class_name QuinetJoystick
 extends Control
 
 signal vector_changed(value: Vector2)
