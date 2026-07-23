@@ -19,6 +19,7 @@ const ZONES := [
 var save_data: Dictionary = {}
 var player: PlayerController
 var hero_animator: QuinetHeroAnimator
+var character_enhancer: QuinetReferenceCharacterEnhancer
 var visuals: WorldVisuals
 var current_zone := 0
 var zone_kills := 0
@@ -72,6 +73,10 @@ func _build_player() -> void:
 	hero_animator.name = "AnimationHéros"
 	player.add_child(hero_animator)
 	hero_animator.bind(player)
+	character_enhancer = QuinetReferenceCharacterEnhancer.new()
+	character_enhancer.name = "ModélisationRéférence"
+	player.add_child(character_enhancer)
+	character_enhancer.bind(player)
 	player.enemy_defeated.connect(_on_enemy_defeated)
 	player.player_defeated.connect(_on_player_defeated)
 	player_ready.emit(player)
