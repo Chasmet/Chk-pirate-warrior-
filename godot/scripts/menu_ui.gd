@@ -147,9 +147,9 @@ func _build_map() -> void:
 	grid.add_theme_constant_override("h_separation", 22)
 	grid.add_theme_constant_override("v_separation", 22)
 	map_screen.add_child(grid)
-	var descriptions := ["Quais, navires et premier capitaine", "Cascades, végétation et créatures", "Glace, blizzard et traces dans la neige", "Ruines, chaleur et sable", "Lave, cendres et Général Volkan", "Orages, forteresse et Amiral Vorga"]
+	var descriptions: Array[String] = ["Quais, navires et premier capitaine", "Cascades, végétation et créatures", "Glace, blizzard et traces dans la neige", "Ruines, chaleur et sable", "Lave, cendres et Général Volkan", "Orages, forteresse et Amiral Vorga"]
 	for i in range(ZONE_NAMES.size()):
-		var zone_name := ZONE_NAMES[i].replace("\n", " ")
+		var zone_name: String = String(ZONE_NAMES[i]).replace("\n", " ")
 		var zone := _button(str(i + 1) + "  •  " + zone_name + "\n" + descriptions[i], ZONE_COLORS[i], 300, 25)
 		zone.custom_minimum_size = Vector2(550, 300)
 		zone.pressed.connect(func(): zone_selected.emit(i))
