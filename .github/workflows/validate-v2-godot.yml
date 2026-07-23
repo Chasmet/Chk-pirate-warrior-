@@ -68,7 +68,7 @@ jobs:
 
           test -x "$ANDROID_SDK_ROOT/platform-tools/adb"
           test -d "$ANDROID_SDK_ROOT/platforms/android-35"
-          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.1"
+          test -x "$ANDROID_SDK_ROOT/build-tools/35.0.1/aapt"
           test -s "$HOME/.android/debug.keystore"
 
       - name: Installer Godot 4.7.1 officiel
@@ -134,17 +134,20 @@ jobs:
             "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
           test -s build/CHK-Pirate-Warrior-V2-debug.apk
 
-      - name: Vérifier l’APK générée
+      - name: Vérifier l’APK et le mode paysage
         shell: bash
         run: |
           set -euo pipefail
           APK=build/CHK-Pirate-Warrior-V2-debug.apk
+          AAPT="$ANDROID_SDK_ROOT/build-tools/35.0.1/aapt"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           unzip -l "$APK" | grep -q 'assets/project.binary'
           unzip -l "$APK" | grep -q 'assets/scripts/main.gdc'
           unzip -l "$APK" | grep -q 'lib/arm64-v8a/libgodot_android.so'
           unzip -l "$APK" | grep -q 'META-INF/ANDROIDD.RSA'
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | tee apk-manifest.txt
+          grep -E 'android:screenOrientation.*(landscape|0x0)' apk-manifest.txt
           sha256sum "$APK" | tee apk-sha256.txt
 
       - name: Publier les journaux
@@ -156,6 +159,7 @@ jobs:
             godot-validation.log
             godot-runtime.log
             godot-export.log
+            apk-manifest.txt
             apk-sha256.txt
           if-no-files-found: warn
           retention-days: 7
