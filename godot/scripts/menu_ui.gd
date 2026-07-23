@@ -16,6 +16,8 @@ const RED := Color("a82e2c")
 const BLUE := Color("256fa3")
 const GREEN := Color("2f8b5d")
 const PURPLE := Color("785a9e")
+const ZONE_NAMES := ["PORT DES\nNAUFRAGÉS", "JUNGLE\nSAUVAGE", "ROYAUME\nDES NEIGES", "DÉSERT DES\nCORSAIRES", "ÎLE\nVOLCANIQUE", "FORTERESSE\nDE LA TEMPÊTE"]
+const ZONE_COLORS := [Color("446a73"), Color("26704a"), Color("78aaca"), Color("bd813e"), RED, Color("485d78")]
 
 var screens: Array[Control] = []
 var main_menu: Control
@@ -60,28 +62,13 @@ func set_voice(active: bool) -> void:
 
 func _build_main() -> void:
 	main_menu = _screen("", "")
-
-	var left := PanelContainer.new()
-	left.position = Vector2(18, 18)
-	left.size = Vector2(410, 828)
-	left.add_theme_stylebox_override("panel", _style(PANEL, GOLD, 26, 4))
-	main_menu.add_child(left)
+	var left := _panel(main_menu, Vector2(18, 18), Vector2(410, 828), GOLD)
 	var left_box := VBoxContainer.new()
 	left_box.add_theme_constant_override("separation", 11)
 	left.add_child(left_box)
-	var logo := Label.new()
-	logo.text = "☠  CHK PIRATE WARRIOR"
-	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	logo.add_theme_font_size_override("font_size", 37)
-	logo.add_theme_color_override("font_color", GOLD_LIGHT)
-	left_box.add_child(logo)
-	var subtitle := Label.new()
-	subtitle.text = "L'ARCHIPEL DES QUINET"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 22)
-	subtitle.add_theme_color_override("font_color", Color("d7c9aa"))
-	left_box.add_child(subtitle)
-	left_box.add_child(_separator())
+	left_box.add_child(_title("☠  CHK PIRATE WARRIOR", 37))
+	left_box.add_child(_title("L'ARCHIPEL DES QUINET", 22, Color("d7c9aa")))
+	left_box.add_child(HSeparator.new())
 	var actions := [
 		["⚔  JOUER", RED, func(): play_requested.emit(true)],
 		["▶  CONTINUER", BLUE, func(): play_requested.emit(false)],
@@ -90,9 +77,9 @@ func _build_main() -> void:
 		["⚙  PARAMÈTRES", Color("4f5968"), func(): _show(settings_screen)]
 	]
 	for action in actions:
-		var button := _button(String(action[0]), Color(action[1]), 88, 27)
-		button.pressed.connect(action[2])
-		left_box.add_child(button)
+		var action_button := _button(String(action[0]), Color(action[1]), 88, 27)
+		action_button.pressed.connect(action[2])
+		left_box.add_child(action_button)
 	var galleries := HBoxContainer.new()
 	galleries.add_theme_constant_override("separation", 10)
 	left_box.add_child(galleries)
@@ -105,58 +92,33 @@ func _build_main() -> void:
 	bosses.pressed.connect(func(): _show(bosses_screen))
 	galleries.add_child(bosses)
 
-	var center := PanelContainer.new()
-	center.position = Vector2(446, 18)
-	center.size = Vector2(850, 828)
-	center.add_theme_stylebox_override("panel", _style(Color(0.005, 0.018, 0.035, 0.82), Color("7b6040"), 26, 3))
-	main_menu.add_child(center)
+	var center := _panel(main_menu, Vector2(446, 18), Vector2(850, 828), Color("7b6040"))
 	var center_box := VBoxContainer.new()
 	center_box.add_theme_constant_override("separation", 6)
 	center.add_child(center_box)
-	var crew_title := Label.new()
-	crew_title.text = "L'ÉQUIPAGE QUINET"
-	crew_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crew_title.add_theme_font_size_override("font_size", 38)
-	crew_title.add_theme_color_override("font_color", GOLD_LIGHT)
-	center_box.add_child(crew_title)
-	var crew_subtitle := Label.new()
-	crew_subtitle.text = "AVENTURE  •  FAMILLE  •  LÉGENDE"
-	crew_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crew_subtitle.add_theme_font_size_override("font_size", 19)
-	crew_subtitle.add_theme_color_override("font_color", Color("cdbd9b"))
-	center_box.add_child(crew_subtitle)
+	center_box.add_child(_title("L'ÉQUIPAGE QUINET", 38))
+	center_box.add_child(_title("AVENTURE  •  FAMILLE  •  LÉGENDE", 19, Color("cdbd9b")))
 	var hero_row := HBoxContainer.new()
 	hero_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	hero_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hero_row.add_theme_constant_override("separation", 10)
 	center_box.add_child(hero_row)
-	for id in ["nelvyn", "cheikh", "yvane"]:
-		hero_row.add_child(_hero_card(id, Vector2(255, 670), false))
+	for hero_id in ["nelvyn", "cheikh", "yvane"]:
+		hero_row.add_child(_hero_card(hero_id, Vector2(255, 670), false))
 
-	var right := PanelContainer.new()
-	right.position = Vector2(1314, 18)
-	right.size = Vector2(588, 828)
-	right.add_theme_stylebox_override("panel", _style(PANEL, Color("6d8da0"), 26, 4))
-	main_menu.add_child(right)
+	var right := _panel(main_menu, Vector2(1314, 18), Vector2(588, 828), Color("6d8da0"))
 	var right_box := VBoxContainer.new()
 	right_box.add_theme_constant_override("separation", 10)
 	right.add_child(right_box)
-	var map_title := Label.new()
-	map_title.text = "CARTE DU MONDE"
-	map_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_title.add_theme_font_size_override("font_size", 36)
-	map_title.add_theme_color_override("font_color", GOLD_LIGHT)
-	right_box.add_child(map_title)
+	right_box.add_child(_title("CARTE DU MONDE", 36))
 	var map_grid := GridContainer.new()
 	map_grid.columns = 2
 	map_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map_grid.add_theme_constant_override("h_separation", 10)
 	map_grid.add_theme_constant_override("v_separation", 10)
 	right_box.add_child(map_grid)
-	var names := ["PORT DES\nNAUFRAGÉS", "JUNGLE\nSAUVAGE", "ROYAUME\nDES NEIGES", "DÉSERT DES\nCORSAIRES", "ÎLE\nVOLCANIQUE", "FORTERESSE\nDE LA TEMPÊTE"]
-	var colors := [Color("446a73"), Color("26704a"), Color("78aaca"), Color("bd813e"), RED, Color("485d78")]
-	for i in range(names.size()):
-		var zone := _button(str(i + 1) + "\n" + names[i], colors[i], 173, 20)
+	for i in range(ZONE_NAMES.size()):
+		var zone := _button(str(i + 1) + "\n" + ZONE_NAMES[i], ZONE_COLORS[i], 173, 20)
 		zone.custom_minimum_size = Vector2(270, 173)
 		zone.pressed.connect(func(): zone_selected.emit(i))
 		map_grid.add_child(zone)
@@ -172,8 +134,8 @@ func _build_heroes() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 22)
 	hero_screen.add_child(row)
-	for id in ["nelvyn", "cheikh", "yvane"]:
-		row.add_child(_hero_card(id, Vector2(570, 675), true))
+	for hero_id in ["nelvyn", "cheikh", "yvane"]:
+		row.add_child(_hero_card(hero_id, Vector2(570, 675), true))
 	_add_back(hero_screen)
 
 func _build_map() -> void:
@@ -185,54 +147,38 @@ func _build_map() -> void:
 	grid.add_theme_constant_override("h_separation", 22)
 	grid.add_theme_constant_override("v_separation", 22)
 	map_screen.add_child(grid)
-	var names := ["PORT DES NAUFRAGÉS", "JUNGLE SAUVAGE", "ROYAUME DES NEIGES", "DÉSERT DES CORSAIRES", "ÎLE VOLCANIQUE", "FORTERESSE DE LA TEMPÊTE"]
-	var descriptions := ["Quais, navires et premier capitaine", "Cascades, végétation et créatures", "Glace, blizzard et traces dans la neige", "Ruines, chaleur et tempêtes de sable", "Lave, cendres et Général Volkan", "Orages, forteresse et Amiral Vorga"]
-	var colors := [Color("446a73"), Color("26704a"), Color("78aaca"), Color("bd813e"), RED, Color("485d78")]
-	for i in range(names.size()):
-		var button := _button(str(i + 1) + "  •  " + names[i] + "\n" + descriptions[i], colors[i], 300, 25)
-		button.custom_minimum_size = Vector2(550, 300)
-		button.pressed.connect(func(): zone_selected.emit(i))
-		grid.add_child(button)
+	var descriptions := ["Quais, navires et premier capitaine", "Cascades, végétation et créatures", "Glace, blizzard et traces dans la neige", "Ruines, chaleur et sable", "Lave, cendres et Général Volkan", "Orages, forteresse et Amiral Vorga"]
+	for i in range(ZONE_NAMES.size()):
+		var zone_name := ZONE_NAMES[i].replace("\n", " ")
+		var zone := _button(str(i + 1) + "  •  " + zone_name + "\n" + descriptions[i], ZONE_COLORS[i], 300, 25)
+		zone.custom_minimum_size = Vector2(550, 300)
+		zone.pressed.connect(func(): zone_selected.emit(i))
+		grid.add_child(zone)
 	_add_map_back()
 
-func _build_gallery(bosses: bool) -> Control:
-	var screen := _screen("TOUS LES BOSS" if bosses else "TOUS LES ENNEMIS", "Galerie complète des adversaires du jeu.")
+func _build_gallery(is_bosses: bool) -> Control:
+	var screen := _screen("TOUS LES BOSS" if is_bosses else "TOUS LES ENNEMIS", "Galerie complète des adversaires du jeu.")
 	var scroll := ScrollContainer.new()
 	scroll.position = Vector2(70, 135)
 	scroll.size = Vector2(1780, 700)
 	screen.add_child(scroll)
 	var grid := GridContainer.new()
-	grid.columns = 3 if bosses else 4
+	grid.columns = 3 if is_bosses else 4
 	grid.add_theme_constant_override("h_separation", 16)
 	grid.add_theme_constant_override("v_separation", 16)
 	scroll.add_child(grid)
-	var profiles := EnemyFactory.BOSSES if bosses else EnemyFactory.ENEMIES
+	var profiles := EnemyFactory.BOSSES if is_bosses else EnemyFactory.ENEMIES
 	for profile in profiles:
-		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(565 if bosses else 425, 250 if bosses else 205)
-		panel.add_theme_stylebox_override("panel", _style(PANEL, Color(profile["color"]), 22, 3))
-		var column := VBoxContainer.new()
-		column.alignment = BoxContainer.ALIGNMENT_CENTER
-		panel.add_child(column)
-		var icon := Label.new()
-		icon.text = "☠" if bosses else "⚔"
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.add_theme_font_size_override("font_size", 64 if bosses else 48)
-		icon.add_theme_color_override("font_color", Color(profile["color"]).lightened(0.25))
-		column.add_child(icon)
-		var label := Label.new()
-		label.text = String(profile["name"]).to_upper()
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.add_theme_font_size_override("font_size", 24 if bosses else 20)
-		label.add_theme_color_override("font_color", GOLD_LIGHT)
-		column.add_child(label)
-		var stats := Label.new()
-		stats.text = "VIE %d   •   PUISSANCE %d" % [int(profile["health"]), int(profile["damage"])]
-		stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stats.add_theme_font_size_override("font_size", 17)
-		column.add_child(stats)
-		grid.add_child(panel)
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(565 if is_bosses else 425, 250 if is_bosses else 205)
+		card.add_theme_stylebox_override("panel", _style(PANEL, Color(profile["color"]), 22, 3))
+		var box := VBoxContainer.new()
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		card.add_child(box)
+		box.add_child(_title("☠" if is_bosses else "⚔", 64 if is_bosses else 48, Color(profile["color"]).lightened(0.25)))
+		box.add_child(_title(String(profile["name"]).to_upper(), 24 if is_bosses else 20))
+		box.add_child(_title("VIE %d   •   PUISSANCE %d" % [int(profile["health"]), int(profile["damage"])], 17, Color("d6dde2")))
+		grid.add_child(card)
 	_add_back(screen)
 	return screen
 
@@ -251,90 +197,58 @@ func _build_training() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 24)
 	training_screen.add_child(row)
-	for data in [["force", "FORCE", RED, "⚔", "Dégâts et résistance"], ["vitesse", "VITESSE", BLUE, "⚡", "Course et esquive"], ["energie", "ÉNERGIE", GREEN, "✦", "Pouvoirs et aura"]]:
-		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(550, 560)
-		panel.add_theme_stylebox_override("panel", _style(PANEL, Color(data[2]), 28, 4))
-		var column := VBoxContainer.new()
-		column.alignment = BoxContainer.ALIGNMENT_CENTER
-		column.add_theme_constant_override("separation", 18)
-		panel.add_child(column)
-		var icon := Label.new()
-		icon.text = String(data[3])
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.add_theme_font_size_override("font_size", 105)
-		icon.add_theme_color_override("font_color", Color(data[2]))
-		column.add_child(icon)
-		var title := Label.new()
-		title.text = String(data[1])
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", 42)
-		column.add_child(title)
-		var detail := Label.new()
-		detail.text = String(data[4])
-		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		detail.add_theme_font_size_override("font_size", 23)
-		column.add_child(detail)
-		var button := _button("S'ENTRAÎNER", Color(data[2]), 90, 28)
+	var training_cards := [["force", "FORCE", RED, "⚔", "Dégâts et résistance"], ["vitesse", "VITESSE", BLUE, "⚡", "Course et esquive"], ["energie", "ÉNERGIE", GREEN, "✦", "Pouvoirs et aura"]]
+	for data in training_cards:
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(550, 560)
+		card.add_theme_stylebox_override("panel", _style(PANEL, Color(data[2]), 28, 4))
+		var box := VBoxContainer.new()
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_theme_constant_override("separation", 18)
+		card.add_child(box)
+		box.add_child(_title(String(data[3]), 105, Color(data[2])))
+		box.add_child(_title(String(data[1]), 42))
+		box.add_child(_title(String(data[4]), 23, Color("d6dde2")))
+		var train := _button("S'ENTRAÎNER", Color(data[2]), 90, 28)
 		var stat_name := String(data[0])
-		button.pressed.connect(func(): training_requested.emit(stat_name))
-		column.add_child(button)
-		row.add_child(panel)
+		train.pressed.connect(func(): training_requested.emit(stat_name))
+		box.add_child(train)
+		row.add_child(card)
 	_add_back(training_screen)
 
 func _build_settings() -> void:
 	settings_screen = _screen("PARAMÈTRES", "Réglages adaptés au téléphone Android.")
-	var panel := PanelContainer.new()
-	panel.position = Vector2(500, 180)
-	panel.size = Vector2(920, 570)
-	panel.add_theme_stylebox_override("panel", _style(PANEL, GOLD, 28, 4))
-	settings_screen.add_child(panel)
-	var column := VBoxContainer.new()
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 28)
-	panel.add_child(column)
+	var panel := _panel(settings_screen, Vector2(500, 180), Vector2(920, 570), GOLD)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 28)
+	panel.add_child(box)
 	voice_button = _button("VOIX FRANÇAISE : ACTIVÉE", BLUE, 94, 28)
 	voice_button.pressed.connect(func(): voice_enabled = not voice_enabled; set_voice(voice_enabled); voice_toggled.emit(voice_enabled))
-	column.add_child(voice_button)
-	var quality := Label.new()
-	quality.text = "QUALITÉ GRAPHIQUE : ÉLEVÉE\nPAYSAGE 20:9 VERROUILLÉ\nSAUVEGARDE LOCALE\nFONCTIONNEMENT HORS CONNEXION"
-	quality.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	quality.add_theme_font_size_override("font_size", 28)
-	quality.add_theme_color_override("font_color", GOLD_LIGHT)
-	column.add_child(quality)
+	box.add_child(voice_button)
+	box.add_child(_title("QUALITÉ GRAPHIQUE : ÉLEVÉE\nPAYSAGE 20:9 VERROUILLÉ\nSAUVEGARDE LOCALE\nFONCTIONNEMENT HORS CONNEXION", 28))
 	_add_back(settings_screen)
 
-func _hero_card(id: String, card_size: Vector2, selectable: bool) -> PanelContainer:
-	var profile: Dictionary = HeroFactory.HEROES[id]
+func _hero_card(hero_id: String, card_size: Vector2, selectable: bool) -> PanelContainer:
+	var profile: Dictionary = HeroFactory.HEROES[hero_id]
 	var card := PanelContainer.new()
 	card.custom_minimum_size = card_size
 	card.add_theme_stylebox_override("panel", _style(PANEL_SOFT, Color(profile["aura"]), 24, 3))
-	var column := VBoxContainer.new()
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 4)
-	card.add_child(column)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 4)
+	card.add_child(box)
 	var preview_height := card_size.y - (185 if selectable else 120)
-	var preview := _hero_preview(id, Vector2(card_size.x - 18, preview_height))
-	column.add_child(preview)
-	var name := Label.new()
-	name.text = String(profile["display_name"])
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", 34 if selectable else 28)
-	name.add_theme_color_override("font_color", GOLD_LIGHT)
-	column.add_child(name)
-	var role := Label.new()
-	role.text = String(profile["role"])
-	role.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	role.add_theme_font_size_override("font_size", 19)
-	role.add_theme_color_override("font_color", Color("d2dbe0"))
-	column.add_child(role)
+	box.add_child(_hero_preview(hero_id, Vector2(card_size.x - 18, preview_height)))
+	box.add_child(_title(String(profile["display_name"]), 34 if selectable else 28))
+	box.add_child(_title(String(profile["role"]), 19, Color("d2dbe0")))
 	if selectable:
 		var choose := _button("CHOISIR " + String(profile["display_name"]), Color(profile["aura"]), 72, 23)
-		choose.pressed.connect(func(): hero_selected.emit(id))
-		column.add_child(choose)
+		choose.pressed.connect(func(): hero_selected.emit(hero_id))
+		box.add_child(choose)
 	return card
 
-func _hero_preview(id: String, preview_size: Vector2) -> SubViewportContainer:
+func _hero_preview(hero_id: String, preview_size: Vector2) -> SubViewportContainer:
 	var container := SubViewportContainer.new()
 	container.custom_minimum_size = preview_size
 	container.stretch = true
@@ -346,18 +260,17 @@ func _hero_preview(id: String, preview_size: Vector2) -> SubViewportContainer:
 	container.add_child(viewport)
 	var stage := Node3D.new()
 	viewport.add_child(stage)
-	var hero := HeroFactory.create_hero(id)
+	var hero := HeroFactory.create_hero(hero_id)
 	stage.add_child(hero)
-	hero.scale = Vector3.ONE * (1.55 if id == "cheikh" else 1.75)
-	hero.position = Vector3(0, -0.02, 0)
+	hero.scale = Vector3.ONE * (1.55 if hero_id == "cheikh" else 1.75)
 	var nameplate := hero.get_node_or_null("Nom")
 	if nameplate != null:
 		nameplate.hide()
 	var camera := Camera3D.new()
-	camera.position = Vector3(0, 1.20, -4.15 if id == "cheikh" else -3.65)
-	camera.look_at(Vector3(0, 0.92, 0), Vector3.UP)
-	camera.fov = 35.0
 	stage.add_child(camera)
+	camera.position = Vector3(0, 1.20, -4.15 if hero_id == "cheikh" else -3.65)
+	camera.look_at_from_position(camera.position, Vector3(0, 0.92, 0), Vector3.UP)
+	camera.fov = 35.0
 	camera.current = true
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, 145, 0)
@@ -367,7 +280,7 @@ func _hero_preview(id: String, preview_size: Vector2) -> SubViewportContainer:
 	var fill := OmniLight3D.new()
 	fill.position = Vector3(-1.8, 1.6, -2.0)
 	fill.light_energy = 5.0
-	fill.light_color = Color(profile_color(id))
+	fill.light_color = Color(HeroFactory.HEROES[hero_id]["aura"])
 	fill.omni_range = 6.0
 	stage.add_child(fill)
 	var environment_node := WorldEnvironment.new()
@@ -380,9 +293,6 @@ func _hero_preview(id: String, preview_size: Vector2) -> SubViewportContainer:
 	environment_node.environment = environment
 	stage.add_child(environment_node)
 	return container
-
-func profile_color(id: String) -> String:
-	return String(HeroFactory.HEROES[id]["aura"]).trim_prefix("(").trim_suffix(")") if false else String(HeroFactory.HEROES[id]["aura"].to_html(false))
 
 func _screen(title_text: String, subtitle: String) -> Control:
 	var screen := Control.new()
@@ -400,22 +310,33 @@ func _screen(title_text: String, subtitle: String) -> Control:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.add_child(shade)
 	if not title_text.is_empty():
-		var title := Label.new()
-		title.text = title_text
+		var title := _title(title_text, 48)
 		title.position = Vector2(170, 22)
 		title.size = Vector2(1580, 72)
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", 48)
-		title.add_theme_color_override("font_color", GOLD_LIGHT)
 		screen.add_child(title)
-		var sub := Label.new()
-		sub.text = subtitle
+		var sub := _title(subtitle, 20, Color("d6dde2"))
 		sub.position = Vector2(260, 86)
 		sub.size = Vector2(1400, 38)
-		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		sub.add_theme_font_size_override("font_size", 20)
 		screen.add_child(sub)
 	return screen
+
+func _panel(parent: Control, position: Vector2, panel_size: Vector2, border: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.position = position
+	panel.size = panel_size
+	panel.add_theme_stylebox_override("panel", _style(PANEL, border, 26, 4))
+	parent.add_child(panel)
+	return panel
+
+func _title(text_value: String, font_size: int, color: Color = GOLD_LIGHT) -> Label:
+	var label := Label.new()
+	label.text = text_value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	return label
 
 func _add_back(screen: Control) -> void:
 	var back := _button("← RETOUR", Color("243b52"), 66, 21)
@@ -442,14 +363,9 @@ func _show(target: Control) -> void:
 		screen.hide()
 	target.show()
 
-func _separator() -> HSeparator:
-	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 8)
-	return separator
-
-func _button(text: String, color: Color, height: float, font_size: int = 24) -> Button:
+func _button(text_value: String, color: Color, height: float, font_size: int = 24) -> Button:
 	var button := Button.new()
-	button.text = text
+	button.text = text_value
 	button.custom_minimum_size.y = height
 	button.add_theme_font_size_override("font_size", font_size)
 	button.add_theme_stylebox_override("normal", _style(Color(color, 0.92), GOLD, 18, 3))
