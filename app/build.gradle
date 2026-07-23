@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'fr.chk.piratewarrior'
-    compileSdk 37
+    compileSdk 36
 
     defaultConfig {
         applicationId 'fr.chk.piratewarrior'
         minSdk 26
-        targetSdk 37
+        targetSdk 36
         versionCode 1
         versionName '1.0.0'
     }
