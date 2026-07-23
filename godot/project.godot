@@ -1,5 +1,5 @@
-; CHK Pirate Warrior V2 — Godot 4.6
-; Projet mobile 3D en français.
+; CHK Pirate Warrior V2 — Godot 4.7.1
+; Monde ouvert 3D mobile en français.
 
 config_version=5
 
@@ -7,8 +7,8 @@ config_version=5
 
 config/name="CHK Pirate Warrior V2"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.6", "Mobile")
-boot_splash/bg_color=Color(0.015, 0.035, 0.07, 1)
+config/features=PackedStringArray("4.7", "Mobile")
+boot_splash/bg_color=Color(0.012, 0.026, 0.052, 1)
 boot_splash/show_image=false
 
 [display]
@@ -28,16 +28,21 @@ renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
 renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
-textures/default_filters/anisotropic_filtering_level=2
+textures/default_filters/anisotropic_filtering_level=4
 lights_and_shadows/directional_shadow/size=4096
 anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/use_debanding=true
 occlusion_culling/use_occlusion_culling=true
+environment/defaults/default_clear_color=Color(0.02, 0.08, 0.15, 1)
 
 [physics]
 
 common/physics_ticks_per_second=60
 3d/default_gravity=24.0
+
+[audio]
+
+general/text_to_speech=true
 
 [input]
 
