@@ -27,7 +27,7 @@ func update_world(delta: float, player_position: Vector3) -> void:
 	particles.global_position = player_position + Vector3(0, 12, 0)
 
 func set_zone_weather(zone_index: int) -> void:
-	var weather := WEATHER[clampi(zone_index, 0, WEATHER.size() - 1)]
+	var weather: String = String(WEATHER[clampi(zone_index, 0, WEATHER.size() - 1)])
 	var quad := particles.draw_pass_1 as QuadMesh
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
