@@ -71,15 +71,15 @@ jobs:
           test -d "$ANDROID_SDK_ROOT/build-tools/35.0.1"
           test -s "$HOME/.android/debug.keystore"
 
-      - name: Installer Godot 4.6.3 officiel
+      - name: Installer Godot 4.7.1 officiel
         shell: bash
         run: |
           set -euo pipefail
           curl -L --fail --retry 3 \
             -o godot.zip \
-            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
           unzip -q godot.zip -d "$RUNNER_TEMP/godot"
-          GODOT_BIN=$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_v4.6.3-stable_linux*' | head -n 1)
+          GODOT_BIN=$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_v4.7.1-stable_linux*' | head -n 1)
           chmod +x "$GODOT_BIN"
           echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
           "$GODOT_BIN" --version
@@ -90,11 +90,11 @@ jobs:
           set -euo pipefail
           curl -L --fail --retry 3 \
             -o templates.tpz \
-            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
+            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
           rm -rf "$RUNNER_TEMP/export-templates"
           mkdir -p "$RUNNER_TEMP/export-templates"
           unzip -q templates.tpz -d "$RUNNER_TEMP/export-templates"
-          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.7.1.stable"
           mkdir -p "$TEMPLATE_DIR"
           cp -R "$RUNNER_TEMP/export-templates/templates/." "$TEMPLATE_DIR/"
           test -s "$TEMPLATE_DIR/android_debug.apk"
