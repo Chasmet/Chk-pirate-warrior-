@@ -63,6 +63,9 @@ func _build_ui() -> void:
 	ui.aura_requested.connect(func():
 		if is_instance_valid(player): player.activate_aura()
 	)
+	ui.dodge_requested.connect(func():
+		if is_instance_valid(player): player.dodge()
+	)
 	ui.switch_requested.connect(func():
 		if is_instance_valid(player): player.switch_hero()
 	)
