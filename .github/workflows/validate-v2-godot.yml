@@ -19,7 +19,7 @@ permissions:
 jobs:
   validation-et-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
 
     steps:
       - name: Récupérer le dépôt
@@ -145,12 +145,58 @@ jobs:
           unzip -l "$APK" | grep -q 'assets/project.binary'
           unzip -l "$APK" | grep -q 'assets/scripts/main.gdc'
           unzip -l "$APK" | grep -q 'lib/arm64-v8a/libgodot_android.so'
+          unzip -l "$APK" | grep -q 'lib/x86_64/libgodot_android.so'
           unzip -l "$APK" | grep -q 'META-INF/ANDROIDD.RSA'
           "$AAPT" dump xmltree "$APK" AndroidManifest.xml | tee apk-manifest.txt
           grep -E 'android:screenOrientation.*(landscape|0x0)' apk-manifest.txt
           sha256sum "$APK" | tee apk-sha256.txt
 
-      - name: Publier les journaux
+      - name: Activer l’accélération du téléphone virtuel
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Tester sur un téléphone Android virtuel
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -euo pipefail
+            adb install -r build/CHK-Pirate-Warrior-V2-debug.apk
+            adb logcat -c
+            adb shell monkey -p fr.chk.piratewarrior.v2 -c android.intent.category.LAUNCHER 1
+            sleep 15
+            adb shell wm size | tee android-window.txt
+            adb shell dumpsys activity activities | grep -m 1 'mResumedActivity' | tee -a android-window.txt
+            adb shell dumpsys window displays | grep -E -m 3 'orientation|mCurrentFocus|mFocusedApp' | tee -a android-window.txt || true
+            adb exec-out screencap -p > android-emulator.png
+            python3 - <<'PY'
+            import struct
+            from pathlib import Path
+            path = Path('android-emulator.png')
+            assert path.stat().st_size > 10000, 'Capture Android vide'
+            with path.open('rb') as stream:
+                stream.seek(16)
+                width, height = struct.unpack('>II', stream.read(8))
+            print(f'Capture Android: {width}x{height}')
+            assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
+            PY
+            adb logcat -d > android-logcat.txt
+            if grep -E 'FATAL EXCEPTION|AndroidRuntime: FATAL|Process: fr.chk.piratewarrior.v2.*has died' android-logcat.txt; then
+              echo 'Crash Android détecté.'
+              exit 1
+            fi
+            grep -q 'fr.chk.piratewarrior.v2' android-window.txt
+
+      - name: Publier les journaux et la capture Android
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -161,6 +207,9 @@ jobs:
             godot-export.log
             apk-manifest.txt
             apk-sha256.txt
+            android-window.txt
+            android-logcat.txt
+            android-emulator.png
           if-no-files-found: warn
           retention-days: 7
 
