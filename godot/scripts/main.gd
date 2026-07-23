@@ -1,0 +1,203 @@
+extends Node
+
+var save_data: Dictionary
+var world: GameWorld
+var ui: GameUI
+var player: PlayerController
+var autosave_timer := 0.0
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	save_data = SaveSystem.load_data()
+	VoiceFR.initialize(bool(save_data.get("voice", true)))
+	_build_world()
+	_build_ui()
+	_enter_menu()
+	VoiceFR.speak("Bienvenue dans CHK Pirate Warrior. L'Archipel des Quinet.")
+
+func _process(delta: float) -> void:
+	if get_tree().paused:
+		return
+	autosave_timer += delta
+	if autosave_timer >= 12.0:
+		autosave_timer = 0.0
+		_save_progress()
+
+func _build_world() -> void:
+	if is_instance_valid(world):
+		world.queue_free()
+	world = GameWorld.new()
+	world.name = "Monde3D"
+	add_child(world)
+	world.configure(save_data)
+	world.player_ready.connect(_on_player_ready)
+	world.zone_changed.connect(_on_zone_changed)
+	world.mission_changed.connect(_on_mission_changed)
+	world.weather_changed.connect(_on_weather_changed)
+	world.boss_defeated.connect(_on_boss_defeated)
+	player = world.get_player()
+	_connect_player()
+
+func _build_ui() -> void:
+	ui = GameUI.new()
+	ui.name = "InterfaceFrançaise"
+	add_child(ui)
+	ui.play_requested.connect(_start_game)
+	ui.hero_selected.connect(_select_hero)
+	ui.zone_selected.connect(_travel_to_zone)
+	ui.training_requested.connect(_train)
+	ui.attack_requested.connect(func():
+		if is_instance_valid(player): player.attack()
+	)
+	ui.skill_requested.connect(func():
+		if is_instance_valid(player): player.skill()
+	)
+	ui.aura_requested.connect(func():
+		if is_instance_valid(player): player.activate_aura()
+	)
+	ui.switch_requested.connect(func():
+		if is_instance_valid(player): player.switch_hero()
+	)
+	ui.move_changed.connect(func(value: Vector2):
+		if is_instance_valid(player): player.set_move_input(value)
+	)
+	ui.camera_dragged.connect(func(relative: Vector2):
+		if is_instance_valid(player): player.add_camera_drag(relative)
+	)
+	ui.pause_requested.connect(_pause_game)
+	ui.resume_requested.connect(_resume_game)
+	ui.quit_to_menu_requested.connect(_quit_to_menu)
+	ui.voice_toggled.connect(_toggle_voice)
+	ui.set_voice_enabled(bool(save_data.get("voice", true)))
+	_sync_ui()
+
+func _connect_player() -> void:
+	if not is_instance_valid(player):
+		return
+	player.stats_changed.connect(_on_stats_changed)
+	player.hero_changed.connect(_on_hero_changed)
+	player.player_defeated.connect(_on_player_defeated)
+
+func _enter_menu() -> void:
+	get_tree().paused = false
+	world.visible = false
+	world.process_mode = Node.PROCESS_MODE_DISABLED
+	ui.show_main_menu()
+
+func _start_game(new_game: bool) -> void:
+	if new_game:
+		save_data = SaveSystem.default_data()
+		VoiceFR.enabled = bool(save_data.get("voice", true))
+		_build_world()
+	world.visible = true
+	world.process_mode = Node.PROCESS_MODE_INHERIT
+	get_tree().paused = false
+	ui.show_hud()
+	_sync_ui()
+	VoiceFR.speak("L'aventure commence. Protège ta famille et libère l'archipel.")
+
+func _pause_game() -> void:
+	if not world.visible:
+		return
+	_save_progress()
+	get_tree().paused = true
+
+func _resume_game() -> void:
+	get_tree().paused = false
+	ui.show_hud()
+
+func _quit_to_menu() -> void:
+	get_tree().paused = false
+	_save_progress()
+	_enter_menu()
+
+func _select_hero(hero_id: String) -> void:
+	save_data["hero"] = hero_id
+	if is_instance_valid(player):
+		player.set_hero(hero_id)
+	_save_progress()
+
+func _travel_to_zone(zone_index: int) -> void:
+	if not world.visible:
+		world.visible = true
+		world.process_mode = Node.PROCESS_MODE_INHERIT
+	if get_tree().paused:
+		get_tree().paused = false
+	world.travel_to_zone(zone_index)
+	ui.show_hud()
+	_save_progress()
+
+func _train(stat_name: String) -> void:
+	if not is_instance_valid(player):
+		return
+	if player.train(stat_name):
+		VoiceFR.speak("Entraînement de " + stat_name + " terminé.")
+		_save_progress()
+		ui.update_stats(player.health, player.max_health, player.energy, player.aura, player.level, player.xp, player.coins)
+	else:
+		VoiceFR.speak("Tu n'as pas assez de pièces pour cet entraînement.")
+
+func _toggle_voice(active: bool) -> void:
+	save_data["voice"] = active
+	VoiceFR.enabled = active
+	if active:
+		VoiceFR.initialize(true)
+		VoiceFR.speak("Voix française activée.")
+	else:
+		VoiceFR.stop()
+	_save_progress()
+
+func _on_player_ready(new_player: PlayerController) -> void:
+	player = new_player
+	_connect_player()
+
+func _on_stats_changed(health: float, max_health: float, energy: float, aura: float, level: int, xp: int, coins: int) -> void:
+	if is_instance_valid(ui):
+		ui.update_stats(health, max_health, energy, aura, level, xp, coins)
+
+func _on_hero_changed(hero_id: String, display_name: String) -> void:
+	save_data["hero"] = hero_id
+	if is_instance_valid(ui):
+		ui.update_hero(hero_id, display_name)
+
+func _on_zone_changed(zone_index: int, zone_name: String) -> void:
+	save_data["zone"] = zone_index
+	if is_instance_valid(ui):
+		ui.update_zone(zone_name)
+
+func _on_mission_changed(text: String) -> void:
+	if is_instance_valid(ui):
+		ui.update_mission(text)
+
+func _on_weather_changed(label: String) -> void:
+	if is_instance_valid(ui):
+		ui.update_weather(label)
+
+func _on_boss_defeated(_boss_id: String) -> void:
+	_save_progress()
+
+func _on_player_defeated() -> void:
+	if is_instance_valid(ui):
+		ui.show_game_over()
+	await get_tree().create_timer(2.1).timeout
+	if is_instance_valid(ui):
+		ui.show_hud()
+
+func _sync_ui() -> void:
+	if not is_instance_valid(ui) or not is_instance_valid(player):
+		return
+	var profile: Dictionary = HeroFactory.HEROES[player.hero_id]
+	ui.update_hero(player.hero_id, String(profile["display_name"]))
+	ui.update_zone(world.get_zone_name())
+	ui.update_stats(player.health, player.max_health, player.energy, player.aura, player.level, player.xp, player.coins)
+	ui.update_mission("Élimine 8 ennemis pour faire apparaître le capitaine.")
+
+func _save_progress() -> void:
+	if is_instance_valid(player) and is_instance_valid(world):
+		save_data = player.get_save_snapshot(world.current_zone)
+		save_data["bosses"] = world.defeated_bosses
+	SaveSystem.save_data(save_data)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_progress()
