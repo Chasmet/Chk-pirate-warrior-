@@ -151,6 +151,14 @@ jobs:
           grep -E 'android:screenOrientation.*(landscape|0x0)' apk-manifest.txt
           sha256sum "$APK" | tee apk-sha256.txt
 
+      - name: Publier l’APK V2 compilée
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-V2-APK
+          path: build/CHK-Pirate-Warrior-V2-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Activer l’accélération du téléphone virtuel
         shell: bash
         run: |
@@ -162,11 +170,12 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
-          target: default
+          target: google_apis
           arch: x86_64
-          profile: pixel_7
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          profile: pixel_7_pro
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
+          disable-linux-hw-accel: false
           emulator-boot-timeout: 600
           script: |
             set -euo pipefail
@@ -212,11 +221,3 @@ jobs:
             android-emulator.png
           if-no-files-found: warn
           retention-days: 7
-
-      - name: Publier l’APK V2
-        uses: actions/upload-artifact@v4
-        with:
-          name: CHK-Pirate-Warrior-V2-APK
-          path: build/CHK-Pirate-Warrior-V2-debug.apk
-          if-no-files-found: error
-          retention-days: 30
