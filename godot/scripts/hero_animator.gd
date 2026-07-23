@@ -2,12 +2,12 @@ class_name QuinetHeroAnimator
 extends Node
 
 var controller: PlayerController
-var animation_time := 0.0
-var attack_time := 0.0
-var skill_time := 0.0
-var previous_attack_cooldown := 0.0
-var previous_skill_cooldown := 0.0
-var tracked_visual_id := 0
+var animation_time: float = 0.0
+var attack_time: float = 0.0
+var skill_time: float = 0.0
+var previous_attack_cooldown: float = 0.0
+var previous_skill_cooldown: float = 0.0
+var tracked_visual_id: int = 0
 var rest_transforms: Dictionary = {}
 
 func bind(player: PlayerController) -> void:
@@ -18,7 +18,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(controller) or not is_instance_valid(controller.hero_visual):
 		return
 
-	var visual := controller.hero_visual
+	var visual: CharacterBody3D = controller.hero_visual
 	if visual.get_instance_id() != tracked_visual_id:
 		tracked_visual_id = visual.get_instance_id()
 		rest_transforms.clear()
@@ -34,19 +34,19 @@ func _process(delta: float) -> void:
 	attack_time = maxf(0.0, attack_time - delta)
 	skill_time = maxf(0.0, skill_time - delta)
 
-	var horizontal_speed := Vector2(controller.velocity.x, controller.velocity.z).length()
-	var movement := clampf(horizontal_speed / 8.5, 0.0, 1.0)
-	var stride_speed := lerpf(5.0, 12.5, movement)
-	var stride := sin(animation_time * stride_speed)
-	var bob := abs(sin(animation_time * stride_speed)) * 0.055 * movement
-	var aura_pulse := 0.0
+	var horizontal_speed: float = Vector2(controller.velocity.x, controller.velocity.z).length()
+	var movement: float = clampf(horizontal_speed / 8.5, 0.0, 1.0)
+	var stride_speed: float = lerpf(5.0, 12.5, movement)
+	var stride: float = sin(animation_time * stride_speed)
+	var bob: float = absf(sin(animation_time * stride_speed)) * 0.055 * movement
+	var aura_pulse: float = 0.0
 	if controller.aura_time > 0.0:
 		aura_pulse = 0.018 + sin(animation_time * 12.0) * 0.012
 
-	var attack_progress := 0.0
+	var attack_progress: float = 0.0
 	if attack_time > 0.0:
 		attack_progress = sin((1.0 - attack_time / 0.48) * PI)
-	var skill_progress := 0.0
+	var skill_progress: float = 0.0
 	if skill_time > 0.0:
 		skill_progress = sin((1.0 - skill_time / 0.82) * PI)
 
@@ -54,35 +54,35 @@ func _process(delta: float) -> void:
 	visual.rotation.x = -movement * 0.055 + skill_progress * 0.04
 	visual.rotation.y = attack_progress * (-0.42 if controller.hero_id != "yvane" else -0.66)
 	visual.rotation.z = stride * movement * 0.025
-	var pulse := 1.0 + aura_pulse + skill_progress * 0.045
+	var pulse: float = 1.0 + aura_pulse + skill_progress * 0.045
 	visual.scale = Vector3.ONE * pulse
 
 	_animate_parts(visual, stride, movement, attack_progress, skill_progress)
 
 func _capture_rest_transforms(visual: Node) -> void:
-	var rig := visual.get_node_or_null("RigVisuel")
+	var rig: Node = visual.get_node_or_null("RigVisuel")
 	if rig == null:
 		return
-	for child in rig.get_children():
+	for child: Node in rig.get_children():
 		if child is Node3D:
 			rest_transforms[child.get_instance_id()] = (child as Node3D).transform
 
 func _animate_parts(visual: Node, stride: float, movement: float, attack_progress: float, skill_progress: float) -> void:
-	var rig := visual.get_node_or_null("RigVisuel")
+	var rig: Node = visual.get_node_or_null("RigVisuel")
 	if rig == null:
 		return
 
-	for child in rig.get_children():
+	for child: Node in rig.get_children():
 		if not child is Node3D:
 			continue
-		var part := child as Node3D
-		var id := part.get_instance_id()
+		var part: Node3D = child as Node3D
+		var id: int = part.get_instance_id()
 		if not rest_transforms.has(id):
 			rest_transforms[id] = part.transform
 		var rest: Transform3D = rest_transforms[id]
 		part.transform = rest
-		var part_name := String(part.name).to_lower()
-		var side := signf(rest.origin.x)
+		var part_name: String = String(part.name).to_lower()
+		var side: float = signf(rest.origin.x)
 
 		if part_name.begins_with("bras"):
 			part.rotation.x += stride * movement * 0.58 * -side
