@@ -5,13 +5,21 @@ var controller: PlayerController
 var animation_time: float = 0.0
 var attack_time: float = 0.0
 var skill_time: float = 0.0
+var shake_strength: float = 0.0
 var previous_attack_cooldown: float = 0.0
 var previous_skill_cooldown: float = 0.0
+var previous_health: float = 0.0
+var previous_aura_time: float = 0.0
 var tracked_visual_id: int = 0
 var rest_transforms: Dictionary = {}
+var camera_rest_position := Vector3(0.0, 2.4, 7.8)
 
 func bind(player: PlayerController) -> void:
 	controller = player
+	previous_health = player.health
+	previous_aura_time = player.aura_time
+	if is_instance_valid(player.camera):
+		camera_rest_position = player.camera.position
 	set_process(true)
 
 func _process(delta: float) -> void:
@@ -27,12 +35,22 @@ func _process(delta: float) -> void:
 	animation_time += delta
 	if controller.attack_cooldown > previous_attack_cooldown + 0.08:
 		attack_time = 0.34 if controller.hero_id == "yvane" else 0.48
+		shake_strength = maxf(shake_strength, 0.18 if controller.hero_id == "yvane" else 0.28)
 	if controller.skill_cooldown > previous_skill_cooldown + 0.15:
 		skill_time = 0.82
+		shake_strength = maxf(shake_strength, 0.58)
+	if controller.health < previous_health - 0.1:
+		shake_strength = maxf(shake_strength, 0.72)
+	if controller.aura_time > previous_aura_time + 1.0:
+		shake_strength = maxf(shake_strength, 1.0)
+
 	previous_attack_cooldown = controller.attack_cooldown
 	previous_skill_cooldown = controller.skill_cooldown
+	previous_health = controller.health
+	previous_aura_time = controller.aura_time
 	attack_time = maxf(0.0, attack_time - delta)
 	skill_time = maxf(0.0, skill_time - delta)
+	shake_strength = move_toward(shake_strength, 0.0, delta * 2.8)
 
 	var horizontal_speed: float = Vector2(controller.velocity.x, controller.velocity.z).length()
 	var movement: float = clampf(horizontal_speed / 8.5, 0.0, 1.0)
@@ -58,6 +76,18 @@ func _process(delta: float) -> void:
 	visual.scale = Vector3.ONE * pulse
 
 	_animate_parts(visual, stride, movement, attack_progress, skill_progress)
+	_update_camera_feedback(skill_progress, aura_pulse)
+
+func _update_camera_feedback(skill_progress: float, aura_pulse: float) -> void:
+	if not is_instance_valid(controller.camera):
+		return
+	var shake := Vector3(
+		sin(animation_time * 47.0),
+		cos(animation_time * 41.0),
+		sin(animation_time * 31.0)
+	) * shake_strength * 0.075
+	controller.camera.position = camera_rest_position + shake
+	controller.camera.fov = 62.0 + skill_progress * 5.0 + aura_pulse * 28.0
 
 func _capture_rest_transforms(visual: Node) -> void:
 	var rig: Node = visual.get_node_or_null("RigVisuel")
