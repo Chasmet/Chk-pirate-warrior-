@@ -12,14 +12,16 @@ var previous_health: float = 0.0
 var previous_aura_time: float = 0.0
 var tracked_visual_id: int = 0
 var rest_transforms: Dictionary = {}
-var camera_rest_position := Vector3(0.0, 2.4, 7.8)
+var camera_rest_position := Vector3(0.0, 2.05, 5.25)
+var base_fov: float = 55.0
 
 func bind(player: PlayerController) -> void:
 	controller = player
 	previous_health = player.health
 	previous_aura_time = player.aura_time
 	if is_instance_valid(player.camera):
-		camera_rest_position = player.camera.position
+		player.camera.position = camera_rest_position
+		player.camera.fov = base_fov
 	set_process(true)
 
 func _process(delta: float) -> void:
@@ -85,9 +87,9 @@ func _update_camera_feedback(skill_progress: float, aura_pulse: float) -> void:
 		sin(animation_time * 47.0),
 		cos(animation_time * 41.0),
 		sin(animation_time * 31.0)
-	) * shake_strength * 0.075
+	) * shake_strength * 0.065
 	controller.camera.position = camera_rest_position + shake
-	controller.camera.fov = 62.0 + skill_progress * 5.0 + aura_pulse * 28.0
+	controller.camera.fov = base_fov + skill_progress * 4.0 + aura_pulse * 22.0
 
 func _capture_rest_transforms(visual: Node) -> void:
 	var rig: Node = visual.get_node_or_null("RigVisuel")
