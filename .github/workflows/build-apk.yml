@@ -42,12 +42,26 @@ jobs:
           set +e
           gradle --no-daemon --console=plain clean testDebugUnitTest lintDebug assembleDebug > gradle-build.log 2>&1
           STATUS=$?
+          echo "STATUS=$STATUS" >> "$GITHUB_ENV"
           if [ "$STATUS" -ne 0 ]; then
             echo "===== ERREUR DE COMPILATION ====="
-            grep -E -B 3 -A 8 "(^e: |error:|FAILURE:|What went wrong|Execution failed|BUILD FAILED|Could not|Exception)" gradle-build.log | tail -n 180 || tail -n 180 gradle-build.log
-            exit "$STATUS"
+            grep -E -B 4 -A 12 "(^e: |error:|FAILURE:|What went wrong|Execution failed|BUILD FAILED|Could not|Exception)" gradle-build.log | tail -n 220 || tail -n 220 gradle-build.log
+          else
+            tail -n 60 gradle-build.log
           fi
-          tail -n 60 gradle-build.log
+
+      - name: Publier le journal de compilation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journal-compilation
+          path: gradle-build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Arrêter si la compilation a échoué
+        if: env.STATUS != '0'
+        run: exit 1
 
       - name: Renommer l'APK
         run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V1.apk
