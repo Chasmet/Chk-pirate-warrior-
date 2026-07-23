@@ -32,6 +32,7 @@ func set_zone_weather(zone_index: int) -> void:
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	particles.emitting = true
 	match weather:
 		"pluie":
 			particles.amount = 1300
@@ -66,10 +67,12 @@ func set_zone_weather(zone_index: int) -> void:
 			material.albedo_color = Color(0.25, 0.19, 0.17, 0.88)
 			environment.fog_density = 0.018
 		_:
-			particles.amount = 0
+			particles.amount = 1
+			particles.emitting = false
 			environment.fog_density = 0.003
 	quad.material = material
-	particles.restart()
+	if particles.emitting:
+		particles.restart()
 	weather_changed.emit(weather.capitalize())
 
 func _build_environment() -> void:
@@ -113,90 +116,111 @@ func _build_ocean() -> void:
 	add_child(ocean)
 
 func _build_islands() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 19820415
-	for zone_index in range(6):
+	for zone_index in range(GROUND_COLORS.size()):
 		var root := Node3D.new()
-		root.position = Vector3(zone_index * 170.0, 0, 0)
+		root.name = "Zone_%d" % zone_index
+		root.position = Vector3(float(zone_index) * 170.0, 0, 0)
 		add_child(root)
-		var island := StaticBody3D.new()
-		root.add_child(island)
-		var mesh_node := MeshInstance3D.new()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 66.0
-		mesh.bottom_radius = 75.0
-		mesh.height = 5.0
-		mesh.radial_segments = 48
-		mesh_node.mesh = mesh
-		mesh_node.position.y = -1.0
-		mesh_node.material_override = _material(GROUND_COLORS[zone_index], 0.9)
-		island.add_child(mesh_node)
-		var collision := CollisionShape3D.new()
-		var shape := CylinderShape3D.new()
-		shape.radius = 66.0
-		shape.height = 5.0
-		collision.shape = shape
-		collision.position.y = -1.0
-		island.add_child(collision)
-		_build_landmark(root, zone_index)
-		for i in range(25):
-			var angle := rng.randf_range(0.0, TAU)
-			var radius := rng.randf_range(18.0, 58.0)
-			_build_prop(root, zone_index, Vector3(cos(angle) * radius, 3.0, sin(angle) * radius), rng)
-		if zone_index not in [2, 3, 4]:
-			_build_grass(root, rng)
+		var ground := MeshInstance3D.new()
+		var ground_mesh := CylinderMesh.new()
+		ground_mesh.top_radius = 62.0
+		ground_mesh.bottom_radius = 68.0
+		ground_mesh.height = 3.0
+		ground_mesh.radial_segments = 48
+		ground.mesh = ground_mesh
+		ground.position.y = 0.0
+		ground.material_override = _material(GROUND_COLORS[zone_index], 0.92)
+		root.add_child(ground)
+		var floor_body := StaticBody3D.new()
+		var floor_collision := CollisionShape3D.new()
+		var floor_shape := CylinderShape3D.new()
+		floor_shape.radius = 62.0
+		floor_shape.height = 3.0
+		floor_collision.shape = floor_shape
+		floor_body.add_child(floor_collision)
+		root.add_child(floor_body)
+		_build_zone_props(root, zone_index)
 
-func _build_landmark(root: Node3D, zone_index: int) -> void:
-	var landmark := MeshInstance3D.new()
-	if zone_index == 4:
+func _build_zone_props(root: Node3D, zone_index: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7000 + zone_index * 997
+	for i in range(34):
+		var angle := rng.randf_range(0.0, TAU)
+		var radius := rng.randf_range(22.0, 55.0)
+		var position := Vector3(cos(angle) * radius, 1.7, sin(angle) * radius)
+		match zone_index:
+			0, 1:
+				_build_tree(root, position, rng.randf_range(0.8, 1.45), zone_index == 0)
+			2:
+				_build_snow_pine(root, position, rng.randf_range(0.8, 1.5))
+			3:
+				_build_rock(root, position, Color("9c6e40"), rng.randf_range(0.8, 1.8))
+			4:
+				_build_rock(root, position, Color("30292b"), rng.randf_range(0.9, 2.2))
+			_:
+				_build_rock(root, position, Color("4c5960"), rng.randf_range(0.8, 1.8))
+	if zone_index == 0 or zone_index == 1:
+		_build_grass(root, rng)
+
+func _build_tree(root: Node3D, position: Vector3, scale_value: float, palm: bool) -> void:
+	var trunk := MeshInstance3D.new()
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.32 * scale_value
+	trunk_mesh.bottom_radius = 0.48 * scale_value
+	trunk_mesh.height = 7.0 * scale_value
+	trunk.mesh = trunk_mesh
+	trunk.position = position + Vector3(0, 3.5 * scale_value, 0)
+	trunk.material_override = _material(Color("6a442c"), 0.9)
+	root.add_child(trunk)
+	var crown := MeshInstance3D.new()
+	if palm:
+		var sphere := SphereMesh.new()
+		sphere.radius = 2.5 * scale_value
+		sphere.height = 2.4 * scale_value
+		crown.mesh = sphere
+	else:
 		var cone := CylinderMesh.new()
-		cone.top_radius = 5.5
-		cone.bottom_radius = 24.0
-		cone.height = 27.0
-		landmark.mesh = cone
-		landmark.position = Vector3(0, 13.5, -24)
-	else:
-		var box := BoxMesh.new()
-		box.size = Vector3(18, 11, 12) if zone_index >= 2 else Vector3(22, 5, 8)
-		landmark.mesh = box
-		landmark.position = Vector3(0, 6.5 if zone_index >= 2 else 3.0, -28)
-	landmark.material_override = _material(GROUND_COLORS[zone_index].darkened(0.28), 0.96)
-	root.add_child(landmark)
+		cone.top_radius = 0.0
+		cone.bottom_radius = 3.0 * scale_value
+		cone.height = 6.5 * scale_value
+		crown.mesh = cone
+	crown.position = position + Vector3(0, 7.2 * scale_value, 0)
+	crown.material_override = _material(Color("25733d"), 0.82)
+	root.add_child(crown)
 
-func _build_prop(root: Node3D, zone_index: int, position: Vector3, rng: RandomNumberGenerator) -> void:
-	var prop := MeshInstance3D.new()
-	if zone_index == 3:
-		var cactus := CapsuleMesh.new()
-		cactus.radius = 0.35
-		cactus.height = rng.randf_range(2.5, 4.8)
-		prop.mesh = cactus
-		prop.material_override = _material(Color("397446"), 0.88)
-	elif zone_index == 2:
-		var pine := CylinderMesh.new()
-		pine.top_radius = 0.0
-		pine.bottom_radius = rng.randf_range(1.3, 2.2)
-		pine.height = rng.randf_range(3.8, 6.8)
-		prop.mesh = pine
-		prop.material_override = _material(Color("dcebf2"), 0.86)
-	else:
-		var tree := CylinderMesh.new()
-		tree.top_radius = 0.15
-		tree.bottom_radius = 0.30
-		tree.height = rng.randf_range(3.5, 6.5)
-		prop.mesh = tree
-		prop.material_override = _material(Color("2d7042") if zone_index < 2 else Color("554b46"), 0.9)
-	prop.position = position
-	root.add_child(prop)
+func _build_snow_pine(root: Node3D, position: Vector3, scale_value: float) -> void:
+	_build_tree(root, position, scale_value, false)
+	var snow := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 2.65 * scale_value
+	cone.height = 4.5 * scale_value
+	snow.mesh = cone
+	snow.position = position + Vector3(0, 8.2 * scale_value, 0)
+	snow.material_override = _material(Color("eaf5fb"), 0.72)
+	root.add_child(snow)
+
+func _build_rock(root: Node3D, position: Vector3, color: Color, scale_value: float) -> void:
+	var rock := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 1.2 * scale_value
+	mesh.height = 1.7 * scale_value
+	rock.mesh = mesh
+	rock.position = position
+	rock.scale = Vector3(1.4, 0.7, 1.0)
+	rock.rotation_degrees = Vector3(0, position.x * 3.0, 0)
+	rock.material_override = _material(color, 0.96)
+	root.add_child(rock)
 
 func _build_grass(root: Node3D, rng: RandomNumberGenerator) -> void:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.instance_count = 450
+	multimesh.instance_count = 900
 	var blade := QuadMesh.new()
-	blade.size = Vector2(0.22, 0.72)
-	var shader_material := ShaderMaterial.new()
-	shader_material.shader = load("res://shaders/grass.gdshader")
-	blade.material = shader_material
+	blade.size = Vector2(0.18, 1.25)
+	var grass_material := ShaderMaterial.new()
+	grass_material.shader = load("res://shaders/grass.gdshader")
+	blade.material = grass_material
 	multimesh.mesh = blade
 	for i in range(multimesh.instance_count):
 		var angle := rng.randf_range(0.0, TAU)
