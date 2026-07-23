@@ -169,7 +169,7 @@ func _build_hud() -> void:
 	var joystick := VirtualJoystick.new()
 	joystick.position = Vector2(25, 790)
 	joystick.size = Vector2(260, 260)
-	joystick.vector_changed.connect(func(value: Vector2): move_changed.emit(value))
+	joystick.connect(&"vector_changed", func(value: Vector2): move_changed.emit(value))
 	hud.add_child(joystick)
 	var hero := _action_button("HÉROS", Color("785a9e"), 115)
 	hero.position = Vector2(310, 900)
