@@ -84,6 +84,7 @@ func _spawn_wave() -> void:
 		var profile := EnemyFactory.profile_for_index(current_zone * 2 + i)
 		var enemy := EnemyFactory.create_enemy(profile, player)
 		add_child(enemy)
+		_attach_enemy_animator(enemy)
 		var angle := TAU * float(i) / 10.0 + rng.randf_range(-0.22, 0.22)
 		var radius := rng.randf_range(14.0, 43.0)
 		enemy.global_position = center + Vector3(cos(angle) * radius, 2.0, sin(angle) * radius)
@@ -97,10 +98,17 @@ func _spawn_boss() -> void:
 	var profile := EnemyFactory.boss_for_zone(boss_index)
 	var boss := EnemyFactory.create_enemy(profile, player)
 	add_child(boss)
+	_attach_enemy_animator(boss)
 	boss.global_position = Vector3(ZONES[current_zone]["spawn"]) + Vector3(0, 2.0, -28.0)
 	player.register_enemy(boss)
 	mission_changed.emit("BOSS : " + String(profile["name"]))
 	VoiceFR.speak("Attention. " + String(profile["name"]) + " entre dans l'arène.")
+
+func _attach_enemy_animator(enemy: EnemyAI) -> void:
+	var animator := QuinetEnemyAnimator.new()
+	animator.name = "AnimationEnnemi"
+	enemy.add_child(animator)
+	animator.bind(enemy)
 
 func _on_enemy_defeated(profile: Dictionary) -> void:
 	if bool(profile.get("boss", false)):
