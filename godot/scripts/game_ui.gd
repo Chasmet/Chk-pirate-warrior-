@@ -8,6 +8,7 @@ signal training_requested(stat_name: String)
 signal attack_requested
 signal skill_requested
 signal aura_requested
+signal dodge_requested
 signal switch_requested
 signal move_changed(value: Vector2)
 signal camera_dragged(relative: Vector2)
@@ -50,6 +51,7 @@ func _ready() -> void:
 	menu.zone_selected.connect(func(value: int): zone_selected.emit(value))
 	menu.training_requested.connect(func(value: String): training_requested.emit(value))
 	menu.voice_toggled.connect(func(value: bool): voice_toggled.emit(value))
+	menu.back_to_game_requested.connect(func(): show_hud(); resume_requested.emit())
 	_build_hud()
 	_build_pause()
 	_build_game_over()
@@ -71,7 +73,7 @@ func show_hud() -> void:
 func show_map() -> void:
 	hud.hide()
 	menu.show()
-	menu.show_map()
+	menu.show_map(true)
 
 func show_pause() -> void:
 	pause_screen.show()
@@ -209,6 +211,10 @@ func _build_hud() -> void:
 	_set_rect(skill, 1.0, 1.0, 1.0, 1.0, -382, -164, 150, 150)
 	skill.pressed.connect(func(): skill_requested.emit())
 	hud.add_child(skill)
+	var dodge := _action_button("ESQUIVE", Color("3c7b86"), 132, 22)
+	_set_rect(dodge, 1.0, 1.0, 1.0, 1.0, -530, -148, 132, 132)
+	dodge.pressed.connect(func(): dodge_requested.emit())
+	hud.add_child(dodge)
 	var aura := _action_button("DÉFERLER", Color("b98126"), 150, 24)
 	_set_rect(aura, 1.0, 1.0, 1.0, 1.0, -224, -386, 150, 150)
 	aura.pressed.connect(func(): aura_requested.emit())
