@@ -23,6 +23,8 @@ var left_leg: Node3D
 var right_leg: Node3D
 var coat: Node3D
 var weapon: Node3D
+var boat_sail_parts: Array[GeometryInstance3D] = []
+var boat_camera_bypass_time := 0.0
 
 func bind(player: PlayerController) -> void:
 	controller = player
@@ -85,8 +87,10 @@ func _cache_rig(visual: Node3D) -> void:
 	weapon = visual.get_node_or_null("RigVisuel/Model3D/BrasDroit/Arme") as Node3D
 	if is_instance_valid(model):
 		model.visible = true
+	_cache_boat_sail_parts()
 
 func _update_land_pose(delta: float, visual: Node3D) -> void:
+	_restore_boat_camera_safety()
 	var horizontal_speed := Vector2(controller.velocity.x, controller.velocity.z).length()
 	var movement := clampf(horizontal_speed / maxf(controller._movement_speed(), 0.1), 0.0, 1.0)
 	var frame := 0
@@ -169,6 +173,55 @@ func _update_boat_pose(delta: float, visual: Node3D) -> void:
 		model.position.y = wave
 		model.rotation.z = lerp_angle(model.rotation.z, -helm_turn * 0.035, 1.0 - exp(-6.0 * delta))
 	visual.scale = visual.scale.lerp(Vector3.ONE, 1.0 - exp(-12.0 * delta))
+	_update_boat_camera_safety(delta)
+
+func _cache_boat_sail_parts() -> void:
+	boat_sail_parts.clear()
+	if not is_instance_valid(controller) or not is_instance_valid(controller.boat_visual):
+		return
+	var sail_root := controller.boat_visual.get_node_or_null("Voilure") as Node3D
+	if sail_root == null:
+		return
+	for child in sail_root.get_children():
+		if child is GeometryInstance3D:
+			var geometry := child as GeometryInstance3D
+			var part_name := String(geometry.name)
+			if part_name.begins_with("Voile") or part_name.begins_with("BandeRouge") or part_name.begins_with("Emblème"):
+				boat_sail_parts.append(geometry)
+
+func _update_boat_camera_safety(delta: float) -> void:
+	if not is_instance_valid(controller.camera_arm) or not is_instance_valid(controller.camera):
+		return
+	if boat_sail_parts.is_empty():
+		_cache_boat_sail_parts()
+	var sail_center := controller.boat_visual.to_global(Vector3(0.0, 4.80, -0.48)) if is_instance_valid(controller.boat_visual) else controller.global_position
+	var distance_to_sail := controller.camera.global_position.distance_to(sail_center)
+	var hit_length := controller.camera_arm.get_hit_length()
+	var camera_trapped := hit_length < 5.4 or distance_to_sail < 5.8
+	var docking_speed := absf(controller.boat_speed) < 3.2
+	if camera_trapped or docking_speed:
+		boat_camera_bypass_time = 1.6
+	else:
+		boat_camera_bypass_time = maxf(0.0, boat_camera_bypass_time - delta)
+	# Au quai, le relief peut rétracter le SpringArm jusque dans la grande voile.
+	# On libère alors temporairement le bras, puis on réactive ses collisions dès
+	# que le navire a pris le large. Cela évite l’écran blanc sans sacrifier la
+	# protection contre les falaises pendant la navigation normale.
+	controller.camera_arm.collision_mask = 0 if boat_camera_bypass_time > 0.0 else 1
+	var hide_sail := distance_to_sail < 6.2
+	for part in boat_sail_parts:
+		if is_instance_valid(part):
+			part.visible = not hide_sail
+	if camera_trapped:
+		controller.camera_target_pitch = minf(controller.camera_target_pitch, -0.38)
+
+func _restore_boat_camera_safety() -> void:
+	boat_camera_bypass_time = 0.0
+	if is_instance_valid(controller) and is_instance_valid(controller.camera_arm):
+		controller.camera_arm.collision_mask = 1
+	for part in boat_sail_parts:
+		if is_instance_valid(part):
+			part.visible = true
 
 func _update_compatibility_sprite(visual: Node3D, frame: int, movement: float) -> void:
 	var sprite := visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
