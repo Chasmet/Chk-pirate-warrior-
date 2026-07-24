@@ -13,8 +13,8 @@ const HEROES := {
 		"sprite": "res://assets/heroes/cheikh_poses.webp",
 		"third_person_sprite": "res://assets/heroes/cheikh_third_person.webp",
 		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.webp",
-		"pixel_size": 0.00305,
-		"sprite_y": 0.91
+		"pixel_size": 0.00330,
+		"sprite_y": 1.02
 	},
 	"yvane": {
 		"display_name": "YVANE",
@@ -27,8 +27,8 @@ const HEROES := {
 		"sprite": "res://assets/heroes/yvane_poses.webp",
 		"third_person_sprite": "res://assets/heroes/yvane_third_person.webp",
 		"steering_sprite": "res://assets/heroes/yvane_steering_v24.webp",
-		"pixel_size": 0.00266,
-		"sprite_y": 0.80
+		"pixel_size": 0.00292,
+		"sprite_y": 0.89
 	},
 	"nelvyn": {
 		"display_name": "NELVYN",
@@ -41,8 +41,8 @@ const HEROES := {
 		"sprite": "res://assets/heroes/nelvyn_poses.webp",
 		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.webp",
 		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.webp",
-		"pixel_size": 0.00228,
-		"sprite_y": 0.68
+		"pixel_size": 0.00258,
+		"sprite_y": 0.77
 	}
 }
 
@@ -74,13 +74,20 @@ static func _build_character_art(root: Node3D, profile: Dictionary, third_person
 	sprite.frame = 0
 	sprite.pixel_size = float(profile["pixel_size"])
 	sprite.position.y = float(profile["sprite_y"])
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	# Le personnage original reste droit et tourne uniquement autour de l’axe Y.
+	# Cela évite qu’il se couche ou disparaisse lorsque la caméra regarde en bas.
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.double_sided = true
 	sprite.shaded = false
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	sprite.no_depth_test = false
-	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_OPAQUE_PREPASS
-	sprite.render_priority = 2
+	# Priorité absolue à la lisibilité du héros sur mobile : il ne doit jamais
+	# disparaître derrière le terrain à cause d’un conflit de profondeur.
+	sprite.no_depth_test = true
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	sprite.alpha_scissor_threshold = 0.04
+	sprite.render_priority = 100
+	sprite.modulate = Color.WHITE
+	sprite.visible = true
 	root.add_child(sprite)
 
 static func _build_ground_shadow(root: Node3D, profile: Dictionary) -> void:
