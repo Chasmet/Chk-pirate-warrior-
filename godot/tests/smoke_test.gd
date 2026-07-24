@@ -29,12 +29,25 @@ func _run() -> void:
 	_check(player.camera.position.x > 0.4, "la caméra est placée au-dessus de l’épaule")
 	_check(player.camera_arm.get_hit_length() > 3.2, "la caméra ne percute pas la capsule du héros")
 
+	player.invulnerability = 999.0
+	for enemy_node in get_nodes_in_group("enemies"):
+		enemy_node.process_mode = Node.PROCESS_MODE_DISABLED
+	for _frame in range(180):
+		await physics_frame
+	_check(player.is_on_floor(), "le héros atterrit réellement sur le relief")
+	_check(player.global_position.y > 0.0 and player.global_position.y < 7.0, "le héros reste à la hauteur du terrain")
+	_check(player.camera.global_position.distance_to(player.global_position) < 7.0, "la caméra reste à une distance normale du héros")
+	for enemy_node in get_nodes_in_group("enemies"):
+		enemy_node.process_mode = Node.PROCESS_MODE_INHERIT
+	player.invulnerability = 0.0
+
 	var sprite := player.get_node_or_null("Visuel_cheikh/RigVisuel/CharacterArt") as Sprite3D
 	_check(sprite != null, "la planche de Cheikh est chargée")
 	if sprite != null:
 		_check(sprite.hframes == 4, "les quatre poses de Cheikh sont disponibles")
 		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la texture de dos HD est importée sans déformation")
-		_check(not sprite.visible, "la copie 3D qui créait un héros géant à gauche est masquée")
+		_check(sprite.visible, "le héros est réellement visible dans le monde 3D")
+		_check(not sprite.no_depth_test, "les murs et le relief peuvent occulter le héros")
 
 	var yaw_before: float = player.camera_target_yaw
 	player.set_camera_stick(Vector2(1.0, 0.0))
@@ -86,11 +99,17 @@ func _run() -> void:
 	_check(world.get_unlocked_zones() == [0], "seule l’île de départ est débloquée au commencement")
 	_check(world.visuals.get_node_or_null("Zone_0/TerrainRelief") != null, "les îles utilisent un vrai relief maillé")
 	_check(world.visuals.get_node_or_null("Zone_0/CollisionTerrain") != null, "le relief possède une collision fidèle")
+	_check(world.visuals.get_node_or_null("Zone_0/CollisionsDécor/PhareCollision") is CollisionShape3D, "les bâtiments possèdent des collisions pour le héros et la caméra")
 	_check(get_nodes_in_group("ambient_animals").size() == 60, "soixante animaux vivants peuplent l’archipel")
 	_check(world.visuals.find_children("HerbeDense", "MultiMeshInstance3D", true, false).size() >= 3, "les îles végétales possèdent une herbe dense optimisée")
+	world.visuals.set_zone_weather(5)
+	_check(world.visuals.current_weather == "tempête", "la météo de tempête est activée")
+	_check(world.visuals.particles.emitting and world.visuals.target_fog_density >= 0.025, "la tempête combine pluie dense et brouillard")
+	_check(float(world.visuals.ocean_material.get_shader_parameter("storm_strength")) > 0.9, "la météo renforce réellement la houle")
+	world.visuals.set_zone_weather(0)
 
 	world.set_destination(1)
-	player.global_position = world.get_dock_position(0, false)
+	player.teleport_to_world_position(world.get_dock_position(0, false))
 	world.toggle_boat()
 	await physics_frame
 	_check(player.boat_mode, "le héros embarque depuis le quai")
@@ -98,6 +117,11 @@ func _run() -> void:
 	_check(player.boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") != null, "le bateau possède un vrai poste de pilotage")
 	_check(player.boat_visual.get_node_or_null("GouvernailArrière") != null, "le gouvernail arrière est articulé")
 	_check(player.boat_visual.get_node_or_null("FigureDeProue") != null, "le navire possède une figure de proue originale")
+	_check(player.land_collision.disabled and not player.boat_collision.disabled, "la collision du navire remplace celle du héros en mer")
+	var pilot_sprite := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
+	_check(player.hero_visual.visible and pilot_sprite != null and pilot_sprite.visible, "le pilote est visible physiquement au gouvernail")
+	if pilot_sprite != null:
+		_check(pilot_sprite.texture.resource_path.ends_with("nelvyn_steering_v24.webp"), "la pose de pilotage est rendue dans le monde 3D")
 	var boat_start := player.global_position
 	player.set_move_input(Vector2(-0.72, -1.0))
 	for _frame in range(36):
@@ -109,11 +133,26 @@ func _run() -> void:
 	_check(player.camera_arm.spring_length > 9.0, "la caméra marine recule pour cadrer le navire et son pilote")
 	var helm := player.boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") as Node3D
 	_check(helm != null and absf(helm.rotation.z) > 0.08, "le gouvernail tourne visiblement avec le joystick")
-	player.global_position = world.get_dock_position(1, true)
+	var target_dock := world.get_dock_position(1, true)
+	var reached_destination := false
+	for _frame in range(900):
+		var target_direction := target_dock - player.global_position
+		target_direction.y = 0.0
+		if target_direction.length() <= 26.0:
+			reached_destination = true
+			break
+		var target_heading := atan2(-target_direction.x, -target_direction.z)
+		var heading_error := wrapf(target_heading - player.boat_heading, -PI, PI)
+		player.set_move_input(Vector2(clampf(-heading_error * 1.8, -1.0, 1.0), -1.0))
+		await physics_frame
+	player.set_move_input(Vector2.ZERO)
+	_check(reached_destination, "le bateau accomplit réellement la traversée jusqu’à l’île suivante")
+	_check(world.visuals.current_weather == "pluie" and player.sea_weather == "pluie", "la météo évolue en approchant de l’île suivante")
 	world.toggle_boat()
 	await process_frame
 	await physics_frame
 	_check(not player.boat_mode, "le bateau peut accoster manuellement")
+	_check(not player.land_collision.disabled and player.boat_collision.disabled, "l’accostage restaure la collision du héros")
 	_check(world.current_zone == 1, "l’accostage active la nouvelle île")
 	_check(world.get_unlocked_zones().has(1), "la Jungle sauvage est débloquée uniquement après l’accostage")
 	_check(get_nodes_in_group("enemies").size() == 8, "une nouvelle vague attend sur l’île découverte")
@@ -168,22 +207,12 @@ func _run() -> void:
 	root.add_child(game_ui)
 	await process_frame
 	game_ui.update_hero_pose("cheikh", 2, false)
-	_check(is_instance_valid(game_ui.hero_view), "le héros 2.5D est affiché dans le cadre troisième personne")
-	_check(game_ui.hero_view.texture is AtlasTexture, "la pose animée du héros est découpée dans la planche HD")
-	if game_ui.hero_view.texture is AtlasTexture:
-		var atlas := game_ui.hero_view.texture as AtlasTexture
-		_check(is_equal_approx(atlas.region.position.x, 888.0), "la pose d’attaque est synchronisée dans le HUD")
-	game_ui.update_hero_pose("cheikh", 0, true)
-	var front_atlas := game_ui.hero_view.texture as AtlasTexture
-	_check(front_atlas.atlas.resource_path.ends_with("cheikh_poses.webp"), "la vue avant s’affiche quand la caméra regarde le visage")
+	_check(not is_instance_valid(game_ui.hero_view), "aucune copie géante du héros n’est dessinée dans le HUD")
+	_check(game_ui.current_hero_frame == 2, "la pose du héros reste synchronisée avec le monde 3D")
 	_check(game_ui.hud.get_node_or_null("StickCaméra360") != null, "le stick caméra séparé est installé à gauche")
 	_check(is_instance_valid(game_ui.boat_button), "le bouton contextuel EMBARQUER / ACCOSTER est présent")
 	game_ui.set_boat_mode(true)
 	game_ui.update_boat_steering("cheikh", 0.85, 1.0, 0.72)
-	_check(game_ui.hero_view.visible, "le personnage reste visible en mer à la troisième personne")
-	var steering_atlas := game_ui.hero_view.texture as AtlasTexture
-	_check(steering_atlas.atlas.resource_path.ends_with("cheikh_steering_v24.webp"), "la planche de pilotage remplace la pose de marche en mer")
-	_check(is_equal_approx(steering_atlas.region.position.x, 1184.0), "la pose de virage à droite suit réellement le joystick")
 	_check(game_ui.sailing_speed_label.visible and "À LA BARRE" in game_ui.sailing_speed_label.text, "le HUD confirme le héros au gouvernail")
 	game_ui.set_boat_mode(false)
 

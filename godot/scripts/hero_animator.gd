@@ -33,9 +33,11 @@ func _process(delta: float) -> void:
 		power_pose_time = 0.0
 
 	if controller.boat_mode:
-		visual.position = Vector3.ZERO
-		visual.rotation = Vector3.ZERO
+		animation_time += delta
 		visual.scale = Vector3.ONE
+		var pilot_sprite := visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
+		if pilot_sprite != null:
+			pilot_sprite.position.y = float(HeroFactory.HEROES[controller.hero_id]["sprite_y"]) + sin(animation_time * 2.6) * 0.008
 		_update_camera_feedback()
 		return
 

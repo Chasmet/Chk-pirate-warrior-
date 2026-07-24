@@ -10,6 +10,7 @@ uniform float wave_scale : hint_range(0.02, 1.0) = 0.16;
 uniform float wave_speed : hint_range(0.05, 4.0) = 0.78;
 uniform float roughness_value : hint_range(0.0, 1.0) = 0.10;
 uniform float normal_strength : hint_range(0.1, 3.0) = 1.35;
+uniform float storm_strength : hint_range(0.0, 1.0) = 0.18;
 
 varying float wave_value;
 varying float secondary_wave;
@@ -21,7 +22,7 @@ float waves(vec2 p, float t) {
     float b = sin(p.y * 1.35 - t * 0.82);
     float c = sin((p.x + p.y) * 0.72 + t * 1.47);
     float d = sin(length(p) * 0.58 - t * 0.67);
-    float e = sin((p.x * 1.9 - p.y * 1.35) + t * 2.15) * 0.10;
+    float e = sin((p.x * 1.9 - p.y * 1.35) + t * 2.15) * mix(0.10, 0.22, storm_strength);
     return a * 0.34 + b * 0.27 + c * 0.21 + d * 0.12 + e;
 }
 
@@ -59,7 +60,8 @@ void fragment() {
     vec3 water = mix(deep_color.rgb, shallow_color.rgb, depth_mix);
     water = mix(water, horizon_color.rgb, fresnel * 0.28);
 
-    ALBEDO = mix(water, foam_color.rgb, foam * 0.58);
+    water = mix(water, vec3(0.055, 0.105, 0.145), storm_strength * 0.36);
+    ALBEDO = mix(water, foam_color.rgb, foam * mix(0.58, 0.82, storm_strength));
     ROUGHNESS = mix(roughness_value, 0.40, foam);
     METALLIC = 0.06;
     SPECULAR = mix(0.94, 0.62, foam);

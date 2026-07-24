@@ -37,6 +37,7 @@ var navigation_timer := 0.0
 var last_boat_label := ""
 var last_boat_available := false
 var last_boat_mode := false
+var active_weather_zone := -1
 
 func configure(data: Dictionary) -> void:
 	save_data = data
@@ -66,6 +67,7 @@ func _process(delta: float) -> void:
 	navigation_timer -= delta
 	if navigation_timer <= 0.0:
 		navigation_timer = 0.12
+		_update_sailing_weather()
 		_update_navigation()
 
 func _keep_player_in_world() -> void:
@@ -79,8 +81,7 @@ func _keep_player_in_world() -> void:
 		return
 	var center: Vector3 = ZONES[current_zone]["center"]
 	if player.global_position.y < -4.0:
-		player.global_position = Vector3(ZONES[current_zone]["spawn"])
-		player.velocity = Vector3.ZERO
+		player.teleport_to_world_position(Vector3(ZONES[current_zone]["spawn"]))
 		player.receive_damage(10.0)
 		VoiceFR.speak("Attention à l’océan. Retour sur l’île.")
 		return
@@ -128,6 +129,7 @@ func toggle_boat() -> void:
 	var water_dock := get_dock_position(current_zone, true)
 	var target_dock := get_dock_position(destination_zone, true)
 	_clear_enemies()
+	player.set_sea_conditions(visuals.weather_for_zone(current_zone))
 	player.enter_boat(water_dock, target_dock)
 	_set_mission("EN MER • Navigue toi-même jusqu’à %s." % String(ZONES[destination_zone]["name"]))
 	VoiceFR.speak("À la barre. Navigue jusqu’à " + String(ZONES[destination_zone]["name"]) + ".")
@@ -157,8 +159,7 @@ func travel_to_zone(index: int, announce: bool = true) -> void:
 	if is_instance_valid(player) and player.boat_mode:
 		player.exit_boat(Vector3(ZONES[resolved]["spawn"]))
 	elif is_instance_valid(player):
-		player.global_position = Vector3(ZONES[resolved]["spawn"])
-		player.velocity = Vector3.ZERO
+		player.teleport_to_world_position(Vector3(ZONES[resolved]["spawn"]))
 	_activate_zone(resolved, announce, false)
 
 func debug_start_boat_preview() -> void:
@@ -192,7 +193,7 @@ func get_dock_position(zone_index: int, water_side: bool) -> Vector3:
 	var direction: Vector3 = Vector3(zone["dock_dir"]).normalized()
 	var distance := float(zone["radius"]) + (18.0 if water_side else -13.0)
 	var result := center + direction * distance
-	result.y = 1.05 if water_side else 2.05
+	result.y = PlayerController.BOAT_WATERLINE if water_side else 2.05
 	return result
 
 func _build_player() -> void:
@@ -217,10 +218,12 @@ func _activate_zone(index: int, announce: bool, from_boat: bool) -> void:
 	zone_boss_spawned = false
 	_clear_enemies()
 	if is_instance_valid(player) and not from_boat:
-		player.global_position = Vector3(ZONES[current_zone]["spawn"])
-		player.velocity = Vector3.ZERO
+		player.teleport_to_world_position(Vector3(ZONES[current_zone]["spawn"]))
 	_spawn_wave()
 	visuals.set_zone_weather(current_zone)
+	active_weather_zone = current_zone
+	if is_instance_valid(player):
+		player.set_sea_conditions(visuals.weather_for_zone(current_zone))
 	zone_changed.emit(current_zone, String(ZONES[current_zone]["name"]))
 	var boss_id := String(EnemyFactory.boss_for_zone(current_zone).get("id", ""))
 	if defeated_bosses.has(boss_id):
@@ -328,6 +331,21 @@ func _update_navigation() -> void:
 		last_boat_available = action_available
 		last_boat_mode = player.boat_mode
 		boat_action_changed.emit(action_label, action_available, player.boat_mode)
+
+func _update_sailing_weather() -> void:
+	if not is_instance_valid(player) or not player.boat_mode:
+		return
+	var start := get_dock_position(current_zone, true)
+	var finish := get_dock_position(destination_zone, true)
+	var distance_from_start := player.global_position.distance_to(start)
+	var distance_to_finish := player.global_position.distance_to(finish)
+	var progress := distance_from_start / maxf(distance_from_start + distance_to_finish, 1.0)
+	var weather_zone := current_zone if progress < 0.55 else destination_zone
+	if weather_zone == active_weather_zone:
+		return
+	active_weather_zone = weather_zone
+	visuals.set_zone_weather(weather_zone)
+	player.set_sea_conditions(visuals.weather_for_zone(weather_zone))
 
 func _nearest_dock(position: Vector3, maximum_distance: float) -> int:
 	var result := -1

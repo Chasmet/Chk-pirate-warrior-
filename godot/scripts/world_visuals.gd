@@ -14,8 +14,16 @@ var environment: Environment
 var sun: DirectionalLight3D
 var particles: GPUParticles3D
 var particle_material: ParticleProcessMaterial
+var sky_material: ProceduralSkyMaterial
+var ocean_material: ShaderMaterial
 var foliage_material_cache: Dictionary = {}
+var grass_materials: Array[ShaderMaterial] = []
 var day_time: float = 0.22
+var weather_time := 0.0
+var current_weather := "soleil"
+var target_fog_density := 0.003
+var lightning_flash := 0.0
+var lightning_timer := 3.4
 var zones: Array = []
 var unlocked_zones: Array = [0]
 var destination_markers: Array[Node3D] = []
@@ -57,15 +65,36 @@ func set_unlocked_zones(value: Array) -> void:
 			status.modulate = Color("71e39b") if unlocked_zones.has(index) else Color("ffbd58")
 
 func update_world(delta: float, player_position: Vector3) -> void:
+	weather_time += delta
 	day_time = fmod(day_time + delta / 260.0, 1.0)
-	var daylight: float = clampf(sin(day_time * PI), 0.05, 1.0)
-	sun.rotation_degrees.x = day_time * 360.0 - 100.0
-	sun.light_energy = 0.18 + daylight * 1.55
-	environment.ambient_light_energy = 0.22 + daylight * 0.62
+	var daylight: float = clampf((sin(day_time * TAU) + 0.12) / 1.12, 0.025, 1.0)
+	var storm_strength := 1.0 if current_weather == "tempête" else 0.62 if current_weather == "cendres" else 0.34 if current_weather in ["pluie", "neige"] else 0.0
+	sun.rotation_degrees.x = day_time * 360.0 - 90.0
+	if current_weather == "tempête":
+		lightning_timer -= delta
+		if lightning_timer <= 0.0:
+			lightning_flash = 1.0
+			lightning_timer = 2.4 + fmod(weather_time * 0.73, 3.8)
+	else:
+		lightning_flash = 0.0
+	lightning_flash = move_toward(lightning_flash, 0.0, delta * 4.4)
+	sun.light_energy = (0.16 + daylight * 1.48) * lerpf(1.0, 0.48, storm_strength) + lightning_flash * 3.8
+	environment.ambient_light_energy = (0.20 + daylight * 0.58) * lerpf(1.0, 0.62, storm_strength) + lightning_flash * 0.55
+	environment.fog_density = lerpf(environment.fog_density, target_fog_density, 1.0 - exp(-1.8 * delta))
+	var daylight_color := Color("1e6da6").lerp(Color("07111f"), 1.0 - daylight)
+	var horizon_color := Color("8bd6ee").lerp(Color("14283b"), 1.0 - daylight)
+	var weather_top := Color("26384a") if current_weather == "tempête" else Color("493632") if current_weather == "cendres" else Color("53697a")
+	var weather_horizon := Color("778896") if current_weather == "tempête" else Color("8a5c48") if current_weather == "cendres" else Color("91a8b5")
+	sky_material.sky_top_color = daylight_color.lerp(weather_top, storm_strength * 0.82).lightened(lightning_flash * 0.35)
+	sky_material.sky_horizon_color = horizon_color.lerp(weather_horizon, storm_strength * 0.68).lightened(lightning_flash * 0.42)
 	particles.global_position = player_position + Vector3(0, 12, 0)
 
+func weather_for_zone(zone_index: int) -> String:
+	return String(WEATHER[clampi(zone_index, 0, WEATHER.size() - 1)])
+
 func set_zone_weather(zone_index: int) -> void:
-	var weather: String = String(WEATHER[clampi(zone_index, 0, WEATHER.size() - 1)])
+	var weather := weather_for_zone(zone_index)
+	current_weather = weather
 	var quad := particles.draw_pass_1 as QuadMesh
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -79,7 +108,7 @@ func set_zone_weather(zone_index: int) -> void:
 			particle_material.initial_velocity_max = 22.0
 			quad.size = Vector2(0.025, 0.75)
 			material.albedo_color = Color(0.65, 0.84, 1.0, 0.7)
-			environment.fog_density = 0.009
+			target_fog_density = 0.009
 		"neige":
 			particles.amount = 850
 			particle_material.direction = Vector3(0.15, -1, 0.08)
@@ -87,7 +116,7 @@ func set_zone_weather(zone_index: int) -> void:
 			particle_material.initial_velocity_max = 5.0
 			quad.size = Vector2(0.12, 0.12)
 			material.albedo_color = Color(1, 1, 1, 0.92)
-			environment.fog_density = 0.014
+			target_fog_density = 0.014
 		"tempête":
 			particles.amount = 1700
 			particle_material.direction = Vector3(-0.58, -1, 0.12)
@@ -95,7 +124,7 @@ func set_zone_weather(zone_index: int) -> void:
 			particle_material.initial_velocity_max = 30.0
 			quad.size = Vector2(0.03, 0.92)
 			material.albedo_color = Color(0.55, 0.72, 0.9, 0.76)
-			environment.fog_density = 0.025
+			target_fog_density = 0.025
 		"cendres":
 			particles.amount = 650
 			particle_material.direction = Vector3(0.1, -0.3, 0.05)
@@ -103,12 +132,23 @@ func set_zone_weather(zone_index: int) -> void:
 			particle_material.initial_velocity_max = 3.0
 			quad.size = Vector2(0.10, 0.10)
 			material.albedo_color = Color(0.25, 0.19, 0.17, 0.88)
-			environment.fog_density = 0.018
+			target_fog_density = 0.018
 		_:
 			particles.amount = 1
 			particles.emitting = false
-			environment.fog_density = 0.003
+			target_fog_density = 0.003
 	quad.material = material
+	var gust_strength := 1.0 if weather == "tempête" else 0.62 if weather in ["pluie", "cendres"] else 0.30 if weather == "neige" else 0.08
+	for foliage_material in foliage_material_cache.values():
+		(foliage_material as ShaderMaterial).set_shader_parameter("weather_gust", gust_strength)
+	for grass_material in grass_materials:
+		grass_material.set_shader_parameter("weather_gust", gust_strength)
+	if is_instance_valid(ocean_material):
+		var sea_strength := 1.0 if weather == "tempête" else 0.68 if weather == "cendres" else 0.52 if weather == "pluie" else 0.34 if weather == "neige" else 0.18
+		ocean_material.set_shader_parameter("wave_height", lerpf(0.52, 1.05, sea_strength))
+		ocean_material.set_shader_parameter("wave_speed", lerpf(0.72, 1.18, sea_strength))
+		ocean_material.set_shader_parameter("roughness_value", lerpf(0.09, 0.24, sea_strength))
+		ocean_material.set_shader_parameter("storm_strength", sea_strength)
 	if particles.emitting:
 		particles.restart()
 	weather_changed.emit(weather.capitalize())
@@ -118,7 +158,7 @@ func _build_environment() -> void:
 	environment = Environment.new()
 	environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_material := ProceduralSkyMaterial.new()
+	sky_material = ProceduralSkyMaterial.new()
 	sky_material.sky_top_color = Color("1e6da6")
 	sky_material.sky_horizon_color = Color("8bd6ee")
 	sky_material.ground_bottom_color = Color("07131c")
@@ -148,9 +188,9 @@ func _build_ocean() -> void:
 	plane.subdivide_depth = 120
 	ocean.mesh = plane
 	ocean.position = Vector3(455, 0, 35)
-	var shader_material := ShaderMaterial.new()
-	shader_material.shader = load("res://shaders/ocean.gdshader")
-	ocean.material_override = shader_material
+	ocean_material = ShaderMaterial.new()
+	ocean_material.shader = load("res://shaders/ocean.gdshader")
+	ocean.material_override = ocean_material
 	add_child(ocean)
 
 func _build_islands() -> void:
@@ -193,8 +233,8 @@ func _create_island_mesh(zone_index: int, island_radius: float) -> ArrayMesh:
 		var current := _terrain_point(zone_index, island_radius, 1.0 / float(ring_count), angle_current)
 		var next := _terrain_point(zone_index, island_radius, 1.0 / float(ring_count), angle_next)
 		_add_terrain_vertex(surface, center, island_radius)
-		_add_terrain_vertex(surface, next, island_radius)
 		_add_terrain_vertex(surface, current, island_radius)
+		_add_terrain_vertex(surface, next, island_radius)
 	for ring in range(1, ring_count):
 		var inner_ratio := float(ring) / float(ring_count)
 		var outer_ratio := float(ring + 1) / float(ring_count)
@@ -206,11 +246,11 @@ func _create_island_mesh(zone_index: int, island_radius: float) -> ArrayMesh:
 			var outer_current := _terrain_point(zone_index, island_radius, outer_ratio, angle_current)
 			var outer_next := _terrain_point(zone_index, island_radius, outer_ratio, angle_next)
 			_add_terrain_vertex(surface, inner_current, island_radius)
+			_add_terrain_vertex(surface, outer_next, island_radius)
 			_add_terrain_vertex(surface, inner_next, island_radius)
-			_add_terrain_vertex(surface, outer_next, island_radius)
 			_add_terrain_vertex(surface, inner_current, island_radius)
-			_add_terrain_vertex(surface, outer_next, island_radius)
 			_add_terrain_vertex(surface, outer_current, island_radius)
+			_add_terrain_vertex(surface, outer_next, island_radius)
 	for segment in range(segment_count):
 		var angle_current := TAU * float(segment) / float(segment_count)
 		var angle_next := TAU * float(segment + 1) / float(segment_count)
@@ -219,11 +259,11 @@ func _create_island_mesh(zone_index: int, island_radius: float) -> ArrayMesh:
 		var bottom_current := Vector3(top_current.x, -3.2, top_current.z)
 		var bottom_next := Vector3(top_next.x, -3.2, top_next.z)
 		_add_terrain_vertex(surface, top_current, island_radius)
-		_add_terrain_vertex(surface, bottom_next, island_radius)
 		_add_terrain_vertex(surface, top_next, island_radius)
-		_add_terrain_vertex(surface, top_current, island_radius)
-		_add_terrain_vertex(surface, bottom_current, island_radius)
 		_add_terrain_vertex(surface, bottom_next, island_radius)
+		_add_terrain_vertex(surface, top_current, island_radius)
+		_add_terrain_vertex(surface, bottom_next, island_radius)
+		_add_terrain_vertex(surface, bottom_current, island_radius)
 	surface.generate_normals()
 	surface.generate_tangents()
 	return surface.commit()
@@ -450,6 +490,7 @@ func _build_grass(root: Node3D, rng: RandomNumberGenerator, island_radius: float
 	blade.size = Vector2(0.18, 1.25)
 	var grass_material := ShaderMaterial.new()
 	grass_material.shader = load("res://shaders/grass.gdshader")
+	grass_materials.append(grass_material)
 	if zone_index == 3:
 		grass_material.set_shader_parameter("grass_dark", Color("75511f"))
 		grass_material.set_shader_parameter("grass_light", Color("d0a14c"))
@@ -622,7 +663,7 @@ func _build_sea_routes() -> void:
 			buoy.name = "BouéeRoute_%d_%d" % [zone_index, step]
 			buoy.position = route_position
 			add_child(buoy)
-			_add_cylinder(buoy, "CorpsBouée", Vector3(0, 0.8, 0), 0.52, 0.72, 1.3, Color("d94b32"))
+			_add_cylinder(buoy, "CorpsBouée", Vector3(0, 0.8, 0), 0.52, 0.72, 1.3, Color("d94b32"), false, false)
 			_add_cone(buoy, "SommetBouée", Vector3(0, 1.85, 0), 0.62, 0.8, Color("f2cf55"), true)
 
 func _zone_water_dock(zone_index: int) -> Vector3:
@@ -642,8 +683,17 @@ func _add_box(root: Node3D, node_name: String, position: Vector3, size: Vector3,
 	node.rotation.y = yaw
 	node.material_override = _glow_material(color, 4.0) if glow else _material(color, 0.84)
 	root.add_child(node)
+	if not glow:
+		var collision := CollisionShape3D.new()
+		collision.name = node_name + "Collision"
+		collision.position = position
+		collision.rotation.y = yaw
+		var shape := BoxShape3D.new()
+		shape.size = size
+		collision.shape = shape
+		_decoration_collision_body(root).add_child(collision)
 
-func _add_cylinder(root: Node3D, node_name: String, position: Vector3, top_radius: float, bottom_radius: float, height: float, color: Color, glow: bool = false) -> void:
+func _add_cylinder(root: Node3D, node_name: String, position: Vector3, top_radius: float, bottom_radius: float, height: float, color: Color, glow: bool = false, collision_enabled: bool = true) -> void:
 	var node := MeshInstance3D.new()
 	node.name = node_name
 	var mesh := CylinderMesh.new()
@@ -655,6 +705,15 @@ func _add_cylinder(root: Node3D, node_name: String, position: Vector3, top_radiu
 	node.position = position
 	node.material_override = _glow_material(color, 4.0) if glow else _material(color, 0.82)
 	root.add_child(node)
+	if not glow and collision_enabled:
+		var collision := CollisionShape3D.new()
+		collision.name = node_name + "Collision"
+		collision.position = position
+		var shape := CylinderShape3D.new()
+		shape.radius = maxf(top_radius, bottom_radius)
+		shape.height = height
+		collision.shape = shape
+		_decoration_collision_body(root).add_child(collision)
 
 func _add_sphere(root: Node3D, node_name: String, position: Vector3, radius: float, color: Color, glow: bool = false) -> void:
 	var node := MeshInstance3D.new()
@@ -668,6 +727,14 @@ func _add_sphere(root: Node3D, node_name: String, position: Vector3, radius: flo
 	node.position = position
 	node.material_override = _glow_material(color, 5.0) if glow else _material(color, 0.76)
 	root.add_child(node)
+	if not glow:
+		var collision := CollisionShape3D.new()
+		collision.name = node_name + "Collision"
+		collision.position = position
+		var shape := SphereShape3D.new()
+		shape.radius = radius
+		collision.shape = shape
+		_decoration_collision_body(root).add_child(collision)
 
 func _add_cone(root: Node3D, node_name: String, position: Vector3, radius: float, height: float, color: Color, glow: bool = false) -> void:
 	var node := MeshInstance3D.new()
@@ -681,6 +748,24 @@ func _add_cone(root: Node3D, node_name: String, position: Vector3, radius: float
 	node.position = position
 	node.material_override = _glow_material(color, 4.5) if glow else _material(color, 0.82)
 	root.add_child(node)
+	if not glow:
+		var collision := CollisionShape3D.new()
+		collision.name = node_name + "Collision"
+		collision.position = position
+		var shape := CylinderShape3D.new()
+		shape.radius = radius * 0.78
+		shape.height = height
+		collision.shape = shape
+		_decoration_collision_body(root).add_child(collision)
+
+func _decoration_collision_body(root: Node3D) -> StaticBody3D:
+	var existing := root.get_node_or_null("CollisionsDécor") as StaticBody3D
+	if existing != null:
+		return existing
+	var body := StaticBody3D.new()
+	body.name = "CollisionsDécor"
+	root.add_child(body)
+	return body
 
 func _build_weather() -> void:
 	particles = GPUParticles3D.new()
