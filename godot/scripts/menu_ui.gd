@@ -246,7 +246,7 @@ func _hero_preview(hero_id: String, preview_size: Vector2) -> SubViewportContain
 	container.add_child(viewport)
 	var stage := Node3D.new()
 	viewport.add_child(stage)
-	var hero := HeroFactory.create_hero(hero_id)
+	var hero := HeroFactory.create_hero(hero_id, false)
 	stage.add_child(hero)
 	hero.scale = Vector3.ONE
 	var nameplate := hero.get_node_or_null("Nom")

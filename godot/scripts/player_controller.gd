@@ -13,8 +13,11 @@ var hero_id := "cheikh"
 var hero_visual: CharacterBody3D
 var move_input := Vector2.ZERO
 var camera_yaw := 0.0
-var camera_pitch := -0.12
+var camera_pitch := -0.14
+var camera_target_yaw := 0.0
+var camera_target_pitch := -0.14
 var camera_manual_timer := 0.0
+var camera_recenter_timer := 0.0
 var assist_lock_time := 0.0
 var health := 140.0
 var max_health := 140.0
@@ -67,6 +70,7 @@ func _physics_process(delta: float) -> void:
 	combo_timer = maxf(0.0, combo_timer - delta)
 	invulnerability = maxf(0.0, invulnerability - delta)
 	camera_manual_timer = maxf(0.0, camera_manual_timer - delta)
+	camera_recenter_timer = maxf(0.0, camera_recenter_timer - delta)
 	assist_lock_time = maxf(0.0, assist_lock_time - delta)
 	if combo_timer <= 0.0:
 		combo_step = 0
@@ -81,7 +85,7 @@ func _physics_process(delta: float) -> void:
 		_perform_attack()
 
 	var direction := _world_move_direction()
-	var analog_strength := clampf(move_input.length(), 0.0, 1.0)
+	var analog_strength := clampf(_active_move_input().length(), 0.0, 1.0)
 	if dodge_time > 0.0:
 		velocity.x = dodge_direction.x * _dodge_speed()
 		velocity.z = dodge_direction.z * _dodge_speed()
@@ -89,16 +93,24 @@ func _physics_process(delta: float) -> void:
 		velocity.x = attack_lunge_direction.x * _attack_lunge_speed()
 		velocity.z = attack_lunge_direction.z * _attack_lunge_speed()
 	else:
-		var speed_multiplier := analog_strength
-		if analog_strength > 0.92:
-			speed_multiplier *= 1.08
-		var speed := _movement_speed() * speed_multiplier * (1.28 if aura_time > 0.0 else 1.0)
-		var acceleration := 42.0 if direction.length_squared() > 0.02 else 55.0
-		velocity.x = move_toward(velocity.x, direction.x * speed, delta * acceleration)
-		velocity.z = move_toward(velocity.z, direction.z * speed, delta * acceleration)
+		var response := smoothstep(0.08, 1.0, analog_strength)
+		var speed_factor := lerpf(0.34, 1.0, response)
+		if analog_strength > 0.88:
+			speed_factor = lerpf(speed_factor, 1.08, smoothstep(0.88, 1.0, analog_strength))
+		var speed := _movement_speed() * speed_factor * (1.24 if aura_time > 0.0 else 1.0)
+		var desired_velocity := direction * speed if direction.length_squared() > 0.02 else Vector3.ZERO
+		var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
+		var acceleration := 25.0 if not desired_velocity.is_zero_approx() else 32.0
+		if not desired_velocity.is_zero_approx() and horizontal_velocity.length_squared() > 0.1:
+			var alignment := horizontal_velocity.normalized().dot(desired_velocity.normalized())
+			acceleration = lerpf(38.0, 22.0, clampf((alignment + 1.0) * 0.5, 0.0, 1.0))
+		horizontal_velocity = horizontal_velocity.move_toward(desired_velocity, acceleration * delta)
+		velocity.x = horizontal_velocity.x
+		velocity.z = horizontal_velocity.z
 		if direction.length_squared() > 0.02:
 			var target_angle := atan2(-direction.x, -direction.z)
-			rotation.y = lerp_angle(rotation.y, target_angle, delta * 14.0)
+			var turn_speed := 15.0 if analog_strength > 0.72 else 10.0
+			rotation.y = lerp_angle(rotation.y, target_angle, 1.0 - exp(-turn_speed * delta))
 	if not is_on_floor():
 		velocity.y -= 24.0 * delta
 	move_and_slide()
@@ -120,12 +132,13 @@ func _physics_process(delta: float) -> void:
 		_emit_stats()
 
 func set_move_input(value: Vector2) -> void:
-	move_input = value if value.length() >= 0.08 else Vector2.ZERO
+	move_input = value.limit_length(1.0) if value.length() >= 0.08 else Vector2.ZERO
 
 func add_camera_drag(relative: Vector2) -> void:
-	camera_yaw -= relative.x * 0.0042
-	camera_pitch = clampf(camera_pitch - relative.y * 0.0032, -0.44, 0.08)
-	camera_manual_timer = 2.3
+	camera_target_yaw -= relative.x * 0.0037
+	camera_target_pitch = clampf(camera_target_pitch - relative.y * 0.0028, -0.48, 0.12)
+	camera_manual_timer = 1.45
+	camera_recenter_timer = 0.85
 
 func set_hero(new_hero_id: String) -> void:
 	if is_instance_valid(hero_visual):
@@ -301,13 +314,14 @@ func get_save_snapshot(zone: int) -> Dictionary:
 	return save_data
 
 func _world_move_direction() -> Vector3:
-	var keyboard := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var raw_input := move_input if move_input.length() > keyboard.length() else keyboard
+	var raw_input := _active_move_input()
 	var basis := Basis(Vector3.UP, camera_yaw)
 	var direction := basis * Vector3(raw_input.x, 0.0, raw_input.y)
-	if direction.length_squared() > 1.0:
-		direction = direction.normalized()
-	return direction
+	return direction.normalized() if direction.length_squared() > 0.001 else Vector3.ZERO
+
+func _active_move_input() -> Vector2:
+	var keyboard := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	return move_input if move_input.length() > keyboard.length() else keyboard
 
 func _nearest_enemy(search_radius: float) -> EnemyAI:
 	var nearest: EnemyAI
@@ -341,8 +355,6 @@ func _face_enemy(enemy: EnemyAI) -> void:
 	target_direction.y = 0.0
 	if target_direction.length_squared() > 0.01:
 		rotation.y = atan2(-target_direction.x, -target_direction.z)
-		if camera_manual_timer <= 0.0:
-			camera_yaw = lerp_angle(camera_yaw, rotation.y, 0.38)
 
 func _damage_in_front(damage: float, radius: float, minimum_dot: float, push_power: float) -> int:
 	var hits := 0
@@ -444,41 +456,59 @@ func _build_camera() -> void:
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "PivotCamera"
 	add_child(camera_pivot)
-	camera_pivot.position = Vector3(0.0, 1.28, 0.0)
+	camera_pivot.top_level = true
+	camera_pivot.global_position = global_position + Vector3(0.0, 1.48, 0.0)
+	camera_target_yaw = rotation.y
+	camera_yaw = camera_target_yaw
+	camera_target_pitch = -0.14
+	camera_pitch = camera_target_pitch
 	camera_arm = SpringArm3D.new()
 	camera_arm.name = "BrasCamera"
-	camera_arm.spring_length = 4.15
-	camera_arm.margin = 0.18
+	camera_arm.spring_length = 4.55
+	camera_arm.margin = 0.22
 	camera_arm.collision_mask = 1
 	camera_pivot.add_child(camera_arm)
 	camera = Camera3D.new()
 	camera.name = "CameraJoueur"
 	camera.current = true
-	camera.fov = 61.0
+	camera.fov = 58.0
 	camera.near = 0.06
 	camera.far = 800.0
-	camera.position = Vector3(0.42, 0.22, 0.0)
+	camera.position = Vector3(0.56, 0.08, 0.0)
 	camera_arm.add_child(camera)
 
 func _update_camera(delta: float, direction: Vector3) -> void:
 	if not is_instance_valid(camera_pivot):
 		return
-	if camera_manual_timer <= 0.0:
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	var camera_forward := -Basis(Vector3.UP, camera_yaw).z
+	var moving_forward := direction.length_squared() > 0.02 and direction.dot(camera_forward) > 0.18
+	if camera_manual_timer <= 0.0 and camera_recenter_timer <= 0.0:
 		if assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
 			var target_direction := assisted_target.global_position - global_position
 			target_direction.y = 0.0
 			if target_direction.length_squared() > 0.01:
 				var target_yaw := atan2(-target_direction.x, -target_direction.z)
-				camera_yaw = lerp_angle(camera_yaw, target_yaw, delta * 3.6)
-		elif direction.length_squared() > 0.08:
-			camera_yaw = lerp_angle(camera_yaw, rotation.y, delta * 2.2)
-	camera_pivot.rotation.y = lerp_angle(camera_pivot.rotation.y, camera_yaw, delta * 13.0)
-	camera_pivot.rotation.x = lerpf(camera_pivot.rotation.x, camera_pitch, delta * 10.0)
-	var moving := Vector2(velocity.x, velocity.z).length()
-	var target_fov := 65.0 if moving > _movement_speed() * 0.85 else 61.0
+				camera_target_yaw = lerp_angle(camera_target_yaw, target_yaw, 1.0 - exp(-2.2 * delta))
+		elif moving_forward and horizontal_speed > _movement_speed() * 0.48:
+			camera_target_yaw = lerp_angle(camera_target_yaw, rotation.y, 1.0 - exp(-1.35 * delta))
+	camera_yaw = lerp_angle(camera_yaw, camera_target_yaw, 1.0 - exp(-9.5 * delta))
+	camera_pitch = lerpf(camera_pitch, camera_target_pitch, 1.0 - exp(-9.0 * delta))
+
+	var hero_height := float(HeroFactory.HEROES[hero_id]["height"])
+	var look_ahead := Vector3(velocity.x, 0.0, velocity.z) * 0.035
+	var desired_anchor := global_position + Vector3(0.0, hero_height * 0.68 + 0.18, 0.0) + look_ahead
+	camera_pivot.global_position = camera_pivot.global_position.lerp(desired_anchor, 1.0 - exp(-11.0 * delta))
+	camera_pivot.rotation.y = camera_yaw
+	camera_pivot.rotation.x = camera_pitch
+
+	var running_ratio := clampf(horizontal_speed / maxf(_movement_speed(), 0.1), 0.0, 1.0)
+	var target_length := lerpf(4.35, 4.75, running_ratio)
+	camera_arm.spring_length = lerpf(camera_arm.spring_length, target_length, 1.0 - exp(-5.5 * delta))
+	var target_fov := lerpf(58.0, 63.0, running_ratio)
 	if aura_time > 0.0:
-		target_fov += 4.0
-	camera.fov = lerpf(camera.fov, target_fov, delta * 4.0)
+		target_fov += 3.0
+	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-4.5 * delta))
 
 func _build_fx() -> void:
 	combat_fx = GPUParticles3D.new()

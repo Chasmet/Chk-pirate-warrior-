@@ -11,6 +11,7 @@ const HEROES := {
 		"role": "Capitaine puissant",
 		"weapon": "Sabre courbe",
 		"sprite": "res://assets/heroes/cheikh_poses.webp",
+		"third_person_sprite": "res://assets/heroes/cheikh_third_person.webp",
 		"pixel_size": 0.00305,
 		"sprite_y": 0.91
 	},
@@ -23,6 +24,7 @@ const HEROES := {
 		"role": "Éclaireur électrique",
 		"weapon": "Fronde",
 		"sprite": "res://assets/heroes/yvane_poses.webp",
+		"third_person_sprite": "res://assets/heroes/yvane_third_person.webp",
 		"pixel_size": 0.00266,
 		"sprite_y": 0.80
 	},
@@ -35,12 +37,13 @@ const HEROES := {
 		"role": "Inventeur tactique",
 		"weapon": "Gadgets",
 		"sprite": "res://assets/heroes/nelvyn_poses.webp",
+		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.webp",
 		"pixel_size": 0.00228,
 		"sprite_y": 0.68
 	}
 }
 
-static func create_hero(hero_id: StringName) -> CharacterBody3D:
+static func create_hero(hero_id: StringName, third_person: bool = true) -> CharacterBody3D:
 	var resolved_id := String(hero_id)
 	if not HEROES.has(resolved_id):
 		resolved_id = "cheikh"
@@ -53,15 +56,16 @@ static func create_hero(hero_id: StringName) -> CharacterBody3D:
 	var rig := Node3D.new()
 	rig.name = "RigVisuel"
 	hero.add_child(rig)
-	_build_character_art(rig, profile)
+	_build_character_art(rig, profile, third_person)
 	_build_ground_shadow(rig, profile)
 	_build_aura(rig, profile)
 	return hero
 
-static func _build_character_art(root: Node3D, profile: Dictionary) -> void:
+static func _build_character_art(root: Node3D, profile: Dictionary, third_person: bool) -> void:
 	var sprite := Sprite3D.new()
 	sprite.name = "CharacterArt"
-	sprite.texture = load(String(profile["sprite"])) as Texture2D
+	var texture_path := String(profile["third_person_sprite"]) if third_person else String(profile["sprite"])
+	sprite.texture = load(texture_path) as Texture2D
 	sprite.hframes = 4
 	sprite.vframes = 1
 	sprite.frame = 0

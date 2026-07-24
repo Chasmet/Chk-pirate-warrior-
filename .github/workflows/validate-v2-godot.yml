@@ -264,8 +264,8 @@ jobs:
 
           APP_READY=0
           for attempt in $(seq 1 60); do
-            if "$ADB" shell dumpsys window windows |
-                grep -q 'mCurrentFocus.*fr.chk.piratewarrior.v2' &&
+            if "$ADB" shell dumpsys activity top |
+                grep -q 'ACTIVITY fr.chk.piratewarrior.v2' &&
                "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null; then
               APP_READY=1
               break
@@ -289,8 +289,8 @@ jobs:
           "$ADB" shell input tap 2280 955
           sleep 4
           "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null
-          "$ADB" shell dumpsys window windows |
-            grep -q 'mCurrentFocus.*fr.chk.piratewarrior.v2'
+          "$ADB" shell dumpsys activity top |
+            grep -q 'ACTIVITY fr.chk.piratewarrior.v2'
           "$ADB" exec-out screencap -p > android-gameplay.png
 
           "$ADB" shell wm size | tee android-window.txt

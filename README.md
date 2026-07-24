@@ -2,15 +2,17 @@
 
 Jeu d’action-aventure 3D Android en français, pensé exclusivement pour téléphone en mode paysage et jouable hors connexion.
 
-## Version 2.1 — édition fidèle
+## Version 2.2 — aventure à la troisième personne
 
 Cette version reconstruit la V2 autour de l’illustration officielle du jeu :
 
 - menu principal fidèle à l’image de référence, avec toutes les zones tactiles ;
 - trois héros uniquement : **Cheikh**, **Yvane** et **Nelvyn** ;
-- personnages HD distincts avec quatre poses chacun : repos, course, attaque et déferlement ;
-- commandes mobiles revues : joystick analogique proportionnel, attaque maintenue, esquive et caméra tactile ;
-- caméra de combat stabilisée avec assistance temporaire à la cible ;
+- personnages HD visibles de dos avec quatre poses chacun : repos, course, attaque et déferlement ;
+- véritable caméra troisième personne derrière l’épaule, avec collision dans le décor et suivi amorti ;
+- locomotion relative à la caméra : marche/course analogique, accélération, freinage et demi-tours fluides ;
+- commandes mobiles revues : joystick analogique proportionnel, glissement caméra, attaque maintenue et esquive ;
+- assistance de combat temporaire qui n’arrache plus le contrôle de la caméra au joueur ;
 - six régions, météo, cycle jour/nuit, ennemis, boss et limites d’île sécurisées ;
 - attaques, pouvoirs, combos et déferlements d’énergie propres à chaque héros ;
 - progression, niveaux, pièces, entraînement et sauvegarde automatique locale ;
@@ -30,7 +32,8 @@ Android peut demander l’autorisation d’installer une application provenant d
 ## Commandes
 
 - Joystick gauche : déplacement analogique.
-- Glissement au centre/droite : rotation de la caméra.
+- Glissement sur la partie droite : rotation libre de la caméra troisième personne.
+- Pousser doucement le joystick : marche précise ; pousser jusqu’au bord : course.
 - **ATTAQUE** : appui simple ou maintenu pour enchaîner le combo.
 - **POUVOIR** : technique spéciale consommant de l’énergie.
 - **ESQUIVE** : déplacement rapide avec courte invulnérabilité.

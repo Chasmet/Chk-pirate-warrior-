@@ -24,12 +24,18 @@ func _run() -> void:
 	_check(get_nodes_in_group("enemies").size() == 8, "la première vague contient huit ennemis")
 	_check(player.hero_id == "cheikh", "Cheikh est le héros initial")
 	_check(is_equal_approx(player.health, player.max_health), "le héros commence avec sa vie complète")
+	_check(player.camera_pivot.top_level, "la caméra troisième personne suit le héros avec inertie")
+	_check(player.camera.position.x > 0.4, "la caméra est placée au-dessus de l’épaule")
 
 	var sprite := player.get_node_or_null("Visuel_cheikh/RigVisuel/CharacterArt") as Sprite3D
-	_check(sprite != null, "le nouveau personnage HD de Cheikh est chargé")
+	_check(sprite != null, "le personnage troisième personne de Cheikh est visible")
 	if sprite != null:
 		_check(sprite.hframes == 4, "les quatre poses de Cheikh sont disponibles")
-		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la texture HD optimisée est importée sans déformation")
+		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la texture de dos HD est importée sans déformation")
+
+	var yaw_before := player.camera_target_yaw
+	player.add_camera_drag(Vector2(80.0, -20.0))
+	_check(player.camera_target_yaw < yaw_before, "le glissement à droite contrôle librement la caméra")
 
 	var start_position := player.global_position
 	player.set_move_input(Vector2(1.0, 0.0))
@@ -37,6 +43,7 @@ func _run() -> void:
 		await physics_frame
 	player.set_move_input(Vector2.ZERO)
 	_check(player.global_position.distance_to(start_position) > 0.25, "le joystick déplace réellement le héros")
+	_check(Vector2(player.velocity.x, player.velocity.z).length() < player._movement_speed() * 1.2, "l’accélération du héros reste maîtrisée")
 
 	var enemies := get_nodes_in_group("enemies")
 	if not enemies.is_empty():

@@ -128,7 +128,7 @@ func _build_hud() -> void:
 	add_child(hud)
 
 	var camera_area := CameraDragArea.new()
-	_set_rect(camera_area, 0.0, 0.0, 1.0, 1.0, 340, 120, -340, -20)
+	_set_rect(camera_area, 0.34, 0.0, 1.0, 1.0, 0, 110, 0, 0)
 	camera_area.dragged.connect(func(relative: Vector2): camera_dragged.emit(relative))
 	hud.add_child(camera_area)
 
