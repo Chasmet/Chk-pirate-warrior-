@@ -13,7 +13,7 @@ const HEROES := {
 		"sprite": "res://assets/heroes/cheikh_poses.png",
 		"third_person_sprite": "res://assets/heroes/cheikh_third_person.png",
 		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.png",
-		"pixel_size": 0.00330,
+		"pixel_size": 0.00660,
 		"sprite_y": 1.02
 	},
 	"yvane": {
@@ -27,7 +27,7 @@ const HEROES := {
 		"sprite": "res://assets/heroes/yvane_poses.png",
 		"third_person_sprite": "res://assets/heroes/yvane_third_person.png",
 		"steering_sprite": "res://assets/heroes/yvane_steering_v24.png",
-		"pixel_size": 0.00292,
+		"pixel_size": 0.00584,
 		"sprite_y": 0.89
 	},
 	"nelvyn": {
@@ -41,7 +41,7 @@ const HEROES := {
 		"sprite": "res://assets/heroes/nelvyn_poses.png",
 		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.png",
 		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.png",
-		"pixel_size": 0.00258,
+		"pixel_size": 0.00516,
 		"sprite_y": 0.77
 	}
 }
@@ -72,6 +72,8 @@ static func _build_character_art(root: Node3D, profile: Dictionary, third_person
 	sprite.hframes = 4
 	sprite.vframes = 1
 	sprite.frame = 0
+	# Les PNG Android font la moitié de la résolution des WebP sources ; le
+	# pixel_size doublé conserve exactement la même taille physique dans le monde.
 	sprite.pixel_size = float(profile["pixel_size"])
 	sprite.position.y = float(profile["sprite_y"])
 	# Le personnage original reste droit et tourne uniquement autour de l’axe Y.
