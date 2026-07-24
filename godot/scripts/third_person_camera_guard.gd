@@ -106,11 +106,11 @@ func _force_original_hero_visible() -> void:
 	var profile: Dictionary = HeroFactory.HEROES[player.hero_id]
 	sprite.visible = true
 	sprite.modulate = Color.WHITE
-	sprite.no_depth_test = true
+	sprite.no_depth_test = false
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	sprite.alpha_scissor_threshold = 0.04
-	sprite.render_priority = 100
+	sprite.render_priority = 8
 	sprite.pixel_size = float(profile["pixel_size"])
 
 func _cache_sails() -> void:
