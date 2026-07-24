@@ -73,8 +73,6 @@ func _process(delta: float) -> void:
 		hero_view.visible = false
 		return
 
-	# Le Sprite3D conserve toute la logique existante (poses, avant/dos,
-	# pilotage), mais sa couche n’est jamais dessinée par la caméra Android.
 	source_sprite.layers = SOURCE_LAYER
 	source_sprite.visible = true
 	player.camera.cull_mask &= ~SOURCE_LAYER
@@ -118,41 +116,22 @@ func _sync_atlas(force: bool = false) -> void:
 	hero_view.modulate = source_sprite.modulate
 
 func _update_screen_position() -> void:
-	var camera := player.camera
 	var texture := source_sprite.texture
 	if texture == null:
 		hero_view.visible = false
 		return
-	var frame_width := float(texture.get_width()) / float(maxi(1, source_sprite.hframes))
-	var world_height := float(texture.get_height()) * source_sprite.pixel_size
-	var world_width := frame_width * source_sprite.pixel_size
-	var center := source_sprite.global_position
-	if camera.is_position_behind(center):
-		hero_view.visible = false
-		return
-
-	var screen_center := camera.unproject_position(center)
-	var top_screen := camera.unproject_position(center + Vector3.UP * world_height * 0.5)
-	var bottom_screen := camera.unproject_position(center - Vector3.UP * world_height * 0.5)
-	var projected_height := absf(bottom_screen.y - top_screen.y)
 	var viewport_size := get_viewport().get_visible_rect().size
-	var minimum_height := viewport_size.y * (0.18 if player.boat_mode else 0.30)
-	var maximum_height := viewport_size.y * (0.40 if player.boat_mode else 0.58)
-	var display_height := clampf(projected_height, minimum_height, maximum_height)
-	var aspect := world_width / maxf(world_height, 0.01)
+	var frame_width := float(texture.get_width()) / float(maxi(1, source_sprite.hframes))
+	var aspect := frame_width / maxf(float(texture.get_height()), 1.0)
+	var display_height := viewport_size.y * (0.23 if player.boat_mode else 0.46)
 	var display_size := Vector2(display_height * aspect, display_height)
-	var display_position := screen_center - display_size * 0.5
-
-	# Le personnage reste entièrement visible sans passer sur les commandes.
-	display_position.x = clampf(display_position.x, 12.0, viewport_size.x - display_size.x - 12.0)
-	display_position.y = clampf(display_position.y, 90.0, viewport_size.y - display_size.y - 24.0)
-	hero_view.position = display_position
+	var center_x := viewport_size.x * 0.50
+	var bottom_y := viewport_size.y * (0.80 if player.boat_mode else 0.92)
+	hero_view.position = Vector2(center_x - display_size.x * 0.5, bottom_y - display_size.y)
 	hero_view.size = display_size
 	hero_view.visible = true
 
 func _hide_broken_world_labels() -> void:
-	# Label3D produit des rectangles blancs avec le pilote OpenGL de certains
-	# téléphones et de l’émulateur. Les objectifs restent affichés dans le HUD.
 	_hide_labels_recursive(get_tree().root)
 
 func _hide_labels_recursive(node: Node) -> void:
