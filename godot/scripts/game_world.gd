@@ -85,13 +85,13 @@ func _spawn_wave() -> void:
 	if not is_instance_valid(player):
 		return
 	var center: Vector3 = ZONES[current_zone]["spawn"]
-	for i in range(10):
+	for i in range(8):
 		var profile := EnemyFactory.profile_for_index(current_zone * 2 + i)
 		var enemy := EnemyFactory.create_enemy(profile, player)
 		add_child(enemy)
 		_attach_enemy_animator(enemy)
-		var angle := TAU * float(i) / 10.0 + rng.randf_range(-0.22, 0.22)
-		var radius := rng.randf_range(14.0, 43.0)
+		var angle := TAU * float(i) / 8.0 + rng.randf_range(-0.20, 0.20)
+		var radius := rng.randf_range(10.0, 24.0)
 		enemy.global_position = center + Vector3(cos(angle) * radius, 2.0, sin(angle) * radius)
 		player.register_enemy(enemy)
 
@@ -104,7 +104,7 @@ func _spawn_boss() -> void:
 	var boss := EnemyFactory.create_enemy(profile, player)
 	add_child(boss)
 	_attach_enemy_animator(boss)
-	boss.global_position = Vector3(ZONES[current_zone]["spawn"]) + Vector3(0, 2.0, -28.0)
+	boss.global_position = Vector3(ZONES[current_zone]["spawn"]) + Vector3(0, 2.0, -17.0)
 	player.register_enemy(boss)
 	mission_changed.emit("BOSS : " + String(profile["name"]))
 	VoiceFR.speak("Attention. " + String(profile["name"]) + " entre dans l'arène.")
