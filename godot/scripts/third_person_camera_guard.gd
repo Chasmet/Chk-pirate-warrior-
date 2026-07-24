@@ -4,6 +4,7 @@ const LAND_DISTANCE := 6.15
 const BOAT_DISTANCE := 17.8
 const LAND_MIN_HEIGHT := 1.35
 const BOAT_MIN_WORLD_HEIGHT := 3.8
+const BOAT_REAR_QUARTER_BIAS := 0.34
 
 var player: PlayerController
 var player_logged := false
@@ -88,9 +89,9 @@ func _update_boat_camera(delta: float, snap_now: bool) -> void:
 	var look_ahead := velocity_flat * 0.09
 	var anchor := player.global_position + Vector3(0.0, 2.42, 0.18) + look_ahead
 
-	# Vue de repos arrière trois-quarts : on voit simultanément la coque, le pont,
-	# le gouvernail et le héros. Le stick conserve une orbite complète à 360°.
-	var camera_heading := player.camera_yaw
+	# Vue arrière trois-quarts par défaut : la voile ne cache plus la route et
+	# le stick caméra conserve une orbite complète autour du navire.
+	var camera_heading := player.camera_yaw + BOAT_REAR_QUARTER_BIAS
 	var pitch := clampf(player.camera_pitch, -0.48, -0.04)
 	var distance := lerpf(BOAT_DISTANCE, BOAT_DISTANCE + 2.2, speed_ratio)
 	var horizontal_distance := cos(pitch) * distance
@@ -98,7 +99,7 @@ func _update_boat_camera(delta: float, snap_now: bool) -> void:
 	var orbit := Basis(Vector3.UP, camera_heading)
 	var back := orbit.z.normalized()
 	var right := orbit.x.normalized()
-	var shoulder_offset := lerpf(3.05, 3.65, speed_ratio)
+	var shoulder_offset := lerpf(1.45, 1.90, speed_ratio)
 	var desired_position := anchor + back * horizontal_distance + Vector3.UP * vertical_offset + right * shoulder_offset
 	desired_position.y = maxf(desired_position.y, PlayerController.BOAT_WATERLINE + BOAT_MIN_WORLD_HEIGHT)
 	desired_position = _collision_safe_position(anchor, desired_position, 7.5)
@@ -141,7 +142,7 @@ func _force_original_hero_visible(on_boat: bool) -> void:
 		return
 	player.hero_visual.visible = true
 	if on_boat:
-		player.hero_visual.position = player.hero_visual.position.lerp(Vector3(0.0, 0.78, 1.48), 0.35)
+		player.hero_visual.position = player.hero_visual.position.lerp(Vector3(0.0, 0.72, 0.18), 0.35)
 	var sprite := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	if sprite == null:
 		return
