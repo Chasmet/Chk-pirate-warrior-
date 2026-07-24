@@ -13,6 +13,7 @@ var tracked_texture: Texture2D
 var tracked_hframes := -1
 var tracked_frame := -1
 var label_cleanup_timer := 0.0
+var animation_time := 0.0
 
 func _ready() -> void:
 	layer = 0
@@ -50,6 +51,7 @@ void fragment() {
 	set_process(true)
 
 func _process(delta: float) -> void:
+	animation_time += delta
 	label_cleanup_timer -= delta
 	if label_cleanup_timer <= 0.0:
 		label_cleanup_timer = 0.35
@@ -123,12 +125,30 @@ func _update_screen_position() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var frame_width := float(texture.get_width()) / float(maxi(1, source_sprite.hframes))
 	var aspect := frame_width / maxf(float(texture.get_height()), 1.0)
-	var display_height := viewport_size.y * (0.23 if player.boat_mode else 0.46)
-	var display_size := Vector2(display_height * aspect, display_height)
-	var center_x := viewport_size.x * 0.50
-	var bottom_y := viewport_size.y * (0.80 if player.boat_mode else 0.92)
-	hero_view.position = Vector2(center_x - display_size.x * 0.5, bottom_y - display_size.y)
-	hero_view.size = display_size
+	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
+	var movement := clampf(horizontal_speed / maxf(player._movement_speed(), 0.1), 0.0, 1.0) if not player.boat_mode else clampf(absf(player.boat_speed) / PlayerController.BOAT_MAX_SPEED, 0.0, 1.0)
+	var stride := sin(animation_time * lerpf(4.2, 11.5, movement))
+	var breathing := sin(animation_time * 2.8) * 2.0
+	var action_pulse := 1.035 if tracked_frame in [2, 3] else 1.0
+
+	if player.boat_mode:
+		var world_anchor := player.global_position + Vector3.UP * 2.15
+		if player.camera.is_position_behind(world_anchor):
+			hero_view.visible = false
+			return
+		var projected := player.camera.unproject_position(world_anchor)
+		var display_height := viewport_size.y * 0.155 * action_pulse
+		var display_size := Vector2(display_height * aspect, display_height)
+		var sway := Vector2(stride * 2.2, breathing + absf(stride) * 2.0 * movement)
+		hero_view.position = projected - Vector2(display_size.x * 0.5, display_size.y * 0.88) + sway
+		hero_view.size = display_size
+	else:
+		var display_height := viewport_size.y * 0.45 * action_pulse
+		var display_size := Vector2(display_height * aspect, display_height)
+		var center_x := viewport_size.x * 0.50 + stride * 4.0 * movement
+		var bottom_y := viewport_size.y * 0.92 + breathing + absf(stride) * 7.0 * movement
+		hero_view.position = Vector2(center_x - display_size.x * 0.5, bottom_y - display_size.y)
+		hero_view.size = display_size
 	hero_view.visible = true
 
 func _hide_broken_world_labels() -> void:
