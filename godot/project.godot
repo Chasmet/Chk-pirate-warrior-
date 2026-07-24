@@ -6,7 +6,7 @@ config_version=5
 
 [application]
 
-config/name="CHK Pirate Warrior V2.8"
+config/name="CHK Pirate Warrior V2.9"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
@@ -16,6 +16,7 @@ boot_splash/show_image=false
 
 [autoload]
 
+StudioGameplayUpgrade="*res://scripts/studio_gameplay_upgrade.gd"
 ThirdPersonCameraGuard="*res://scripts/third_person_camera_guard.gd"
 HeroMaterialRenderer="*res://scripts/hero_material_renderer.gd"
 GameplayRepair="*res://scripts/gameplay_repair.gd"
