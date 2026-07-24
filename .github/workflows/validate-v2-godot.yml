@@ -254,6 +254,9 @@ jobs:
           "$ADB" shell settings put system user_rotation 1
           "$ADB" shell wm size 2400x1080
           "$ADB" shell wm density 420
+          # Évite que l’aide Android « Viewing full screen » masque le jeu et
+          # intercepte les gestes pendant le premier lancement de l’émulateur.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           sleep 5
           "$ADB" install -r build/CHK-Pirate-Warrior-V2-debug.apk
           sleep 5
@@ -264,8 +267,13 @@ jobs:
 
           APP_READY=0
           for attempt in $(seq 1 60); do
-            if "$ADB" shell dumpsys activity top |
-                grep -q 'ACTIVITY fr.chk.piratewarrior.v2' &&
+            WINDOW_STATE=$("$ADB" shell dumpsys window displays 2>/dev/null || true)
+            if [[ "$WINDOW_STATE" == *"ImmersiveModeConfirmation"* ]]; then
+              "$ADB" shell input keyevent 66
+              sleep 2
+              WINDOW_STATE=$("$ADB" shell dumpsys window displays 2>/dev/null || true)
+            fi
+            if [[ "$WINDOW_STATE" == *"mCurrentFocus"*"fr.chk.piratewarrior.v2"* ]] &&
                "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null; then
               APP_READY=1
               break
@@ -274,13 +282,18 @@ jobs:
           done
           if [ "$APP_READY" -ne 1 ]; then
             echo "Le jeu Android ne reste pas au premier plan."
-            "$ADB" shell dumpsys activity top | head -n 80
-            "$ADB" shell dumpsys window windows |
+            "$ADB" shell dumpsys activity activities | head -n 120
+            "$ADB" shell dumpsys window displays |
               grep -E 'mCurrentFocus|mFocusedApp' || true
             "$ADB" logcat -d | tail -n 400
             exit 1
           fi
           sleep 5
+          WINDOW_STATE=$("$ADB" shell dumpsys window displays)
+          if [[ "$WINDOW_STATE" == *"ImmersiveModeConfirmation"* ]]; then
+            echo "Le panneau système plein écran masque encore le jeu."
+            exit 1
+          fi
 
           "$ADB" exec-out screencap -p > android-menu.png
           "$ADB" shell input tap 490 260
@@ -289,12 +302,12 @@ jobs:
           "$ADB" shell input tap 2280 955
           sleep 4
           "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null
-          "$ADB" shell dumpsys activity top |
-            grep -q 'ACTIVITY fr.chk.piratewarrior.v2'
+          WINDOW_STATE=$("$ADB" shell dumpsys window displays)
+          [[ "$WINDOW_STATE" == *"mCurrentFocus"*"fr.chk.piratewarrior.v2"* ]]
           "$ADB" exec-out screencap -p > android-gameplay.png
 
           "$ADB" shell wm size | tee android-window.txt
-          "$ADB" shell dumpsys activity top | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
+          "$ADB" shell dumpsys activity activities | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
           "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
 
           python3 - <<'PY'
@@ -302,7 +315,9 @@ jobs:
           from pathlib import Path
           for name in ('android-menu.png', 'android-gameplay.png'):
               path = Path(name)
-              assert path.stat().st_size > 10000, f'Capture Android vide: {name}'
+              assert path.stat().st_size > 100000, (
+                  f'Capture Android vide ou masquée par un panneau système: {name}'
+              )
               with path.open('rb') as stream:
                   stream.seek(16)
                   width, height = struct.unpack('>II', stream.read(8))
@@ -318,7 +333,7 @@ jobs:
             exit 1
           fi
           grep -E -q \
-            'ACTIVITY fr.chk.piratewarrior.v2|mCurrentFocus=.*fr.chk.piratewarrior.v2' \
+            'mCurrentFocus=.*fr.chk.piratewarrior.v2' \
             android-window.txt
 
       - name: Publier les journaux et les captures Android

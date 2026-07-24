@@ -38,6 +38,8 @@ anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/use_debanding=true
 occlusion_culling/use_occlusion_culling=true
 environment/defaults/default_clear_color=Color(0.02, 0.08, 0.15, 1)
+limits/opengl/max_lights_per_object=4
+limits/opengl/max_renderable_lights=8
 
 [physics]
 
