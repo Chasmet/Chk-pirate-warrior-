@@ -7,6 +7,7 @@ var player: PlayerController
 var player_logged := false
 var land_ready_logged := false
 var boat_ready_logged := false
+var was_boat_mode := false
 var sail_parts: Array[GeometryInstance3D] = []
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _enforce_camera(delta: float) -> void:
 		player = _find_player()
 		land_ready_logged = false
 		boat_ready_logged = false
+		was_boat_mode = false
 		sail_parts.clear()
 		if not is_instance_valid(player):
 			return
@@ -40,9 +42,10 @@ func _enforce_camera(delta: float) -> void:
 	player.camera.top_level = true
 	player.camera_arm.collision_mask = 0
 	if player.boat_mode:
-		_update_boat_camera(delta)
+		_update_boat_camera(delta, not was_boat_mode)
 	else:
 		_update_land_camera(delta)
+	was_boat_mode = player.boat_mode
 
 func _update_land_camera(delta: float) -> void:
 	var hero_height := float(HeroFactory.HEROES[player.hero_id]["height"])
@@ -64,19 +67,28 @@ func _update_land_camera(delta: float) -> void:
 		land_ready_logged = true
 		print("CHK_TRUE_THIRD_PERSON_READY distance=%.2f" % distance)
 
-func _update_boat_camera(delta: float) -> void:
+func _update_boat_camera(delta: float, snap_now: bool) -> void:
 	if sail_parts.is_empty():
 		_cache_sails()
 	var velocity_flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var look_ahead := velocity_flat * 0.075
 	var anchor := player.global_position + Vector3(0.0, 2.15, 0.0) + look_ahead
-	var orbit := Basis(Vector3.UP, player.camera_yaw)
+
+	# Le bateau doit toujours rester au centre du cadre. Le stick caméra ne peut
+	# qu'ajouter un léger angle autour du cap réel du navire, jamais envoyer la
+	# caméra vers le quai ou devant la proue.
+	var manual_offset := clampf(wrapf(player.camera_yaw - player.boat_heading, -PI, PI), -0.62, 0.62)
+	var camera_heading := player.boat_heading + manual_offset * 0.48
+	var orbit := Basis(Vector3.UP, camera_heading)
 	var back := orbit.z.normalized()
 	var right := orbit.x.normalized()
 	var speed_ratio := clampf(absf(player.boat_speed) / PlayerController.BOAT_MAX_SPEED, 0.0, 1.0)
 	var dynamic_length := lerpf(BOAT_LENGTH, BOAT_LENGTH + 2.2, speed_ratio)
 	var desired_position := anchor + back * dynamic_length + Vector3.UP * lerpf(4.6, 5.5, speed_ratio) + right * 0.72
-	player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-11.5 * delta))
+	if snap_now or player.camera.global_position.distance_to(desired_position) > 42.0:
+		player.camera.global_position = desired_position
+	else:
+		player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-11.5 * delta))
 	player.camera.look_at(anchor + velocity_flat * 0.08, Vector3.UP)
 	player.camera.fov = lerpf(player.camera.fov, lerpf(61.0, 65.0, speed_ratio), 1.0 - exp(-8.0 * delta))
 	player.camera_arm.spring_length = dynamic_length
