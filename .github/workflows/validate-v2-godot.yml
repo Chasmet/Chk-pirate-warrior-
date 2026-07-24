@@ -211,7 +211,7 @@ jobs:
           "$EMULATOR" \
             -avd chk_pixel \
             -no-window \
-            -gpu swiftshader_indirect \
+            -gpu lavapipe \
             -noaudio \
             -no-boot-anim \
             -no-snapshot \
@@ -294,6 +294,13 @@ jobs:
             echo "Le panneau système plein écran masque encore le jeu."
             exit 1
           fi
+          "$ADB" logcat -d > android-logcat.txt
+          if grep -E \
+              'Program linking failed|shader failed to compile|FATAL EXCEPTION|AndroidRuntime: FATAL|ERROR: Condition "!_start_success"' \
+              android-logcat.txt; then
+            echo "Le rendu graphique Android n’a pas démarré correctement."
+            exit 1
+          fi
 
           "$ADB" exec-out screencap -p > android-menu.png
           "$ADB" shell input tap 490 260
@@ -309,6 +316,7 @@ jobs:
           "$ADB" shell wm size | tee android-window.txt
           "$ADB" shell dumpsys activity activities | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
           "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
+          "$ADB" logcat -d > android-logcat.txt
 
           python3 - <<'PY'
           import struct
@@ -325,11 +333,10 @@ jobs:
               assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
           PY
 
-          "$ADB" logcat -d > android-logcat.txt
           if grep -E \
-              'FATAL EXCEPTION|AndroidRuntime: FATAL|Process(:)? fr.chk.piratewarrior.v2.*has died|Force quitting Godot instance|ERROR: Condition "!_start_success"' \
+              'Program linking failed|shader failed to compile|FATAL EXCEPTION|AndroidRuntime: FATAL|Process(:)? fr.chk.piratewarrior.v2.*has died|Force quitting Godot instance|ERROR: Condition "!_start_success"' \
               android-logcat.txt; then
-            echo 'Crash Android détecté.'
+            echo 'Erreur de rendu ou crash Android détecté.'
             exit 1
           fi
           grep -E -q \
