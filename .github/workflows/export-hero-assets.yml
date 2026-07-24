@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/export-hero-assets.yml'
       - 'godot/assets/heroes/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/export-hero-assets.yml'
+      - 'godot/assets/heroes/**'
   workflow_dispatch:
 
 permissions:
