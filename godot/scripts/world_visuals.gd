@@ -44,16 +44,23 @@ func set_destination(zone_index: int) -> void:
 			continue
 		var beam := marker.get_node_or_null("Faisceau") as MeshInstance3D
 		var label := marker.get_node_or_null("NomÎle") as Label3D
+		var status := marker.get_node_or_null("Statut") as Label3D
 		var selected := index == zone_index
 		if beam != null:
-			beam.scale = Vector3(1.8, 1.0, 1.8) if selected else Vector3.ONE
+			# Une seule balise doit guider le joueur. Les six faisceaux
+			# translucides superposés formaient de grands aplats blancs sur
+			# les GPU mobiles, surtout depuis la mer.
+			beam.visible = selected
 			var material := beam.material_override as StandardMaterial3D
 			if material != null:
-				material.albedo_color = Color(1.0, 0.73, 0.18, 0.46 if selected else 0.18)
-				material.emission_energy_multiplier = 6.5 if selected else 2.2
+				material.albedo_color = Color(1.0, 0.73, 0.18, 0.14)
+				material.emission_energy_multiplier = 2.6
 		if label != null:
-			label.font_size = 46 if selected else 34
-			label.modulate = Color("ffe08a") if selected else Color("dbe8ee")
+			label.visible = selected
+			label.font_size = 42
+			label.modulate = Color("ffe08a")
+		if status != null:
+			status.visible = selected
 
 func set_unlocked_zones(value: Array) -> void:
 	unlocked_zones = value.duplicate()
@@ -620,17 +627,20 @@ func _build_dock(root: Node3D, _zone_index: int, island_radius: float, raw_direc
 func _build_destination_marker(root: Node3D, zone_index: int, island_radius: float, raw_direction: Vector3) -> void:
 	var marker := Node3D.new()
 	marker.name = "BaliseDestination_%d" % zone_index
-	marker.position = raw_direction.normalized() * (island_radius + 18.0)
+	marker.position = raw_direction.normalized() * (island_radius + 32.0)
 	root.add_child(marker)
 	var beam := MeshInstance3D.new()
 	beam.name = "Faisceau"
 	var beam_mesh := CylinderMesh.new()
-	beam_mesh.top_radius = 0.65
-	beam_mesh.bottom_radius = 2.4
-	beam_mesh.height = 28.0
+	beam_mesh.top_radius = 0.16
+	beam_mesh.bottom_radius = 0.62
+	beam_mesh.height = 16.0
 	beam.mesh = beam_mesh
-	beam.position.y = 14.0
-	beam.material_override = _glow_material(Color(1.0, 0.73, 0.18, 0.18), 2.2)
+	beam.position.y = 8.0
+	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	beam.visibility_range_begin = 34.0
+	beam.visibility_range_begin_margin = 8.0
+	beam.material_override = _glow_material(Color(1.0, 0.73, 0.18, 0.14), 2.6)
 	marker.add_child(beam)
 	var label := Label3D.new()
 	label.name = "NomÎle"
@@ -669,7 +679,7 @@ func _build_sea_routes() -> void:
 func _zone_water_dock(zone_index: int) -> Vector3:
 	var zone: Dictionary = zones[zone_index]
 	var direction: Vector3 = zone["dock_dir"]
-	var result: Vector3 = Vector3(zone["center"]) + direction.normalized() * (float(zone["radius"]) + 18.0)
+	var result: Vector3 = Vector3(zone["center"]) + direction.normalized() * (float(zone["radius"]) + 32.0)
 	result.y = 0.05
 	return result
 

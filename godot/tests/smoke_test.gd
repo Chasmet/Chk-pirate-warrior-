@@ -96,6 +96,17 @@ func _run() -> void:
 	_check(float(GameWorld.ZONES[0]["radius"]) >= 100.0, "la première île est nettement agrandie")
 	_check(Vector3(GameWorld.ZONES[0]["center"]).distance_to(Vector3(GameWorld.ZONES[1]["center"])) > 300.0, "les îles forment un véritable archipel")
 	_check(world.visuals.destination_markers.size() == 6, "les six îles possèdent une balise de destination")
+	world.set_destination(1)
+	var visible_destination_beams := 0
+	for marker in world.visuals.destination_markers:
+		var beam := marker.get_node_or_null("Faisceau") as MeshInstance3D
+		if beam != null and beam.visible:
+			visible_destination_beams += 1
+	_check(visible_destination_beams == 1, "une seule balise lumineuse indique la destination sans masquer le décor")
+	var dock_clearance := world.get_dock_position(0, true) - Vector3(GameWorld.ZONES[0]["center"])
+	dock_clearance.y = 0.0
+	var dock_camera_margin := dock_clearance.length() - (float(GameWorld.ZONES[0]["radius"]) + 17.0)
+	_check(dock_camera_margin >= 14.0, "le bateau démarre assez loin du ponton pour préserver la caméra marine")
 	_check(world.get_unlocked_zones() == [0], "seule l’île de départ est débloquée au commencement")
 	_check(world.visuals.get_node_or_null("Zone_0/TerrainRelief") != null, "les îles utilisent un vrai relief maillé")
 	_check(world.visuals.get_node_or_null("Zone_0/CollisionTerrain") != null, "le relief possède une collision fidèle")
@@ -108,7 +119,6 @@ func _run() -> void:
 	_check(float(world.visuals.ocean_material.get_shader_parameter("storm_strength")) > 0.9, "la météo renforce réellement la houle")
 	world.visuals.set_zone_weather(0)
 
-	world.set_destination(1)
 	player.teleport_to_world_position(world.get_dock_position(0, false))
 	world.toggle_boat()
 	await physics_frame

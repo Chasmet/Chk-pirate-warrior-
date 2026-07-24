@@ -414,6 +414,8 @@ func enter_boat(spawn_position: Vector3, target_position: Vector3) -> void:
 	camera_target_pitch = -0.16
 	camera_manual_timer = 0.0
 	camera_recenter_timer = 0.0
+	if is_instance_valid(camera_arm):
+		camera_arm.spring_length = 10.8
 	_snap_camera_to_player()
 	boat_pilot_marker_emitted = false
 	boat_mode_changed.emit(true)
@@ -437,6 +439,8 @@ func exit_boat(landing_position: Vector3) -> void:
 		_set_land_hero_art()
 	camera_target_pitch = -0.14
 	camera_target_yaw = rotation.y
+	if is_instance_valid(camera_arm):
+		camera_arm.spring_length = 4.55
 	hero_frame_confirmed = false
 	hero_frame_probe_time = 0.0
 	_snap_camera_to_player()

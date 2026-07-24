@@ -191,7 +191,9 @@ func get_dock_position(zone_index: int, water_side: bool) -> Vector3:
 	var zone: Dictionary = ZONES[clampi(zone_index, 0, ZONES.size() - 1)]
 	var center: Vector3 = zone["center"]
 	var direction: Vector3 = Vector3(zone["dock_dir"]).normalized()
-	var distance := float(zone["radius"]) + (18.0 if water_side else -13.0)
+	# Le dernier ponton arrive à radius + 17 m. Garder le navire 15 m plus
+	# loin laisse toute la longueur du bras de caméra derrière la coque.
+	var distance := float(zone["radius"]) + (32.0 if water_side else -13.0)
 	var result := center + direction * distance
 	result.y = PlayerController.BOAT_WATERLINE if water_side else 2.05
 	return result
