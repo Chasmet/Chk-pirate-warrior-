@@ -20,6 +20,7 @@ ThirdPersonCameraGuard="*res://scripts/third_person_camera_guard.gd"
 HeroMaterialRenderer="*res://scripts/hero_material_renderer.gd"
 GameplayRepair="*res://scripts/gameplay_repair.gd"
 ArchipelagoMinimap="*res://scripts/archipelago_minimap.gd"
+TargetHealthHud="*res://scripts/target_health_hud.gd"
 
 [display]
 
