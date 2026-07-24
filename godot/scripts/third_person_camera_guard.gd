@@ -1,9 +1,9 @@
 extends Node
 
 const LAND_DISTANCE := 6.15
-const BOAT_DISTANCE := 16.8
+const BOAT_DISTANCE := 17.8
 const LAND_MIN_HEIGHT := 1.35
-const BOAT_MIN_WORLD_HEIGHT := 4.1
+const BOAT_MIN_WORLD_HEIGHT := 3.8
 
 var player: PlayerController
 var player_logged := false
@@ -85,20 +85,21 @@ func _update_boat_camera(delta: float, snap_now: bool) -> void:
 
 	var velocity_flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var speed_ratio := clampf(absf(player.boat_speed) / PlayerController.BOAT_MAX_SPEED, 0.0, 1.0)
-	var look_ahead := velocity_flat * 0.085
-	var anchor := player.global_position + Vector3(0.0, 2.75, 0.25) + look_ahead
+	var look_ahead := velocity_flat * 0.09
+	var anchor := player.global_position + Vector3(0.0, 2.42, 0.18) + look_ahead
 
-	# Le cap réel reste la position de repos, mais le stick caméra peut effectuer
-	# un tour complet autour du bateau et montrer le pilote de face ou de côté.
+	# Vue de repos arrière trois-quarts : on voit simultanément la coque, le pont,
+	# le gouvernail et le héros. Le stick conserve une orbite complète à 360°.
 	var camera_heading := player.camera_yaw
-	var pitch := clampf(player.camera_pitch, -0.50, -0.04)
-	var distance := lerpf(BOAT_DISTANCE, BOAT_DISTANCE + 2.6, speed_ratio)
+	var pitch := clampf(player.camera_pitch, -0.48, -0.04)
+	var distance := lerpf(BOAT_DISTANCE, BOAT_DISTANCE + 2.2, speed_ratio)
 	var horizontal_distance := cos(pitch) * distance
-	var vertical_offset := 3.45 - sin(pitch) * 4.1 + speed_ratio * 0.55
+	var vertical_offset := 2.80 - sin(pitch) * 3.15 + speed_ratio * 0.40
 	var orbit := Basis(Vector3.UP, camera_heading)
 	var back := orbit.z.normalized()
 	var right := orbit.x.normalized()
-	var desired_position := anchor + back * horizontal_distance + Vector3.UP * vertical_offset + right * 0.62
+	var shoulder_offset := lerpf(3.05, 3.65, speed_ratio)
+	var desired_position := anchor + back * horizontal_distance + Vector3.UP * vertical_offset + right * shoulder_offset
 	desired_position.y = maxf(desired_position.y, PlayerController.BOAT_WATERLINE + BOAT_MIN_WORLD_HEIGHT)
 	desired_position = _collision_safe_position(anchor, desired_position, 7.5)
 	desired_position.y = maxf(desired_position.y, PlayerController.BOAT_WATERLINE + BOAT_MIN_WORLD_HEIGHT)
@@ -107,15 +108,15 @@ func _update_boat_camera(delta: float, snap_now: bool) -> void:
 		player.camera.global_position = desired_position
 	else:
 		player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-10.5 * delta))
-	player.camera.look_at(anchor + velocity_flat * 0.065, Vector3.UP)
-	player.camera.fov = lerpf(player.camera.fov, lerpf(60.0, 66.0, speed_ratio), 1.0 - exp(-7.0 * delta))
+	player.camera.look_at(anchor + velocity_flat * 0.07 + Vector3(0.0, -0.18, -0.45), Vector3.UP)
+	player.camera.fov = lerpf(player.camera.fov, lerpf(59.0, 65.0, speed_ratio), 1.0 - exp(-7.0 * delta))
 	player.camera_arm.spring_length = distance
 	_force_original_hero_visible(true)
 
 	var camera_distance := player.camera.global_position.distance_to(player.global_position)
 	if not boat_ready_logged and camera_distance > 14.0:
 		boat_ready_logged = true
-		print("CHK_BOAT_THIRD_PERSON_READY distance=%.2f full_ship=1 pilot_visible=1" % camera_distance)
+		print("CHK_BOAT_THIRD_PERSON_READY distance=%.2f full_ship=1 pilot_visible=1 rear_quarter=1" % camera_distance)
 
 func _collision_safe_position(anchor: Vector3, desired_position: Vector3, minimum_distance: float) -> Vector3:
 	if not is_instance_valid(player) or player.get_world_3d() == null:
