@@ -11,6 +11,7 @@ var previous_skill_cooldown := 0.0
 var previous_health := 0.0
 var previous_aura_time := 0.0
 var tracked_visual_id := 0
+var displayed_frame := -1
 var camera_rest_position := Vector3.ZERO
 
 func bind(player: PlayerController) -> void:
@@ -27,6 +28,7 @@ func _process(delta: float) -> void:
 	var visual := controller.hero_visual
 	if visual.get_instance_id() != tracked_visual_id:
 		tracked_visual_id = visual.get_instance_id()
+		displayed_frame = -1
 		attack_pose_time = 0.0
 		power_pose_time = 0.0
 
@@ -64,6 +66,9 @@ func _process(delta: float) -> void:
 	var sprite := visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	if sprite != null:
 		sprite.frame = frame
+		if frame != displayed_frame:
+			displayed_frame = frame
+			controller.hero_pose_changed.emit(controller.hero_id, frame)
 		var breathing := sin(animation_time * 3.2) * 0.010
 		var running_bob := absf(sin(animation_time * 12.0)) * 0.045 * movement
 		sprite.position.y = float(HeroFactory.HEROES[controller.hero_id]["sprite_y"]) + breathing + running_bob

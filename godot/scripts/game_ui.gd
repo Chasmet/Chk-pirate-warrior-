@@ -40,6 +40,9 @@ var zone_label: Label
 var mission_label: Label
 var weather_label: Label
 var coins_label: Label
+var hero_view: TextureRect
+var current_hero_id := "cheikh"
+var overlay_marker_emitted := false
 var attack_held := false
 var attack_repeat_timer := 0.0
 
@@ -81,6 +84,9 @@ func show_hud() -> void:
 	pause_screen.hide()
 	game_over_screen.hide()
 	hud.show()
+	if not overlay_marker_emitted and is_instance_valid(hero_view) and hero_view.texture != null:
+		overlay_marker_emitted = true
+		print("CHK_HERO_OVERLAY_READY hero=%s" % current_hero_id)
 
 func show_map() -> void:
 	hud.hide()
@@ -110,8 +116,20 @@ func update_stats(health: float, max_health: float, energy: float, aura: float, 
 	coins_label.text = str(coins) + " PIÈCES"
 	menu.update_training(level, coins)
 
-func update_hero(_hero_id: String, display_name: String) -> void:
+func update_hero(hero_id: String, display_name: String) -> void:
 	hero_label.text = display_name.to_upper()
+	update_hero_pose(hero_id, 0)
+
+func update_hero_pose(hero_id: String, frame: int) -> void:
+	if not HeroFactory.HEROES.has(hero_id) or not is_instance_valid(hero_view):
+		return
+	current_hero_id = hero_id
+	var profile: Dictionary = HeroFactory.HEROES[hero_id]
+	var atlas_texture := AtlasTexture.new()
+	atlas_texture.atlas = load(String(profile["third_person_sprite"])) as Texture2D
+	var frame_width := float(atlas_texture.atlas.get_width()) / 4.0
+	atlas_texture.region = Rect2(frame_width * clampi(frame, 0, 3), 0.0, frame_width, float(atlas_texture.atlas.get_height()))
+	hero_view.texture = atlas_texture
 
 func update_zone(name: String) -> void:
 	zone_label.text = name.to_upper()
@@ -131,6 +149,19 @@ func _build_hud() -> void:
 	_set_rect(camera_area, 0.34, 0.0, 1.0, 1.0, 0, 110, 0, 0)
 	camera_area.dragged.connect(func(relative: Vector2): camera_dragged.emit(relative))
 	hud.add_child(camera_area)
+
+	# Personnage 2.5D toujours lisible : le gameplay et les collisions restent
+	# en 3D, mais la planche de dos est cadrée comme dans un jeu d'aventure à
+	# la troisième personne, sans dépendre du tri alpha du pilote mobile.
+	hero_view = TextureRect.new()
+	hero_view.name = "HérosTroisièmePersonne"
+	_set_rect(hero_view, 0.5, 1.0, 0.5, 1.0, -300, -590, 360, 590)
+	hero_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hero_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero_view.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	hud.add_child(hero_view)
+	update_hero_pose(current_hero_id, 0)
 
 	var stats_panel := PanelContainer.new()
 	_set_rect(stats_panel, 0.0, 0.0, 0.0, 0.0, 18, 16, 510, 172)

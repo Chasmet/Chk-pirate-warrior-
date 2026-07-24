@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal stats_changed(health: float, max_health: float, energy: float, aura: float, level: int, xp: int, coins: int)
 signal hero_changed(hero_id: String, display_name: String)
+signal hero_pose_changed(hero_id: String, frame: int)
 signal player_defeated
 signal enemy_defeated(profile: Dictionary)
 

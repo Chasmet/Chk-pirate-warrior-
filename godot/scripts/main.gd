@@ -87,6 +87,7 @@ func _connect_player() -> void:
 		return
 	player.stats_changed.connect(_on_stats_changed)
 	player.hero_changed.connect(_on_hero_changed)
+	player.hero_pose_changed.connect(_on_hero_pose_changed)
 	player.player_defeated.connect(_on_player_defeated)
 
 func _enter_menu() -> void:
@@ -171,6 +172,10 @@ func _on_hero_changed(hero_id: String, display_name: String) -> void:
 	save_data["hero"] = hero_id
 	if is_instance_valid(ui):
 		ui.update_hero(hero_id, display_name)
+
+func _on_hero_pose_changed(hero_id: String, frame: int) -> void:
+	if is_instance_valid(ui):
+		ui.update_hero_pose(hero_id, frame)
 
 func _on_zone_changed(zone_index: int, zone_name: String) -> void:
 	save_data["zone"] = zone_index

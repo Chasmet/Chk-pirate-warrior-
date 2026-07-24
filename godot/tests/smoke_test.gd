@@ -95,8 +95,19 @@ func _run() -> void:
 		fortress_button.emit_signal("pressed")
 		_check(selected_zone[0] == 5, "la Forteresse de la tempête ouvre la sixième région")
 
+	var game_ui := GameUI.new()
+	root.add_child(game_ui)
+	await process_frame
+	game_ui.update_hero_pose("cheikh", 2)
+	_check(is_instance_valid(game_ui.hero_view), "le héros 2.5D est affiché dans le cadre troisième personne")
+	_check(game_ui.hero_view.texture is AtlasTexture, "la pose animée du héros est découpée dans la planche HD")
+	if game_ui.hero_view.texture is AtlasTexture:
+		var atlas := game_ui.hero_view.texture as AtlasTexture
+		_check(is_equal_approx(atlas.region.position.x, 888.0), "la pose d’attaque est synchronisée dans le HUD")
+
 	world.queue_free()
 	menu.queue_free()
+	game_ui.queue_free()
 	await process_frame
 	if failures == 0:
 		print("SMOKE TEST RÉUSSI")
