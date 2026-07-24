@@ -74,9 +74,12 @@ static func _build_character_art(root: Node3D, profile: Dictionary, third_person
 	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite.double_sided = true
 	sprite.shaded = false
-	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	sprite.render_priority = 2
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Le héros jouable doit rester lisible, même devant un relief ou sur un
+	# pilote mobile qui trie différemment les surfaces transparentes.
+	sprite.no_depth_test = third_person
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	sprite.render_priority = 20 if third_person else 2
 	root.add_child(sprite)
 
 static func _build_ground_shadow(root: Node3D, profile: Dictionary) -> void:
