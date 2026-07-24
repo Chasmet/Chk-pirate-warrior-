@@ -202,7 +202,7 @@ func _build_gallery(is_bosses: bool) -> Control:
 	grid.add_theme_constant_override("h_separation", 16)
 	grid.add_theme_constant_override("v_separation", 16)
 	scroll.add_child(grid)
-	var profiles := EnemyFactory.BOSSES if is_bosses else EnemyFactory.ENEMIES
+	var profiles: Array = EnemyFactory.BOSSES if is_bosses else EnemyFactory.ENEMIES
 	for profile in profiles:
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(565 if is_bosses else 425, 250 if is_bosses else 205)

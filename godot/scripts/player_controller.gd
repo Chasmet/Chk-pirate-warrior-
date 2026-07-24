@@ -6,6 +6,7 @@ signal hero_changed(hero_id: String, display_name: String)
 signal hero_pose_changed(hero_id: String, frame: int)
 signal hero_view_changed(hero_id: String, frame: int, front_view: bool)
 signal boat_mode_changed(active: bool)
+signal boat_steering_changed(hero_id: String, steering: float, throttle: float, speed_ratio: float)
 signal player_defeated
 signal enemy_defeated(profile: Dictionary)
 
@@ -60,6 +61,7 @@ var boat_mode := false
 var boat_visual: Node3D
 var boat_heading := 0.0
 var boat_speed := 0.0
+var boat_turn_rate := 0.0
 
 func configure(data: Dictionary) -> void:
 	save_data = data
@@ -187,11 +189,15 @@ func set_hero(new_hero_id: String) -> void:
 		# Le héros est cadré proprement dans le HUD 2.5D. Masquer cette copie
 		# 3D évite la grande silhouette coupée qui apparaissait à gauche.
 		character_art.visible = false
+	if boat_mode:
+		hero_visual.hide()
 	save_data["hero"] = hero_id
 	_recalculate_stats()
 	var profile: Dictionary = HeroFactory.HEROES[hero_id]
 	hero_changed.emit(hero_id, String(profile["display_name"]))
 	hero_view_changed.emit(hero_id, current_hero_frame, camera_front_view)
+	if boat_mode:
+		boat_steering_changed.emit(hero_id, 0.0, 0.0, clampf(absf(boat_speed) / 22.5, 0.0, 1.0))
 	_set_aura_visual(aura_time > 0.0)
 
 func switch_hero() -> void:
@@ -377,6 +383,7 @@ func enter_boat(spawn_position: Vector3, target_position: Vector3) -> void:
 	global_position.y = 1.05
 	velocity = Vector3.ZERO
 	boat_speed = 0.0
+	boat_turn_rate = 0.0
 	var target_direction := target_position - global_position
 	target_direction.y = 0.0
 	if target_direction.length_squared() > 0.01:
@@ -389,16 +396,18 @@ func enter_boat(spawn_position: Vector3, target_position: Vector3) -> void:
 	if is_instance_valid(boat_visual):
 		boat_visual.show()
 	camera_target_yaw = boat_heading
-	camera_target_pitch = -0.22
+	camera_target_pitch = -0.16
 	camera_manual_timer = 0.0
 	camera_recenter_timer = 0.0
 	boat_mode_changed.emit(true)
+	boat_steering_changed.emit(hero_id, 0.0, 0.0, 0.0)
 
 func exit_boat(landing_position: Vector3) -> void:
 	boat_mode = false
 	global_position = landing_position
 	velocity = Vector3.ZERO
 	boat_speed = 0.0
+	boat_turn_rate = 0.0
 	if is_instance_valid(boat_visual):
 		boat_visual.hide()
 	if is_instance_valid(hero_visual):
@@ -425,8 +434,8 @@ func navigation_bearing(target_position: Vector3) -> float:
 
 func _world_move_direction() -> Vector3:
 	var raw_input := _active_move_input()
-	var basis := Basis(Vector3.UP, camera_yaw)
-	var direction := basis * Vector3(raw_input.x, 0.0, raw_input.y)
+	var camera_basis := Basis(Vector3.UP, camera_yaw)
+	var direction := camera_basis * Vector3(raw_input.x, 0.0, raw_input.y)
 	return direction.normalized() if direction.length_squared() > 0.001 else Vector3.ZERO
 
 func _active_move_input() -> Vector2:
@@ -468,7 +477,7 @@ func _face_enemy(enemy: EnemyAI) -> void:
 
 func _damage_in_front(damage: float, radius: float, minimum_dot: float, push_power: float) -> int:
 	var hits := 0
-	var forward := -global_transform.basis.z
+	var forward: Vector3 = -global_transform.basis.z
 	for node in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(node) or not node is EnemyAI:
 			continue
@@ -556,27 +565,43 @@ func _physics_boat(delta: float) -> void:
 	var input_value := _active_move_input()
 	var throttle := clampf(-input_value.y, -1.0, 1.0)
 	var steering := clampf(input_value.x, -1.0, 1.0)
-	var steering_grip := lerpf(0.36, 1.0, clampf(absf(boat_speed) / 16.0, 0.0, 1.0))
-	if absf(throttle) > 0.06 or absf(boat_speed) > 0.8:
-		boat_heading -= steering * steering_grip * 1.45 * delta
-	var target_speed := throttle * (18.5 if throttle >= 0.0 else 7.0)
-	boat_speed = move_toward(boat_speed, target_speed, (7.2 if absf(throttle) > 0.05 else 4.0) * delta)
-	var forward := -Basis(Vector3.UP, boat_heading).z
-	var desired_velocity := forward * boat_speed
-	velocity.x = move_toward(velocity.x, desired_velocity.x, 8.5 * delta)
-	velocity.z = move_toward(velocity.z, desired_velocity.z, 8.5 * delta)
+	var speed_ratio := clampf(absf(boat_speed) / 22.5, 0.0, 1.0)
+	var steering_grip := lerpf(0.28, 1.0, speed_ratio)
+	var reverse_factor := -0.72 if boat_speed < -0.35 else 1.0
+	var desired_turn_rate := steering * steering_grip * 1.32 * reverse_factor
+	if absf(throttle) < 0.06 and absf(boat_speed) < 0.65:
+		desired_turn_rate = 0.0
+	boat_turn_rate = move_toward(boat_turn_rate, desired_turn_rate, 2.8 * delta)
+	boat_heading -= boat_turn_rate * delta
+	var target_speed := throttle * (22.5 if throttle >= 0.0 else 7.5)
+	var engine_response := 5.8 if absf(throttle) > 0.05 else 1.55
+	boat_speed = move_toward(boat_speed, target_speed, engine_response * delta)
+	var forward: Vector3 = -Basis(Vector3.UP, boat_heading).z
+	var desired_velocity: Vector3 = forward * boat_speed
+	velocity.x = move_toward(velocity.x, desired_velocity.x, 5.4 * delta)
+	velocity.z = move_toward(velocity.z, desired_velocity.z, 5.4 * delta)
 	velocity.y = 0.0
 	rotation.y = boat_heading
 	move_and_slide()
 	global_position.y = 1.05
 	if is_instance_valid(boat_visual):
-		var sailing_ratio := clampf(absf(boat_speed) / 18.5, 0.0, 1.0)
-		boat_visual.position.y = sin(Time.get_ticks_msec() * 0.0034) * (0.035 + sailing_ratio * 0.06)
-		boat_visual.rotation.z = lerpf(boat_visual.rotation.z, -steering * 0.09 * sailing_ratio, 1.0 - exp(-4.0 * delta))
-		boat_visual.rotation.x = sin(Time.get_ticks_msec() * 0.0022) * (0.018 + sailing_ratio * 0.018)
+		speed_ratio = clampf(absf(boat_speed) / 22.5, 0.0, 1.0)
+		boat_visual.position.y = sin(Time.get_ticks_msec() * 0.0034) * (0.045 + speed_ratio * 0.075)
+		boat_visual.rotation.z = lerpf(boat_visual.rotation.z, -steering * 0.075 * speed_ratio, 1.0 - exp(-3.6 * delta))
+		boat_visual.rotation.x = sin(Time.get_ticks_msec() * 0.0022) * (0.018 + speed_ratio * 0.024)
 		var wake := boat_visual.get_node_or_null("Sillage") as GPUParticles3D
 		if wake != null:
 			wake.emitting = absf(boat_speed) > 1.6
+		var helm := boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") as Node3D
+		if helm != null:
+			helm.rotation.z = lerp_angle(helm.rotation.z, -steering * 0.92, 1.0 - exp(-8.5 * delta))
+		var rudder := boat_visual.get_node_or_null("GouvernailArrière") as Node3D
+		if rudder != null:
+			rudder.rotation.y = lerp_angle(rudder.rotation.y, steering * 0.58, 1.0 - exp(-7.0 * delta))
+		var sail_root := boat_visual.get_node_or_null("Voilure") as Node3D
+		if sail_root != null:
+			sail_root.rotation.y = lerp_angle(sail_root.rotation.y, steering * 0.10, 1.0 - exp(-2.4 * delta))
+	boat_steering_changed.emit(hero_id, steering, throttle, speed_ratio)
 
 func _build_collision() -> void:
 	var collision := CollisionShape3D.new()
@@ -613,7 +638,7 @@ func _build_camera() -> void:
 	camera.current = true
 	camera.fov = 58.0
 	camera.near = 0.06
-	camera.far = 800.0
+	camera.far = 1500.0
 	camera.position = Vector3(0.56, 0.08, 0.0)
 	camera_arm.add_child(camera)
 
@@ -626,12 +651,12 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 		camera_manual_timer = 1.8
 		camera_recenter_timer = 1.15
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
-	var camera_forward := -Basis(Vector3.UP, camera_yaw).z
+	var camera_forward: Vector3 = -Basis(Vector3.UP, camera_yaw).z
 	var moving_forward := direction.length_squared() > 0.02 and direction.dot(camera_forward) > 0.18
 	if camera_manual_timer <= 0.0 and camera_recenter_timer <= 0.0:
 		if boat_mode:
 			camera_target_yaw = lerp_angle(camera_target_yaw, boat_heading, 1.0 - exp(-2.4 * delta))
-			camera_target_pitch = lerpf(camera_target_pitch, -0.22, 1.0 - exp(-2.0 * delta))
+			camera_target_pitch = lerpf(camera_target_pitch, -0.16, 1.0 - exp(-2.0 * delta))
 		elif assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
 			var target_direction := assisted_target.global_position - global_position
 			target_direction.y = 0.0
@@ -643,15 +668,15 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	camera_yaw = lerp_angle(camera_yaw, camera_target_yaw, 1.0 - exp(-9.5 * delta))
 	camera_pitch = lerpf(camera_pitch, camera_target_pitch, 1.0 - exp(-9.0 * delta))
 
-	var hero_height := 3.0 if boat_mode else float(HeroFactory.HEROES[hero_id]["height"])
+	var hero_height := 3.6 if boat_mode else float(HeroFactory.HEROES[hero_id]["height"])
 	var look_ahead := Vector3(velocity.x, 0.0, velocity.z) * 0.035
-	var desired_anchor := global_position + Vector3(0.0, 2.25 if boat_mode else hero_height * 0.68 + 0.18, 0.0) + look_ahead
+	var desired_anchor := global_position + Vector3(0.0, 3.35 if boat_mode else hero_height * 0.68 + 0.18, 0.0) + look_ahead
 	camera_pivot.global_position = camera_pivot.global_position.lerp(desired_anchor, 1.0 - exp(-11.0 * delta))
 	camera_pivot.rotation.y = camera_yaw
 	camera_pivot.rotation.x = camera_pitch
 
-	var running_ratio := clampf(horizontal_speed / (18.5 if boat_mode else maxf(_movement_speed(), 0.1)), 0.0, 1.0)
-	var target_length := lerpf(7.6, 9.2, running_ratio) if boat_mode else lerpf(4.35, 4.75, running_ratio)
+	var running_ratio := clampf(horizontal_speed / (22.5 if boat_mode else maxf(_movement_speed(), 0.1)), 0.0, 1.0)
+	var target_length := lerpf(10.8, 12.6, running_ratio) if boat_mode else lerpf(4.35, 4.75, running_ratio)
 	camera_arm.spring_length = lerpf(camera_arm.spring_length, target_length, 1.0 - exp(-5.5 * delta))
 	var target_fov := lerpf(62.0, 69.0, running_ratio) if boat_mode else lerpf(58.0, 63.0, running_ratio)
 	if aura_time > 0.0:

@@ -381,6 +381,33 @@ jobs:
           [[ "$WINDOW_STATE" == *"mCurrentFocus"*"fr.chk.piratewarrior.v2"* ]]
           "$ADB" exec-out screencap -p > android-gameplay.png
 
+          # Ce raccourci n’existe que dans les builds debug. Il place le joueur
+          # au poste de pilotage afin de prouver sur Android que le héros, le
+          # gouvernail et le navire entier sont bien visibles.
+          "$ADB" shell input keyevent 44
+          BOAT_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_BOAT_PREVIEW_READY hero=cheikh' android-logcat.txt &&
+               grep -q 'CHK_BOAT_HELMSMAN_READY hero=cheikh' android-logcat.txt; then
+              BOAT_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$BOAT_READY" -ne 1 ]; then
+            echo "Le héros n’a pas pris la barre pendant le test Android."
+            exit 1
+          fi
+          "$ADB" shell input swipe 180 920 275 710 1800
+          sleep 3
+          "$ADB" exec-out screencap -p > android-sailing.png
+          test "$(stat -c %s android-sailing.png)" -gt 100000
+          if cmp -s android-gameplay.png android-sailing.png; then
+            echo "La navigation n’a pas remplacé visuellement la vue à pied."
+            exit 1
+          fi
+
           "$ADB" shell wm size | tee android-window.txt
           "$ADB" shell dumpsys activity activities | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
           "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
@@ -388,6 +415,8 @@ jobs:
           grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt
           grep -q 'CHK_HERO_FRAMED hero=cheikh' android-logcat.txt
           grep -q 'CHK_HERO_OVERLAY_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_BOAT_PREVIEW_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_BOAT_HELMSMAN_READY hero=cheikh' android-logcat.txt
           if cmp -s android-menu.png android-gameplay.png; then
             echo "La capture de gameplay est identique au menu."
             exit 1
@@ -396,7 +425,7 @@ jobs:
           python3 - <<'PY'
           import struct
           from pathlib import Path
-          for name in ('android-menu.png', 'android-gameplay.png'):
+          for name in ('android-menu.png', 'android-difficulty.png', 'android-gameplay.png', 'android-sailing.png'):
               path = Path(name)
               assert path.stat().st_size > 100000, (
                   f'Capture Android vide ou masquée par un panneau système: {name}'
@@ -439,5 +468,6 @@ jobs:
             android-menu.png
             android-difficulty.png
             android-gameplay.png
+            android-sailing.png
           if-no-files-found: warn
           retention-days: 7

@@ -31,6 +31,10 @@ func _process(delta: float) -> void:
 		autosave_timer = 0.0
 		_save_progress()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if OS.is_debug_build() and event.is_action_pressed("validation_boat") and is_instance_valid(world) and world.visible:
+		world.debug_start_boat_preview()
+
 func _build_world() -> void:
 	if is_instance_valid(world):
 		world.queue_free()
@@ -100,6 +104,7 @@ func _connect_player() -> void:
 	player.hero_pose_changed.connect(_on_hero_pose_changed)
 	player.hero_view_changed.connect(_on_hero_view_changed)
 	player.boat_mode_changed.connect(_on_player_boat_mode_changed)
+	player.boat_steering_changed.connect(_on_boat_steering_changed)
 	player.player_defeated.connect(_on_player_defeated)
 
 func _enter_menu() -> void:
@@ -194,7 +199,7 @@ func _on_hero_changed(hero_id: String, display_name: String) -> void:
 	if is_instance_valid(ui):
 		ui.update_hero(hero_id, display_name)
 
-func _on_hero_pose_changed(hero_id: String, frame: int) -> void:
+func _on_hero_pose_changed(_hero_id: String, _frame: int) -> void:
 	# Signal historique conservé pour les tests. Le signal hero_view_changed
 	# ajoute l’orientation avant/arrière utilisée par la caméra 360°.
 	pass
@@ -206,6 +211,10 @@ func _on_hero_view_changed(hero_id: String, frame: int, front_view: bool) -> voi
 func _on_player_boat_mode_changed(active: bool) -> void:
 	if is_instance_valid(ui):
 		ui.set_boat_mode(active)
+
+func _on_boat_steering_changed(hero_id: String, steering: float, throttle: float, speed_ratio: float) -> void:
+	if is_instance_valid(ui):
+		ui.update_boat_steering(hero_id, steering, throttle, speed_ratio)
 
 func _on_zone_changed(zone_index: int, zone_name: String) -> void:
 	save_data["zone"] = zone_index

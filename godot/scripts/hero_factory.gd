@@ -12,6 +12,7 @@ const HEROES := {
 		"weapon": "Sabre courbe",
 		"sprite": "res://assets/heroes/cheikh_poses.webp",
 		"third_person_sprite": "res://assets/heroes/cheikh_third_person.webp",
+		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.webp",
 		"pixel_size": 0.00305,
 		"sprite_y": 0.91
 	},
@@ -25,6 +26,7 @@ const HEROES := {
 		"weapon": "Fronde",
 		"sprite": "res://assets/heroes/yvane_poses.webp",
 		"third_person_sprite": "res://assets/heroes/yvane_third_person.webp",
+		"steering_sprite": "res://assets/heroes/yvane_steering_v24.webp",
 		"pixel_size": 0.00266,
 		"sprite_y": 0.80
 	},
@@ -38,6 +40,7 @@ const HEROES := {
 		"weapon": "Gadgets",
 		"sprite": "res://assets/heroes/nelvyn_poses.webp",
 		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.webp",
+		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.webp",
 		"pixel_size": 0.00228,
 		"sprite_y": 0.68
 	}

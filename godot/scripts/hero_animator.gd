@@ -32,6 +32,13 @@ func _process(delta: float) -> void:
 		attack_pose_time = 0.0
 		power_pose_time = 0.0
 
+	if controller.boat_mode:
+		visual.position = Vector3.ZERO
+		visual.rotation = Vector3.ZERO
+		visual.scale = Vector3.ONE
+		_update_camera_feedback()
+		return
+
 	animation_time += delta
 	if controller.attack_cooldown > previous_attack_cooldown + 0.06:
 		attack_pose_time = 0.34 if controller.hero_id == "yvane" else 0.42

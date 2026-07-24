@@ -36,7 +36,7 @@ func _run() -> void:
 		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la texture de dos HD est importée sans déformation")
 		_check(not sprite.visible, "la copie 3D qui créait un héros géant à gauche est masquée")
 
-	var yaw_before := player.camera_target_yaw
+	var yaw_before: float = player.camera_target_yaw
 	player.set_camera_stick(Vector2(1.0, 0.0))
 	for _frame in range(8):
 		await physics_frame
@@ -61,11 +61,11 @@ func _run() -> void:
 	if not enemies.is_empty():
 		var enemy := enemies[0] as EnemyAI
 		enemy.global_position = player.global_position + Vector3(0.0, 0.0, -2.2)
-		var enemy_health := enemy.health
+		var enemy_health: float = enemy.health
 		player.attack()
 		_check(enemy.health < enemy_health, "l’attaque tactile touche une cible proche")
 		_check(player.get_node_or_null("TraînéeAttaque") != null, "l’attaque produit une traînée d’impact visible")
-		var energy_before := player.energy
+		var energy_before: float = player.energy
 		player.skill()
 		_check(player.energy < energy_before, "le pouvoir consomme de l’énergie")
 	else:
@@ -84,6 +84,10 @@ func _run() -> void:
 	_check(Vector3(GameWorld.ZONES[0]["center"]).distance_to(Vector3(GameWorld.ZONES[1]["center"])) > 300.0, "les îles forment un véritable archipel")
 	_check(world.visuals.destination_markers.size() == 6, "les six îles possèdent une balise de destination")
 	_check(world.get_unlocked_zones() == [0], "seule l’île de départ est débloquée au commencement")
+	_check(world.visuals.get_node_or_null("Zone_0/TerrainRelief") != null, "les îles utilisent un vrai relief maillé")
+	_check(world.visuals.get_node_or_null("Zone_0/CollisionTerrain") != null, "le relief possède une collision fidèle")
+	_check(get_nodes_in_group("ambient_animals").size() == 60, "soixante animaux vivants peuplent l’archipel")
+	_check(world.visuals.find_children("HerbeDense", "MultiMeshInstance3D", true, false).size() >= 3, "les îles végétales possèdent une herbe dense optimisée")
 
 	world.set_destination(1)
 	player.global_position = world.get_dock_position(0, false)
@@ -91,13 +95,20 @@ func _run() -> void:
 	await physics_frame
 	_check(player.boat_mode, "le héros embarque depuis le quai")
 	_check(player.boat_visual != null and player.boat_visual.visible, "le bateau jouable est visible")
+	_check(player.boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") != null, "le bateau possède un vrai poste de pilotage")
+	_check(player.boat_visual.get_node_or_null("GouvernailArrière") != null, "le gouvernail arrière est articulé")
+	_check(player.boat_visual.get_node_or_null("FigureDeProue") != null, "le navire possède une figure de proue originale")
 	var boat_start := player.global_position
-	player.set_move_input(Vector2(0.0, -1.0))
+	player.set_move_input(Vector2(-0.72, -1.0))
 	for _frame in range(36):
 		await physics_frame
 	player.set_move_input(Vector2.ZERO)
 	_check(player.global_position.distance_to(boat_start) > 0.5, "le joueur navigue lui-même avec le joystick")
 	_check(player.boat_speed > 0.0, "le bateau possède accélération et inertie")
+	_check(absf(player.boat_turn_rate) > 0.05, "le virage possède une réponse progressive au gouvernail")
+	_check(player.camera_arm.spring_length > 9.0, "la caméra marine recule pour cadrer le navire et son pilote")
+	var helm := player.boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") as Node3D
+	_check(helm != null and absf(helm.rotation.z) > 0.08, "le gouvernail tourne visiblement avec le joystick")
 	player.global_position = world.get_dock_position(1, true)
 	world.toggle_boat()
 	await process_frame
@@ -114,7 +125,7 @@ func _run() -> void:
 	_check(is_equal_approx(player.health, 1.0), "en Découverte le héros prend des dégâts sans mourir")
 	player.heal(9999.0)
 	player.set_difficulty("difficile")
-	var hard_health := player.health
+	var hard_health: float = player.health
 	player.invulnerability = 0.0
 	player.receive_damage(12.0)
 	_check(hard_health - player.health > 12.0, "en Difficile les dégâts sont fortement augmentés")
@@ -167,6 +178,14 @@ func _run() -> void:
 	_check(front_atlas.atlas.resource_path.ends_with("cheikh_poses.webp"), "la vue avant s’affiche quand la caméra regarde le visage")
 	_check(game_ui.hud.get_node_or_null("StickCaméra360") != null, "le stick caméra séparé est installé à gauche")
 	_check(is_instance_valid(game_ui.boat_button), "le bouton contextuel EMBARQUER / ACCOSTER est présent")
+	game_ui.set_boat_mode(true)
+	game_ui.update_boat_steering("cheikh", 0.85, 1.0, 0.72)
+	_check(game_ui.hero_view.visible, "le personnage reste visible en mer à la troisième personne")
+	var steering_atlas := game_ui.hero_view.texture as AtlasTexture
+	_check(steering_atlas.atlas.resource_path.ends_with("cheikh_steering_v24.webp"), "la planche de pilotage remplace la pose de marche en mer")
+	_check(is_equal_approx(steering_atlas.region.position.x, 1184.0), "la pose de virage à droite suit réellement le joystick")
+	_check(game_ui.sailing_speed_label.visible and "À LA BARRE" in game_ui.sailing_speed_label.text, "le HUD confirme le héros au gouvernail")
+	game_ui.set_boat_mode(false)
 
 	world.queue_free()
 	menu.queue_free()

@@ -4,7 +4,11 @@ extends Node3D
 signal weather_changed(label: String)
 
 const GROUND_COLORS := [Color("8a6f43"), Color("4d6638"), Color("e8f3f8"), Color("c9954f"), Color("403435"), Color("4f5d66")]
+const GROUND_DETAIL_COLORS := [Color("516c35"), Color("2e7b3d"), Color("f8fbfc"), Color("dfb66d"), Color("6f4134"), Color("718491")]
+const SHORE_COLORS := [Color("c9a66a"), Color("b89a5b"), Color("dcebf0"), Color("e4c080"), Color("5b433d"), Color("71828a")]
+const ROCK_COLORS := [Color("594838"), Color("38513a"), Color("9fb4bc"), Color("845f3d"), Color("241f20"), Color("354652")]
 const WEATHER := ["soleil", "pluie", "neige", "soleil", "cendres", "tempête"]
+const AMBIENT_ANIMAL_SCRIPT := preload("res://scripts/ambient_animal.gd")
 
 var environment: Environment
 var sun: DirectionalLight3D
@@ -159,48 +163,166 @@ func _build_islands() -> void:
 		root.position = center
 		add_child(root)
 		var ground := MeshInstance3D.new()
-		var ground_mesh := CylinderMesh.new()
-		ground_mesh.top_radius = radius
-		ground_mesh.bottom_radius = radius + 8.0
-		ground_mesh.height = 3.0
-		ground_mesh.radial_segments = 64
+		ground.name = "TerrainRelief"
+		var ground_mesh := _create_island_mesh(zone_index, radius)
 		ground.mesh = ground_mesh
-		ground.position.y = 0.0
-		ground.material_override = _material(GROUND_COLORS[zone_index], 0.92)
+		ground.material_override = _terrain_material(zone_index)
 		root.add_child(ground)
 		var floor_body := StaticBody3D.new()
+		floor_body.name = "CollisionTerrain"
 		var floor_collision := CollisionShape3D.new()
-		var floor_shape := CylinderShape3D.new()
-		floor_shape.radius = radius
-		floor_shape.height = 3.0
-		floor_collision.shape = floor_shape
+		floor_collision.shape = ground_mesh.create_trimesh_shape()
 		floor_body.add_child(floor_collision)
 		root.add_child(floor_body)
+		_build_shore_foam(root, radius)
 		_build_zone_props(root, zone_index, radius)
+		_build_animals(root, zone_index, radius)
 		_build_landmark(root, zone_index, radius)
 		_build_dock(root, zone_index, radius, Vector3(zone["dock_dir"]))
 		_build_destination_marker(root, zone_index, radius, Vector3(zone["dock_dir"]))
 
+func _create_island_mesh(zone_index: int, island_radius: float) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var ring_count := 13
+	var segment_count := 72
+	var center := _terrain_point(zone_index, island_radius, 0.0, 0.0)
+	for segment in range(segment_count):
+		var angle_current := TAU * float(segment) / float(segment_count)
+		var angle_next := TAU * float(segment + 1) / float(segment_count)
+		var current := _terrain_point(zone_index, island_radius, 1.0 / float(ring_count), angle_current)
+		var next := _terrain_point(zone_index, island_radius, 1.0 / float(ring_count), angle_next)
+		_add_terrain_vertex(surface, center, island_radius)
+		_add_terrain_vertex(surface, next, island_radius)
+		_add_terrain_vertex(surface, current, island_radius)
+	for ring in range(1, ring_count):
+		var inner_ratio := float(ring) / float(ring_count)
+		var outer_ratio := float(ring + 1) / float(ring_count)
+		for segment in range(segment_count):
+			var angle_current := TAU * float(segment) / float(segment_count)
+			var angle_next := TAU * float(segment + 1) / float(segment_count)
+			var inner_current := _terrain_point(zone_index, island_radius, inner_ratio, angle_current)
+			var inner_next := _terrain_point(zone_index, island_radius, inner_ratio, angle_next)
+			var outer_current := _terrain_point(zone_index, island_radius, outer_ratio, angle_current)
+			var outer_next := _terrain_point(zone_index, island_radius, outer_ratio, angle_next)
+			_add_terrain_vertex(surface, inner_current, island_radius)
+			_add_terrain_vertex(surface, inner_next, island_radius)
+			_add_terrain_vertex(surface, outer_next, island_radius)
+			_add_terrain_vertex(surface, inner_current, island_radius)
+			_add_terrain_vertex(surface, outer_next, island_radius)
+			_add_terrain_vertex(surface, outer_current, island_radius)
+	for segment in range(segment_count):
+		var angle_current := TAU * float(segment) / float(segment_count)
+		var angle_next := TAU * float(segment + 1) / float(segment_count)
+		var top_current := _terrain_point(zone_index, island_radius, 1.0, angle_current)
+		var top_next := _terrain_point(zone_index, island_radius, 1.0, angle_next)
+		var bottom_current := Vector3(top_current.x, -3.2, top_current.z)
+		var bottom_next := Vector3(top_next.x, -3.2, top_next.z)
+		_add_terrain_vertex(surface, top_current, island_radius)
+		_add_terrain_vertex(surface, bottom_next, island_radius)
+		_add_terrain_vertex(surface, top_next, island_radius)
+		_add_terrain_vertex(surface, top_current, island_radius)
+		_add_terrain_vertex(surface, bottom_current, island_radius)
+		_add_terrain_vertex(surface, bottom_next, island_radius)
+	surface.generate_normals()
+	surface.generate_tangents()
+	return surface.commit()
+
+func _terrain_point(zone_index: int, island_radius: float, radial_ratio: float, angle: float) -> Vector3:
+	var edge_variation := (
+		sin(angle * 3.0 + float(zone_index) * 0.7) * 0.024
+		+ sin(angle * 7.0 - float(zone_index) * 1.2) * 0.018
+		+ sin(angle * 13.0 + 0.8) * 0.010
+	)
+	var shaped_ratio := radial_ratio * (1.0 + edge_variation * smoothstep(0.45, 1.0, radial_ratio))
+	var local_radius := island_radius * shaped_ratio
+	var x := cos(angle) * local_radius
+	var z := sin(angle) * local_radius
+	return Vector3(x, _terrain_height(zone_index, x, z, island_radius), z)
+
+func _add_terrain_vertex(surface: SurfaceTool, point: Vector3, island_radius: float) -> void:
+	surface.set_uv(Vector2(point.x / island_radius * 0.5 + 0.5, point.z / island_radius * 0.5 + 0.5))
+	surface.add_vertex(point)
+
+func _terrain_height(zone_index: int, x: float, z: float, island_radius: float) -> float:
+	var ratio := clampf(Vector2(x, z).length() / maxf(island_radius, 0.01), 0.0, 1.08)
+	var terrain_seed := float(zone_index) * 1.73
+	var broad := sin(x * 0.050 + terrain_seed) * cos(z * 0.044 - terrain_seed * 0.7)
+	var crossed := sin((x + z) * 0.027 + terrain_seed * 2.1) * 0.56
+	var detail := cos(x * 0.113 - z * 0.086 + terrain_seed) * 0.24
+	var relief_amounts := [1.15, 2.65, 2.05, 1.55, 3.25, 2.10]
+	var interior := pow(clampf(1.0 - ratio, 0.0, 1.0), 1.15)
+	var relief := maxf(0.0, broad * 0.58 + crossed * 0.30 + detail * 0.12 + 0.38)
+	var plateau := 1.52 + relief * float(relief_amounts[zone_index]) * interior
+	var shore_blend := smoothstep(0.76, 1.0, ratio)
+	return lerpf(plateau, 0.48, shore_blend)
+
+func _terrain_material(zone_index: int) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = load("res://shaders/terrain_realistic.gdshader")
+	material.set_shader_parameter("ground_color", GROUND_COLORS[zone_index])
+	material.set_shader_parameter("ground_detail", GROUND_DETAIL_COLORS[zone_index])
+	material.set_shader_parameter("shore_color", SHORE_COLORS[zone_index])
+	material.set_shader_parameter("rock_color", ROCK_COLORS[zone_index])
+	material.set_shader_parameter("wetness", 0.28 if zone_index in [0, 1, 2] else 0.12)
+	return material
+
+func _build_shore_foam(root: Node3D, island_radius: float) -> void:
+	var foam_ring := MeshInstance3D.new()
+	foam_ring.name = "ÉcumeDuRivage"
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = island_radius * 0.985
+	mesh.outer_radius = island_radius * 1.022
+	mesh.rings = 72
+	mesh.ring_segments = 6
+	foam_ring.mesh = mesh
+	foam_ring.position.y = 0.10
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.80, 0.95, 1.0, 0.42)
+	material.emission_enabled = true
+	material.emission = Color("b9efff")
+	material.emission_energy_multiplier = 1.25
+	foam_ring.material_override = material
+	foam_ring.visibility_range_end = 360.0
+	root.add_child(foam_ring)
+
 func _build_zone_props(root: Node3D, zone_index: int, island_radius: float) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7000 + zone_index * 997
-	for i in range(62):
+	var prop_count := 96 if zone_index in [0, 1] else 74
+	for i in range(prop_count):
 		var angle: float = rng.randf_range(0.0, TAU)
 		var radius: float = rng.randf_range(island_radius * 0.30, island_radius * 0.82)
-		var position := Vector3(cos(angle) * radius, 1.7, sin(angle) * radius)
+		var prop_position := Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		prop_position.y = _terrain_height(zone_index, prop_position.x, prop_position.z, island_radius) + 0.03
 		match zone_index:
 			0, 1:
-				_build_tree(root, position, rng.randf_range(0.8, 1.45), zone_index == 0)
+				if i % 5 == 0:
+					_build_shrub(root, prop_position, rng.randf_range(0.75, 1.35), zone_index)
+				else:
+					_build_tree(root, prop_position, rng.randf_range(0.72, 1.36), zone_index == 0)
 			2:
-				_build_snow_pine(root, position, rng.randf_range(0.8, 1.5))
+				_build_snow_pine(root, prop_position, rng.randf_range(0.8, 1.5))
 			3:
-				_build_rock(root, position, Color("9c6e40"), rng.randf_range(0.8, 1.8))
+				if i % 6 == 0:
+					_build_fallen_log(root, prop_position, rng.randf_range(0.8, 1.4), Color("8d6039"))
+				else:
+					_build_rock(root, prop_position, Color("9c6e40"), rng.randf_range(0.8, 1.8))
 			4:
-				_build_rock(root, position, Color("30292b"), rng.randf_range(0.9, 2.2))
+				_build_rock(root, prop_position, Color("30292b"), rng.randf_range(0.9, 2.2))
 			_:
-				_build_rock(root, position, Color("4c5960"), rng.randf_range(0.8, 1.8))
-	if zone_index == 0 or zone_index == 1:
-		_build_grass(root, rng, island_radius)
+				_build_rock(root, prop_position, Color("4c5960"), rng.randf_range(0.8, 1.8))
+	if zone_index in [0, 1, 3]:
+		_build_grass(root, rng, island_radius, zone_index)
+	if zone_index in [0, 1]:
+		for index in range(18):
+			var shrub_angle := rng.randf_range(0.0, TAU)
+			var shrub_radius := rng.randf_range(island_radius * 0.18, island_radius * 0.72)
+			var shrub_position := Vector3(cos(shrub_angle) * shrub_radius, 0.0, sin(shrub_angle) * shrub_radius)
+			shrub_position.y = _terrain_height(zone_index, shrub_position.x, shrub_position.z, island_radius)
+			_build_shrub(root, shrub_position, rng.randf_range(0.55, 1.05), zone_index)
 
 func _build_tree(root: Node3D, position: Vector3, scale_value: float, palm: bool) -> void:
 	var trunk := MeshInstance3D.new()
@@ -208,25 +330,46 @@ func _build_tree(root: Node3D, position: Vector3, scale_value: float, palm: bool
 	trunk_mesh.top_radius = 0.32 * scale_value
 	trunk_mesh.bottom_radius = 0.48 * scale_value
 	trunk_mesh.height = 7.0 * scale_value
+	trunk_mesh.radial_segments = 14
 	trunk.mesh = trunk_mesh
 	trunk.position = position + Vector3(0, 3.5 * scale_value, 0)
 	trunk.material_override = _material(Color("6a442c"), 0.9)
+	trunk.visibility_range_end = 210.0
 	root.add_child(trunk)
-	var crown := MeshInstance3D.new()
 	if palm:
-		var sphere := SphereMesh.new()
-		sphere.radius = 2.5 * scale_value
-		sphere.height = 2.4 * scale_value
-		crown.mesh = sphere
+		for leaf_index in range(8):
+			var leaf := MeshInstance3D.new()
+			leaf.name = "Palme"
+			var leaf_mesh := SphereMesh.new()
+			leaf_mesh.radius = 1.0
+			leaf_mesh.height = 2.0
+			leaf.mesh = leaf_mesh
+			var leaf_angle := TAU * float(leaf_index) / 8.0
+			leaf.position = position + Vector3(cos(leaf_angle) * 1.42, 7.30 * scale_value, sin(leaf_angle) * 1.42)
+			leaf.scale = Vector3(2.7, 0.18, 0.72) * scale_value
+			leaf.rotation_degrees = Vector3(8.0, -rad_to_deg(leaf_angle), sin(leaf_angle) * 18.0)
+			leaf.material_override = _foliage_material(Color("25733d").lightened(float(leaf_index % 3) * 0.045), 0.30)
+			leaf.visibility_range_end = 210.0
+			root.add_child(leaf)
 	else:
-		var cone := CylinderMesh.new()
-		cone.top_radius = 0.0
-		cone.bottom_radius = 3.0 * scale_value
-		cone.height = 6.5 * scale_value
-		crown.mesh = cone
-	crown.position = position + Vector3(0, 7.2 * scale_value, 0)
-	crown.material_override = _foliage_material(Color("25733d"), 0.26 if palm else 0.18)
-	root.add_child(crown)
+		var crown_offsets := [
+			Vector3(0, 0.25, 0),
+			Vector3(1.45, -0.15, 0.45),
+			Vector3(-1.35, -0.05, 0.30),
+			Vector3(0.20, -0.10, -1.25)
+		]
+		for crown_index in range(crown_offsets.size()):
+			var crown := MeshInstance3D.new()
+			crown.name = "Feuillage"
+			var sphere := SphereMesh.new()
+			sphere.radius = 1.0
+			sphere.height = 2.0
+			crown.mesh = sphere
+			crown.position = position + Vector3(0, 7.1 * scale_value, 0) + Vector3(crown_offsets[crown_index]) * scale_value
+			crown.scale = Vector3(2.2, 1.45, 2.0) * scale_value
+			crown.material_override = _foliage_material(Color("1f6b35").lightened(float(crown_index) * 0.035), 0.18)
+			crown.visibility_range_end = 210.0
+			root.add_child(crown)
 	var trunk_body := StaticBody3D.new()
 	trunk_body.position = position + Vector3(0, 3.5 * scale_value, 0)
 	var trunk_collision := CollisionShape3D.new()
@@ -249,6 +392,36 @@ func _build_snow_pine(root: Node3D, position: Vector3, scale_value: float) -> vo
 	snow.material_override = _material(Color("eaf5fb"), 0.72)
 	root.add_child(snow)
 
+func _build_shrub(root: Node3D, position: Vector3, scale_value: float, zone_index: int) -> void:
+	var colors := [Color("3d7736"), Color("257342"), Color("58734b")]
+	for cluster_index in range(3):
+		var shrub := MeshInstance3D.new()
+		shrub.name = "SousBois"
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.72 * scale_value
+		mesh.height = 1.05 * scale_value
+		shrub.mesh = mesh
+		var angle := TAU * float(cluster_index) / 3.0
+		shrub.position = position + Vector3(cos(angle) * 0.48, 0.42 * scale_value, sin(angle) * 0.48)
+		shrub.scale = Vector3(1.35, 0.72, 1.15)
+		shrub.material_override = _foliage_material(colors[clampi(zone_index, 0, colors.size() - 1)].lightened(float(cluster_index) * 0.035), 0.24)
+		shrub.visibility_range_end = 110.0
+		root.add_child(shrub)
+
+func _build_fallen_log(root: Node3D, position: Vector3, scale_value: float, color: Color) -> void:
+	var fallen_log := MeshInstance3D.new()
+	fallen_log.name = "TroncÉchoué"
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.42 * scale_value
+	mesh.bottom_radius = 0.50 * scale_value
+	mesh.height = 4.2 * scale_value
+	mesh.radial_segments = 14
+	fallen_log.mesh = mesh
+	fallen_log.position = position + Vector3(0, 0.46 * scale_value, 0)
+	fallen_log.rotation_degrees = Vector3(90.0, position.x * 2.3, 0.0)
+	fallen_log.material_override = _material(color, 0.94)
+	root.add_child(fallen_log)
+
 func _build_rock(root: Node3D, position: Vector3, color: Color, scale_value: float) -> void:
 	var rock := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
@@ -269,27 +442,70 @@ func _build_rock(root: Node3D, position: Vector3, color: Color, scale_value: flo
 	rock_body.add_child(rock_collision)
 	root.add_child(rock_body)
 
-func _build_grass(root: Node3D, rng: RandomNumberGenerator, island_radius: float) -> void:
+func _build_grass(root: Node3D, rng: RandomNumberGenerator, island_radius: float, zone_index: int) -> void:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.instance_count = 1500
+	multimesh.instance_count = 3400 if zone_index == 1 else 2500
 	var blade := QuadMesh.new()
 	blade.size = Vector2(0.18, 1.25)
 	var grass_material := ShaderMaterial.new()
 	grass_material.shader = load("res://shaders/grass.gdshader")
+	if zone_index == 3:
+		grass_material.set_shader_parameter("grass_dark", Color("75511f"))
+		grass_material.set_shader_parameter("grass_light", Color("d0a14c"))
+		grass_material.set_shader_parameter("wind_strength", 0.28)
+	elif zone_index == 0:
+		grass_material.set_shader_parameter("grass_dark", Color("244c24"))
+		grass_material.set_shader_parameter("grass_light", Color("6f9a3d"))
 	blade.material = grass_material
 	multimesh.mesh = blade
 	for i in range(multimesh.instance_count):
 		var angle: float = rng.randf_range(0.0, TAU)
 		var radius: float = sqrt(rng.randf()) * island_radius * 0.92
-		var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU))
+		var x := cos(angle) * radius
+		var z := sin(angle) * radius
+		var y := _terrain_height(zone_index, x, z, island_radius) + 0.06
+		var blade_basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU))
 		var scale_value: float = rng.randf_range(0.65, 1.35)
-		basis = basis.scaled(Vector3.ONE * scale_value)
-		multimesh.set_instance_transform(i, Transform3D(basis, Vector3(cos(angle) * radius, 1.58, sin(angle) * radius)))
+		blade_basis = blade_basis.scaled(Vector3.ONE * scale_value)
+		multimesh.set_instance_transform(i, Transform3D(blade_basis, Vector3(x, y, z)))
 	var instance := MultiMeshInstance3D.new()
+	instance.name = "HerbeDense"
 	instance.multimesh = multimesh
 	instance.visibility_range_end = 130.0
 	root.add_child(instance)
+
+func _build_animals(root: Node3D, zone_index: int, island_radius: float) -> void:
+	var species_by_zone := [
+		["mouette", "sanglier"],
+		["singe", "cerf"],
+		["pingouin", "aigle"],
+		["chameau", "lézard"],
+		["lézard", "aigle"],
+		["aigle", "cerf"]
+	]
+	var colors_by_zone := [
+		[Color("f3f0e7"), Color("5a3525")],
+		[Color("6b3f2c"), Color("9a7048")],
+		[Color("20282d"), Color("6c5940")],
+		[Color("b88958"), Color("5d6934")],
+		[Color("6f3e2c"), Color("302f34")],
+		[Color("657785"), Color("7a6048")]
+	]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 24820 + zone_index * 431
+	for animal_index in range(10):
+		var species_index: int = animal_index % 2
+		var species := String(species_by_zone[zone_index][species_index])
+		var angle := rng.randf_range(0.0, TAU)
+		var radius := rng.randf_range(island_radius * 0.20, island_radius * 0.70)
+		var x := cos(angle) * radius
+		var z := sin(angle) * radius
+		var y := _terrain_height(zone_index, x, z, island_radius) + (7.5 if species in ["mouette", "aigle"] else 0.05)
+		var animal := AMBIENT_ANIMAL_SCRIPT.new() as QuinetAmbientAnimal
+		animal.name = "%s_%02d" % [species.capitalize(), animal_index]
+		root.add_child(animal)
+		animal.configure(species, Color(colors_by_zone[zone_index][species_index]), Vector3(x, y, z), 90000 + zone_index * 100 + animal_index)
 
 func _build_landmark(root: Node3D, zone_index: int, island_radius: float) -> void:
 	match zone_index:
@@ -339,7 +555,7 @@ func _build_landmark(root: Node3D, zone_index: int, island_radius: float) -> voi
 					_add_cone(root, "ToitTempête", Vector3(side_x * 27.0, 28.0, side_z * 21.0), 6.4, 5.5, Color("263744"))
 					_add_sphere(root, "Paratonnerre", Vector3(side_x * 27.0, 31.2, side_z * 21.0), 0.7, Color("82d9ff"), true)
 
-func _build_dock(root: Node3D, zone_index: int, island_radius: float, raw_direction: Vector3) -> void:
+func _build_dock(root: Node3D, _zone_index: int, island_radius: float, raw_direction: Vector3) -> void:
 	var direction := raw_direction.normalized()
 	var yaw := atan2(direction.x, direction.z)
 	for plank_index in range(9):
@@ -351,14 +567,14 @@ func _build_dock(root: Node3D, zone_index: int, island_radius: float, raw_direct
 			_add_cylinder(root, "PoteauDuQuai", plank_position + side_vector + Vector3(0, -0.75, 0), 0.18, 0.24, 3.2, Color("4f301f"))
 	var sign_position := direction * (island_radius - 22.0)
 	_add_cylinder(root, "PanneauQuai", sign_position + Vector3(0, 3.2, 0), 0.20, 0.25, 4.5, Color("593720"))
-	var sign := Label3D.new()
-	sign.text = "QUAI • BATEAU"
-	sign.font_size = 42
-	sign.outline_size = 9
-	sign.modulate = Color("ffe08a")
-	sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sign.position = sign_position + Vector3(0, 5.5, 0)
-	root.add_child(sign)
+	var dock_sign := Label3D.new()
+	dock_sign.text = "QUAI • BATEAU"
+	dock_sign.font_size = 42
+	dock_sign.outline_size = 9
+	dock_sign.modulate = Color("ffe08a")
+	dock_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	dock_sign.position = sign_position + Vector3(0, 5.5, 0)
+	root.add_child(dock_sign)
 
 func _build_destination_marker(root: Node3D, zone_index: int, island_radius: float, raw_direction: Vector3) -> void:
 	var marker := Node3D.new()
@@ -401,10 +617,10 @@ func _build_sea_routes() -> void:
 		var finish := _zone_water_dock(zone_index + 1)
 		for step in range(1, 8):
 			var ratio := float(step) / 8.0
-			var position := start.lerp(finish, ratio)
+			var route_position := start.lerp(finish, ratio)
 			var buoy := Node3D.new()
 			buoy.name = "BouéeRoute_%d_%d" % [zone_index, step]
-			buoy.position = position
+			buoy.position = route_position
 			add_child(buoy)
 			_add_cylinder(buoy, "CorpsBouée", Vector3(0, 0.8, 0), 0.52, 0.72, 1.3, Color("d94b32"))
 			_add_cone(buoy, "SommetBouée", Vector3(0, 1.85, 0), 0.62, 0.8, Color("f2cf55"), true)

@@ -46,13 +46,19 @@ var coins_label: Label
 var navigation_label: Label
 var difficulty_label: Label
 var hero_view: TextureRect
+var sailing_speed_label: Label
 var boat_button: Button
 var combat_buttons: Array[Button] = []
 var current_hero_id := "cheikh"
 var current_hero_frame := 0
 var hero_front_view := false
 var sailing := false
+var sailing_steering := 0.0
+var sailing_throttle := 0.0
+var sailing_speed_ratio := 0.0
+var sailing_visual_time := 0.0
 var overlay_marker_emitted := false
+var boat_marker_emitted := false
 var attack_held := false
 var attack_repeat_timer := 0.0
 
@@ -74,12 +80,15 @@ func _ready() -> void:
 	show_main_menu()
 
 func _process(delta: float) -> void:
-	if not attack_held or not is_instance_valid(hud) or not hud.visible:
-		return
-	attack_repeat_timer -= delta
-	if attack_repeat_timer <= 0.0:
-		attack_repeat_timer = 0.14
-		attack_requested.emit()
+	if sailing and is_instance_valid(hero_view) and hero_view.visible:
+		sailing_visual_time += delta
+		hero_view.pivot_offset = hero_view.size * 0.5
+		hero_view.rotation = sin(sailing_visual_time * 2.4) * 0.004 - sailing_steering * 0.012 * sailing_speed_ratio
+	if attack_held and is_instance_valid(hud) and hud.visible:
+		attack_repeat_timer -= delta
+		if attack_repeat_timer <= 0.0:
+			attack_repeat_timer = 0.14
+			attack_requested.emit()
 
 func show_main_menu() -> void:
 	attack_held = false
@@ -131,9 +140,19 @@ func set_boat_action(label: String, available: bool, on_boat: bool) -> void:
 	set_boat_mode(on_boat)
 
 func set_boat_mode(active: bool) -> void:
+	var state_changed := sailing != active
 	sailing = active
 	if is_instance_valid(hero_view):
-		hero_view.visible = not active
+		hero_view.visible = true
+		_apply_hero_view_layout()
+		if state_changed:
+			if active:
+				update_boat_steering(current_hero_id, 0.0, 0.0, 0.0)
+			else:
+				hero_view.rotation = 0.0
+				update_hero_pose(current_hero_id, current_hero_frame, hero_front_view)
+	if is_instance_valid(sailing_speed_label):
+		sailing_speed_label.visible = active
 	for button in combat_buttons:
 		if is_instance_valid(button):
 			button.disabled = active
@@ -154,21 +173,46 @@ func update_stats(health: float, max_health: float, energy: float, aura: float, 
 
 func update_hero(hero_id: String, display_name: String) -> void:
 	hero_label.text = display_name.to_upper()
-	update_hero_pose(hero_id, 0)
+	if sailing:
+		update_boat_steering(hero_id, sailing_steering, sailing_throttle, sailing_speed_ratio)
+	else:
+		update_hero_pose(hero_id, 0)
 
 func update_hero_pose(hero_id: String, frame: int, front_view: bool = false) -> void:
 	if not HeroFactory.HEROES.has(hero_id) or not is_instance_valid(hero_view):
+		return
+	if sailing:
 		return
 	current_hero_id = hero_id
 	current_hero_frame = clampi(frame, 0, 3)
 	hero_front_view = front_view
 	var profile: Dictionary = HeroFactory.HEROES[hero_id]
-	var atlas_texture := AtlasTexture.new()
 	var texture_path := String(profile["sprite"]) if front_view else String(profile["third_person_sprite"])
-	atlas_texture.atlas = load(texture_path) as Texture2D
-	var frame_width := float(atlas_texture.atlas.get_width()) / 4.0
-	atlas_texture.region = Rect2(frame_width * current_hero_frame, 0.0, frame_width, float(atlas_texture.atlas.get_height()))
-	hero_view.texture = atlas_texture
+	hero_view.texture = _atlas_frame(texture_path, 4, current_hero_frame)
+
+func update_boat_steering(hero_id: String, steering: float, throttle: float, speed_ratio: float) -> void:
+	if not HeroFactory.HEROES.has(hero_id) or not is_instance_valid(hero_view):
+		return
+	current_hero_id = hero_id
+	sailing_steering = clampf(steering, -1.0, 1.0)
+	sailing_throttle = clampf(throttle, -1.0, 1.0)
+	sailing_speed_ratio = clampf(speed_ratio, 0.0, 1.0)
+	if not sailing:
+		return
+	var frame := 0 if sailing_steering < -0.16 else 2 if sailing_steering > 0.16 else 1
+	var profile: Dictionary = HeroFactory.HEROES[hero_id]
+	hero_view.texture = _atlas_frame(String(profile["steering_sprite"]), 3, frame)
+	if is_instance_valid(sailing_speed_label):
+		var speed_knots := roundi(sailing_speed_ratio * 24.0)
+		var helm_text := "VIRAGE À GAUCHE" if frame == 0 else "VIRAGE À DROITE" if frame == 2 else "CAP STABLE"
+		sailing_speed_label.text = "%s À LA BARRE  •  %s  •  %d NŒUDS" % [
+			String(profile["display_name"]),
+			helm_text,
+			speed_knots
+		]
+	if not boat_marker_emitted:
+		boat_marker_emitted = true
+		print("CHK_BOAT_HELMSMAN_READY hero=%s frame=%d" % [hero_id, frame])
 
 func update_zone(name: String) -> void:
 	zone_label.text = name.to_upper()
@@ -199,6 +243,7 @@ func _build_hud() -> void:
 	hero_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero_view.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	hero_view.z_index = 4
 	hud.add_child(hero_view)
 	update_hero_pose(current_hero_id, 0)
 
@@ -270,6 +315,22 @@ func _build_hud() -> void:
 	navigation_label.add_theme_font_size_override("font_size", 23)
 	navigation_label.add_theme_color_override("font_color", GOLD_LIGHT)
 	navigation_panel.add_child(navigation_label)
+
+	sailing_speed_label = Label.new()
+	sailing_speed_label.name = "ÉtatPilotage"
+	_set_rect(sailing_speed_label, 0.5, 1.0, 0.5, 1.0, -390, -82, 780, 48)
+	sailing_speed_label.text = "CHEIKH À LA BARRE  •  CAP STABLE  •  0 NŒUD"
+	sailing_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sailing_speed_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sailing_speed_label.add_theme_font_size_override("font_size", 21)
+	sailing_speed_label.add_theme_color_override("font_color", GOLD_LIGHT)
+	sailing_speed_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.95))
+	sailing_speed_label.add_theme_constant_override("shadow_offset_x", 2)
+	sailing_speed_label.add_theme_constant_override("shadow_offset_y", 2)
+	sailing_speed_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sailing_speed_label.z_index = 5
+	sailing_speed_label.visible = false
+	hud.add_child(sailing_speed_label)
 
 	coins_label = Label.new()
 	_set_rect(coins_label, 1.0, 0.0, 1.0, 0.0, -510, 25, 255, 54)
@@ -466,3 +527,24 @@ func _bearing_arrow(bearing: float) -> String:
 	var directions := ["↑", "↖", "←", "↙", "↓", "↘", "→", "↗"]
 	var index := posmod(roundi(bearing / (PI / 4.0)), directions.size())
 	return directions[index]
+
+func _atlas_frame(texture_path: String, frame_count: int, frame: int) -> AtlasTexture:
+	var atlas_texture := AtlasTexture.new()
+	atlas_texture.atlas = load(texture_path) as Texture2D
+	var safe_count := maxi(frame_count, 1)
+	var frame_width := float(atlas_texture.atlas.get_width()) / float(safe_count)
+	atlas_texture.region = Rect2(
+		frame_width * clampi(frame, 0, safe_count - 1),
+		0.0,
+		frame_width,
+		float(atlas_texture.atlas.get_height())
+	)
+	return atlas_texture
+
+func _apply_hero_view_layout() -> void:
+	if not is_instance_valid(hero_view):
+		return
+	if sailing:
+		_set_rect(hero_view, 0.5, 1.0, 0.5, 1.0, -270, -650, 540, 610)
+	else:
+		_set_rect(hero_view, 0.5, 1.0, 0.5, 1.0, -300, -590, 360, 590)

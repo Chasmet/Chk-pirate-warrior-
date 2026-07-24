@@ -249,7 +249,7 @@ func _flash_model() -> void:
 	for child in get_children():
 		if child is MeshInstance3D:
 			var mesh_node := child as MeshInstance3D
-			var material := mesh_node.material_override
+			var material: Material = mesh_node.material_override
 			if material is StandardMaterial3D:
 				var standard := material as StandardMaterial3D
 				standard.emission_enabled = true
@@ -263,7 +263,7 @@ func _clear_flash() -> void:
 	for child in get_children():
 		if child is MeshInstance3D:
 			var mesh_node := child as MeshInstance3D
-			var material := mesh_node.material_override
+			var material: Material = mesh_node.material_override
 			if material is StandardMaterial3D:
 				(material as StandardMaterial3D).emission_enabled = false
 			elif material is ShaderMaterial:

@@ -2,7 +2,7 @@
 
 Jeu d’action-aventure 3D Android en français, pensé exclusivement pour téléphone en mode paysage et jouable hors connexion.
 
-## Version 2.3 — archipel ouvert et navigation libre
+## Version 2.4 — navigation troisième personne et îles vivantes
 
 Cette version reconstruit la V2 autour de l’illustration officielle du jeu :
 
@@ -16,7 +16,12 @@ Cette version reconstruit la V2 autour de l’illustration officielle du jeu :
 - assistance de combat temporaire qui n’arrache plus le contrôle de la caméra au joueur ;
 - six grandes îles réellement séparées dans un archipel ouvert, chacune avec quai, balise et monument propre ;
 - carte utilisée comme GPS : les îles ne sont plus téléportées, elles se débloquent en y accostant ;
-- bateau pilotable avec accélération, inertie, virage, caméra reculée, voile, lanternes et sillage ;
+- navigation réellement à la troisième personne : héros visible derrière la barre, mains au gouvernail et poses gauche/centre/droite reliées au joystick ;
+- bateau agrandi et détaillé avec coque bordée, cabine, vitres, pont, voile rayée, figure de proue, poste de pilotage, gouvernail arrière, lanternes et sillage ;
+- conduite plus naturelle avec accélération progressive, inertie, dérive maîtrisée, gouvernail amorti, roulis et caméra marine cadrant le navire entier ;
+- îles entièrement remodélisées avec rivages irréguliers, relief praticable, matériaux sol/sable/roche, zones humides et écume côtière ;
+- forêts et sous-bois enrichis : palmes, couronnes de feuillage, arbustes, troncs échoués et herbe dense animée par le vent ;
+- soixante animaux animés répartis dans l’archipel : mouettes, sangliers, singes, cerfs, pingouins, aigles, chameaux et lézards ;
 - indications permanentes vers le quai et la destination, avec distance et direction ;
 - trois difficultés : **Découverte** sans mort, **Intermédiaire** équilibrée et **Difficile** renforcée ;
 - ennemis enrichis avec visages, vêtements, rôles, armes et réactions plus lisibles ;
@@ -62,7 +67,7 @@ godot --headless --path godot --quit-after 180
 godot --headless --path godot --script res://tests/smoke_test.gd
 ```
 
-Le smoke test couvre 56 points : héros, caméra, combat, bateau, accostage, déblocage, difficultés, boss, carte et interface. Le workflow GitHub vérifie ensuite l’import, le démarrage, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
+Le smoke test couvre 71 points : héros, caméra, pilotage visible, gouvernail, relief, animaux, végétation, combat, accostage, déblocage, difficultés, boss, carte et interface. Le workflow GitHub vérifie ensuite l’import, le démarrage, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
 
 ## Univers
 

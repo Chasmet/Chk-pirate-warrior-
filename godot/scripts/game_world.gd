@@ -12,12 +12,12 @@ signal boss_defeated(boss_id: String)
 signal player_ready(player: PlayerController)
 
 const ZONES := [
-	{"name":"Port des Naufragés","center":Vector3(0,0,0),"spawn":Vector3(0,2,0),"radius":108.0,"dock_dir":Vector3(0.96,0,0.28)},
-	{"name":"Jungle sauvage","center":Vector3(315,0,-175),"spawn":Vector3(315,2,-175),"radius":116.0,"dock_dir":Vector3(-0.88,0,0.47)},
-	{"name":"Royaume des neiges","center":Vector3(655,0,-72),"spawn":Vector3(655,2,-72),"radius":104.0,"dock_dir":Vector3(-0.99,0,-0.08)},
-	{"name":"Désert des corsaires","center":Vector3(275,0,260),"spawn":Vector3(275,2,260),"radius":122.0,"dock_dir":Vector3(-0.62,0,-0.78)},
-	{"name":"Île volcanique","center":Vector3(625,0,295),"spawn":Vector3(625,2,295),"radius":102.0,"dock_dir":Vector3(-0.87,0,-0.49)},
-	{"name":"Forteresse de la tempête","center":Vector3(955,0,105),"spawn":Vector3(955,2,105),"radius":132.0,"dock_dir":Vector3(-0.99,0,0.06)}
+	{"name":"Port des Naufragés","center":Vector3(0,0,0),"spawn":Vector3(0,8,0),"radius":108.0,"dock_dir":Vector3(0.96,0,0.28)},
+	{"name":"Jungle sauvage","center":Vector3(315,0,-175),"spawn":Vector3(315,8,-175),"radius":116.0,"dock_dir":Vector3(-0.88,0,0.47)},
+	{"name":"Royaume des neiges","center":Vector3(655,0,-72),"spawn":Vector3(655,8,-72),"radius":104.0,"dock_dir":Vector3(-0.99,0,-0.08)},
+	{"name":"Désert des corsaires","center":Vector3(275,0,260),"spawn":Vector3(275,8,260),"radius":122.0,"dock_dir":Vector3(-0.62,0,-0.78)},
+	{"name":"Île volcanique","center":Vector3(625,0,295),"spawn":Vector3(625,8,295),"radius":102.0,"dock_dir":Vector3(-0.87,0,-0.49)},
+	{"name":"Forteresse de la tempête","center":Vector3(955,0,105),"spawn":Vector3(955,8,105),"radius":132.0,"dock_dir":Vector3(-0.99,0,0.06)}
 ]
 
 var save_data: Dictionary = {}
@@ -161,6 +161,19 @@ func travel_to_zone(index: int, announce: bool = true) -> void:
 		player.velocity = Vector3.ZERO
 	_activate_zone(resolved, announce, false)
 
+func debug_start_boat_preview() -> void:
+	if not OS.is_debug_build() or not is_instance_valid(player):
+		return
+	destination_zone = _next_destination(current_zone)
+	save_data["destination_zone"] = destination_zone
+	if is_instance_valid(visuals):
+		visuals.set_destination(destination_zone)
+	_clear_enemies()
+	player.enter_boat(get_dock_position(current_zone, true), get_dock_position(destination_zone, true))
+	_set_mission("VALIDATION • PILOTAGE TROISIÈME PERSONNE")
+	_update_navigation()
+	print("CHK_BOAT_PREVIEW_READY hero=%s destination=%d" % [player.hero_id, destination_zone])
+
 func get_player() -> PlayerController:
 	return player
 
@@ -232,7 +245,7 @@ func _spawn_wave() -> void:
 		_attach_enemy_animator(enemy)
 		var angle := TAU * float(i) / 8.0 + rng.randf_range(-0.24, 0.24)
 		var radius := rng.randf_range(island_radius * 0.24, island_radius * 0.58)
-		enemy.global_position = center + Vector3(cos(angle) * radius, 2.0, sin(angle) * radius)
+		enemy.global_position = center + Vector3(cos(angle) * radius, 8.0, sin(angle) * radius)
 		player.register_enemy(enemy)
 
 func _spawn_boss() -> void:
@@ -246,7 +259,7 @@ func _spawn_boss() -> void:
 	add_child(boss)
 	_attach_enemy_animator(boss)
 	var center: Vector3 = ZONES[current_zone]["center"]
-	boss.global_position = center + Vector3(0, 2.0, -float(ZONES[current_zone]["radius"]) * 0.38)
+	boss.global_position = center + Vector3(0, 8.0, -float(ZONES[current_zone]["radius"]) * 0.38)
 	player.register_enemy(boss)
 	_set_mission("BOSS DE L’ÎLE : " + String(profile["name"]))
 	VoiceFR.speak("Attention. " + String(profile["name"]) + " entre dans l’arène.")
