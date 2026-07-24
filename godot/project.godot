@@ -16,6 +16,7 @@ boot_splash/show_image=false
 [autoload]
 
 ThirdPersonCameraGuard="*res://scripts/third_person_camera_guard.gd"
+HeroMaterialRenderer="*res://scripts/hero_material_renderer.gd"
 
 [display]
 
