@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqykr5uvgtahx"
-path="res://.godot/imported/yvane_poses.png-246f9f4a859d5058299d6c8e9ce48e14.ctex"
+uid="uid://b7rotavq8fq2a"
+path="res://.godot/imported/cheikh_poses.webp-c1deb11d3a3d964624dd847485043c2d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/heroes/yvane_poses.png"
-dest_files=["res://.godot/imported/yvane_poses.png-246f9f4a859d5058299d6c8e9ce48e14.ctex"]
+source_file="res://assets/heroes/cheikh_poses.webp"
+dest_files=["res://.godot/imported/cheikh_poses.webp-c1deb11d3a3d964624dd847485043c2d.ctex"]
 
 [params]
 

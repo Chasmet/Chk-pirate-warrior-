@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyrkwpfmkjrk5"
-path="res://.godot/imported/nelvyn_poses.png-162e6bc1a827a9d1e9c3c72e2a422e98.ctex"
+uid="uid://dhbymkr7wi3f8"
+path="res://.godot/imported/nelvyn_poses.webp-4765914e0b23c9104b8e5a27cf863221.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/heroes/nelvyn_poses.png"
-dest_files=["res://.godot/imported/nelvyn_poses.png-162e6bc1a827a9d1e9c3c72e2a422e98.ctex"]
+source_file="res://assets/heroes/nelvyn_poses.webp"
+dest_files=["res://.godot/imported/nelvyn_poses.webp-4765914e0b23c9104b8e5a27cf863221.ctex"]
 
 [params]
 

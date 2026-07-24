@@ -29,7 +29,7 @@ func _run() -> void:
 	_check(sprite != null, "le nouveau personnage HD de Cheikh est chargé")
 	if sprite != null:
 		_check(sprite.hframes == 4, "les quatre poses de Cheikh sont disponibles")
-		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la planche HD est importée sans déformation")
+		_check(sprite.texture != null and sprite.texture.get_width() == 1776, "la texture HD optimisée est importée sans déformation")
 
 	var start_position := player.global_position
 	player.set_move_input(Vector2(1.0, 0.0))

@@ -10,7 +10,7 @@ const HEROES := {
 		"aura": Color("ef4b32"),
 		"role": "Capitaine puissant",
 		"weapon": "Sabre courbe",
-		"sprite": "res://assets/heroes/cheikh_poses.png",
+		"sprite": "res://assets/heroes/cheikh_poses.webp",
 		"pixel_size": 0.00305,
 		"sprite_y": 0.91
 	},
@@ -22,7 +22,7 @@ const HEROES := {
 		"aura": Color("31a9f3"),
 		"role": "Éclaireur électrique",
 		"weapon": "Fronde",
-		"sprite": "res://assets/heroes/yvane_poses.png",
+		"sprite": "res://assets/heroes/yvane_poses.webp",
 		"pixel_size": 0.00266,
 		"sprite_y": 0.80
 	},
@@ -34,7 +34,7 @@ const HEROES := {
 		"aura": Color("76df72"),
 		"role": "Inventeur tactique",
 		"weapon": "Gadgets",
-		"sprite": "res://assets/heroes/nelvyn_poses.png",
+		"sprite": "res://assets/heroes/nelvyn_poses.webp",
 		"pixel_size": 0.00228,
 		"sprite_y": 0.68
 	}
