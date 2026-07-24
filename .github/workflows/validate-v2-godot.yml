@@ -195,6 +195,18 @@ jobs:
             --package "system-images;android-35;google_apis;x86_64" \
             --device "pixel_7_pro" 2>&1 | tee emulator-avd.log
 
+          # Le profil Pixel 7 Pro réserve sinon plus de 7 Go pour userdata.
+          # Deux gigaoctets suffisent largement à l’APK de validation et
+          # empêchent l’émulateur d’échouer sur l’espace disque du runner.
+          AVD_CONFIG="$ANDROID_AVD_HOME/chk_pixel.avd/config.ini"
+          test -f "$AVD_CONFIG"
+          if grep -q '^disk.dataPartition.size=' "$AVD_CONFIG"; then
+            sed -i 's/^disk.dataPartition.size=.*/disk.dataPartition.size=2048M/' "$AVD_CONFIG"
+          else
+            printf '\ndisk.dataPartition.size=2048M\n' >> "$AVD_CONFIG"
+          fi
+          grep '^disk.dataPartition.size=2048M$' "$AVD_CONFIG"
+
           "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | tee emulator-avd-list.log
           grep -qx 'chk_pixel' emulator-avd-list.log
           test -f "$ANDROID_AVD_HOME/chk_pixel.ini" || test -d "$ANDROID_AVD_HOME/chk_pixel.avd"
