@@ -1,7 +1,7 @@
 extends Node
 
-const LAND_LENGTH := 6.80
-const BOAT_LENGTH := 22.0
+const LAND_LENGTH := 6.35
+const BOAT_LENGTH := 13.8
 
 var player: PlayerController
 var player_logged := false
@@ -46,47 +46,50 @@ func _enforce_camera(delta: float) -> void:
 
 func _update_land_camera(delta: float) -> void:
 	var hero_height := float(HeroFactory.HEROES[player.hero_id]["height"])
-	var look_ahead := Vector3(player.velocity.x, 0.0, player.velocity.z) * 0.030
+	var look_ahead := Vector3(player.velocity.x, 0.0, player.velocity.z) * 0.026
 	var anchor := player.global_position + Vector3(0.0, hero_height * 0.62, 0.0) + look_ahead
 	var orbit := Basis(Vector3.UP, player.camera_yaw)
 	var back := orbit.z.normalized()
 	var right := orbit.x.normalized()
-	var desired_position := anchor + back * LAND_LENGTH + Vector3.UP * 1.65 + right * 0.65
+	var desired_position := anchor + back * LAND_LENGTH + Vector3.UP * 1.52 + right * 0.48
 	player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-14.0 * delta))
 	player.camera.look_at(anchor, Vector3.UP)
-	player.camera.fov = lerpf(player.camera.fov, 61.0, 1.0 - exp(-8.0 * delta))
+	player.camera.fov = lerpf(player.camera.fov, 60.0, 1.0 - exp(-8.0 * delta))
 	player.camera_arm.spring_length = LAND_LENGTH
 	_force_original_hero_visible()
 	_restore_sails()
 
 	var distance := player.camera.global_position.distance_to(player.global_position)
-	if not land_ready_logged and distance > 6.0:
+	if not land_ready_logged and distance > 5.6:
 		land_ready_logged = true
 		print("CHK_TRUE_THIRD_PERSON_READY distance=%.2f" % distance)
 
 func _update_boat_camera(delta: float) -> void:
 	if sail_parts.is_empty():
 		_cache_sails()
-	var look_ahead := Vector3(player.velocity.x, 0.0, player.velocity.z) * 0.055
-	var anchor := player.global_position + Vector3(0.0, 2.45, 0.0) + look_ahead
+	var velocity_flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var look_ahead := velocity_flat * 0.075
+	var anchor := player.global_position + Vector3(0.0, 2.15, 0.0) + look_ahead
 	var orbit := Basis(Vector3.UP, player.camera_yaw)
 	var back := orbit.z.normalized()
 	var right := orbit.x.normalized()
-	var desired_position := anchor + back * BOAT_LENGTH + Vector3.UP * 9.0 + right * 1.4
-	player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-10.0 * delta))
-	player.camera.look_at(anchor, Vector3.UP)
-	player.camera.fov = lerpf(player.camera.fov, 68.0, 1.0 - exp(-8.0 * delta))
-	player.camera_arm.spring_length = BOAT_LENGTH
+	var speed_ratio := clampf(absf(player.boat_speed) / PlayerController.BOAT_MAX_SPEED, 0.0, 1.0)
+	var dynamic_length := lerpf(BOAT_LENGTH, BOAT_LENGTH + 2.2, speed_ratio)
+	var desired_position := anchor + back * dynamic_length + Vector3.UP * lerpf(4.6, 5.5, speed_ratio) + right * 0.72
+	player.camera.global_position = player.camera.global_position.lerp(desired_position, 1.0 - exp(-11.5 * delta))
+	player.camera.look_at(anchor + velocity_flat * 0.08, Vector3.UP)
+	player.camera.fov = lerpf(player.camera.fov, lerpf(61.0, 65.0, speed_ratio), 1.0 - exp(-8.0 * delta))
+	player.camera_arm.spring_length = dynamic_length
 	_force_original_hero_visible()
 
-	# Les surfaces de voile sont retirées de la caméra de pilotage. Le mât,
-	# le pont, la coque et le gouvernail restent visibles depuis l’extérieur.
+	# Les surfaces de voile centrales restent masquées uniquement pendant le
+	# pilotage pour conserver une vue extérieure claire du pont et de la coque.
 	for part in sail_parts:
 		if is_instance_valid(part):
 			part.visible = false
 
 	var distance := player.camera.global_position.distance_to(player.global_position)
-	if not boat_ready_logged and distance > 20.0:
+	if not boat_ready_logged and distance > 12.0:
 		boat_ready_logged = true
 		print("CHK_BOAT_THIRD_PERSON_READY distance=%.2f" % distance)
 
