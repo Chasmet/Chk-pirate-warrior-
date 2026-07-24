@@ -7,6 +7,9 @@ static func default_data() -> Dictionary:
 	return {
 		"hero": "cheikh",
 		"zone": 0,
+		"destination_zone": 1,
+		"unlocked_zones": [0],
+		"difficulty": "intermediaire",
 		"level": 1,
 		"xp": 0,
 		"coins": 250,

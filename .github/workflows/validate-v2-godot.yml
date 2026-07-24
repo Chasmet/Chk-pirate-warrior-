@@ -316,7 +316,11 @@ jobs:
             exit 1
           fi
 
+          # Nouvelle partie ouvre d’abord le choix des trois difficultés.
           "$ADB" shell input tap 490 260
+          sleep 2
+          # Carte centrale : mode INTERMÉDIAIRE.
+          "$ADB" shell input tap 1200 610
           GAME_READY=0
           for attempt in $(seq 1 30); do
             "$ADB" logcat -d > android-logcat.txt
@@ -365,7 +369,10 @@ jobs:
             exit 1
           fi
 
-          "$ADB" shell input swipe 270 900 440 700 800
+          "$ADB" shell input swipe 180 920 180 690 800
+          # Tourner aussi le second stick placé à gauche pour valider la
+          # caméra 360° indépendante du déplacement.
+          "$ADB" shell input swipe 480 920 610 920 550
           "$ADB" shell input tap 2280 955
           sleep 4
           "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null

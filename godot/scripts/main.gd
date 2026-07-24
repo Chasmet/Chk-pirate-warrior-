@@ -37,20 +37,24 @@ func _build_world() -> void:
 	world = GameWorld.new()
 	world.name = "Monde3D"
 	add_child(world)
-	world.configure(save_data)
 	world.player_ready.connect(_on_player_ready)
 	world.zone_changed.connect(_on_zone_changed)
 	world.mission_changed.connect(_on_mission_changed)
 	world.weather_changed.connect(_on_weather_changed)
+	world.navigation_changed.connect(_on_navigation_changed)
+	world.boat_action_changed.connect(_on_boat_action_changed)
+	world.unlocked_zones_changed.connect(_on_unlocked_zones_changed)
+	world.difficulty_changed.connect(_on_difficulty_changed)
 	world.boss_defeated.connect(_on_boss_defeated)
+	world.configure(save_data)
 	player = world.get_player()
-	_connect_player()
 
 func _build_ui() -> void:
 	ui = GameUI.new()
 	ui.name = "InterfaceFrançaise"
 	add_child(ui)
 	ui.play_requested.connect(_start_game)
+	ui.difficulty_selected.connect(_start_new_game)
 	ui.hero_selected.connect(_select_hero)
 	ui.zone_selected.connect(_travel_to_zone)
 	ui.training_requested.connect(_train)
@@ -75,6 +79,12 @@ func _build_ui() -> void:
 	ui.camera_dragged.connect(func(relative: Vector2):
 		if is_instance_valid(player): player.add_camera_drag(relative)
 	)
+	ui.camera_stick_changed.connect(func(value: Vector2):
+		if is_instance_valid(player): player.set_camera_stick(value)
+	)
+	ui.boat_requested.connect(func():
+		if is_instance_valid(world): world.toggle_boat()
+	)
 	ui.pause_requested.connect(_pause_game)
 	ui.resume_requested.connect(_resume_game)
 	ui.quit_to_menu_requested.connect(_quit_to_menu)
@@ -88,6 +98,8 @@ func _connect_player() -> void:
 	player.stats_changed.connect(_on_stats_changed)
 	player.hero_changed.connect(_on_hero_changed)
 	player.hero_pose_changed.connect(_on_hero_pose_changed)
+	player.hero_view_changed.connect(_on_hero_view_changed)
+	player.boat_mode_changed.connect(_on_player_boat_mode_changed)
 	player.player_defeated.connect(_on_player_defeated)
 
 func _enter_menu() -> void:
@@ -98,9 +110,18 @@ func _enter_menu() -> void:
 
 func _start_game(new_game: bool) -> void:
 	if new_game:
-		save_data = SaveSystem.default_data()
-		VoiceFR.enabled = bool(save_data.get("voice", true))
-		_build_world()
+		_start_new_game(String(save_data.get("difficulty", "intermediaire")))
+		return
+	_activate_gameplay()
+
+func _start_new_game(difficulty: String) -> void:
+	save_data = SaveSystem.default_data()
+	save_data["difficulty"] = difficulty
+	VoiceFR.enabled = bool(save_data.get("voice", true))
+	_build_world()
+	_activate_gameplay()
+
+func _activate_gameplay() -> void:
 	world.visible = true
 	world.process_mode = Node.PROCESS_MODE_INHERIT
 	get_tree().paused = false
@@ -136,7 +157,7 @@ func _travel_to_zone(zone_index: int) -> void:
 		world.process_mode = Node.PROCESS_MODE_INHERIT
 	if get_tree().paused:
 		get_tree().paused = false
-	world.travel_to_zone(zone_index)
+	world.set_destination(zone_index)
 	ui.show_hud()
 	_save_progress()
 
@@ -174,8 +195,17 @@ func _on_hero_changed(hero_id: String, display_name: String) -> void:
 		ui.update_hero(hero_id, display_name)
 
 func _on_hero_pose_changed(hero_id: String, frame: int) -> void:
+	# Signal historique conservé pour les tests. Le signal hero_view_changed
+	# ajoute l’orientation avant/arrière utilisée par la caméra 360°.
+	pass
+
+func _on_hero_view_changed(hero_id: String, frame: int, front_view: bool) -> void:
 	if is_instance_valid(ui):
-		ui.update_hero_pose(hero_id, frame)
+		ui.update_hero_pose(hero_id, frame, front_view)
+
+func _on_player_boat_mode_changed(active: bool) -> void:
+	if is_instance_valid(ui):
+		ui.set_boat_mode(active)
 
 func _on_zone_changed(zone_index: int, zone_name: String) -> void:
 	save_data["zone"] = zone_index
@@ -189,6 +219,24 @@ func _on_mission_changed(text: String) -> void:
 func _on_weather_changed(label: String) -> void:
 	if is_instance_valid(ui):
 		ui.update_weather(label)
+
+func _on_navigation_changed(text: String, bearing: float, distance: float) -> void:
+	if is_instance_valid(ui):
+		ui.update_navigation(text, bearing, distance)
+
+func _on_boat_action_changed(label: String, available: bool, on_boat: bool) -> void:
+	if is_instance_valid(ui):
+		ui.set_boat_action(label, available, on_boat)
+
+func _on_unlocked_zones_changed(zones: Array) -> void:
+	save_data["unlocked_zones"] = zones.duplicate()
+	if is_instance_valid(ui):
+		ui.set_unlocked_zones(zones)
+
+func _on_difficulty_changed(difficulty: String) -> void:
+	save_data["difficulty"] = difficulty
+	if is_instance_valid(ui):
+		ui.update_difficulty(difficulty)
 
 func _on_boss_defeated(_boss_id: String) -> void:
 	_save_progress()
@@ -207,12 +255,17 @@ func _sync_ui() -> void:
 	ui.update_hero(player.hero_id, String(profile["display_name"]))
 	ui.update_zone(world.get_zone_name())
 	ui.update_stats(player.health, player.max_health, player.energy, player.aura, player.level, player.xp, player.coins)
-	ui.update_mission("Élimine 8 ennemis pour faire apparaître le capitaine.")
+	ui.update_mission(world.get_mission_text())
+	ui.update_difficulty(world.difficulty)
+	ui.set_unlocked_zones(world.get_unlocked_zones())
 
 func _save_progress() -> void:
 	if is_instance_valid(player) and is_instance_valid(world):
 		save_data = player.get_save_snapshot(world.current_zone)
 		save_data["bosses"] = world.defeated_bosses
+		save_data["unlocked_zones"] = world.get_unlocked_zones()
+		save_data["destination_zone"] = world.destination_zone
+		save_data["difficulty"] = world.difficulty
 	SaveSystem.save_data(save_data)
 
 func _notification(what: int) -> void:

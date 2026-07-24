@@ -2,7 +2,7 @@
 
 Jeu d’action-aventure 3D Android en français, pensé exclusivement pour téléphone en mode paysage et jouable hors connexion.
 
-## Version 2.2 — aventure à la troisième personne
+## Version 2.3 — archipel ouvert et navigation libre
 
 Cette version reconstruit la V2 autour de l’illustration officielle du jeu :
 
@@ -10,11 +10,19 @@ Cette version reconstruit la V2 autour de l’illustration officielle du jeu :
 - trois héros uniquement : **Cheikh**, **Yvane** et **Nelvyn** ;
 - personnages HD visibles de dos avec quatre poses chacun : repos, course, attaque et déferlement ;
 - véritable caméra troisième personne derrière l’épaule, avec collision dans le décor et suivi amorti ;
+- second stick **CAMÉRA 360°** sur la partie gauche, avec vue du visage puis recentrage progressif derrière le héros ;
 - locomotion relative à la caméra : marche/course analogique, accélération, freinage et demi-tours fluides ;
 - commandes mobiles revues : joystick analogique proportionnel, glissement caméra, attaque maintenue et esquive ;
 - assistance de combat temporaire qui n’arrache plus le contrôle de la caméra au joueur ;
-- six régions, météo, cycle jour/nuit, ennemis, boss et limites d’île sécurisées ;
+- six grandes îles réellement séparées dans un archipel ouvert, chacune avec quai, balise et monument propre ;
+- carte utilisée comme GPS : les îles ne sont plus téléportées, elles se débloquent en y accostant ;
+- bateau pilotable avec accélération, inertie, virage, caméra reculée, voile, lanternes et sillage ;
+- indications permanentes vers le quai et la destination, avec distance et direction ;
+- trois difficultés : **Découverte** sans mort, **Intermédiaire** équilibrée et **Difficile** renforcée ;
+- ennemis enrichis avec visages, vêtements, rôles, armes et réactions plus lisibles ;
+- six boss exclusifs : Brakor, Scorpia, Kryl, Mako, Volkan et Vorga, avec un design propre à chaque île ;
 - attaques, pouvoirs, combos et déferlements d’énergie propres à chaque héros ;
+- traînées d’impact, télégraphes, assistance de portée et réactions de combat renforcées ;
 - progression, niveaux, pièces, entraînement et sauvegarde automatique locale ;
 - narration française Android, sans compte, publicité ni serveur.
 
@@ -32,6 +40,7 @@ Android peut demander l’autorisation d’installer une application provenant d
 ## Commandes
 
 - Joystick gauche : déplacement analogique.
+- Stick **CAMÉRA 360°** à gauche : tourner autour du héros et le voir de face.
 - Glissement sur la partie droite : rotation libre de la caméra troisième personne.
 - Pousser doucement le joystick : marche précise ; pousser jusqu’au bord : course.
 - **ATTAQUE** : appui simple ou maintenu pour enchaîner le combo.
@@ -39,7 +48,8 @@ Android peut demander l’autorisation d’installer une application provenant d
 - **ESQUIVE** : déplacement rapide avec courte invulnérabilité.
 - **DÉFERLER** : transformation temporaire quand l’aura atteint 100 %.
 - **HÉROS** : Cheikh → Yvane → Nelvyn.
-- **CARTE** : voyage entre les six régions.
+- **CARTE** : choisir une destination et afficher son cap, sans téléportation.
+- **EMBARQUER / ACCOSTER** : prendre la barre au quai et débloquer une île en l’atteignant.
 - **PAUSE** : sauvegarde et menu.
 
 ## Validation locale
@@ -52,7 +62,7 @@ godot --headless --path godot --quit-after 180
 godot --headless --path godot --script res://tests/smoke_test.gd
 ```
 
-Le workflow GitHub vérifie ensuite l’import, le démarrage, le gameplay, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
+Le smoke test couvre 56 points : héros, caméra, combat, bateau, accostage, déblocage, difficultés, boss, carte et interface. Le workflow GitHub vérifie ensuite l’import, le démarrage, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
 
 ## Univers
 

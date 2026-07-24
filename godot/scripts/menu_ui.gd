@@ -2,6 +2,7 @@ class_name MenuUI
 extends Control
 
 signal play_requested(new_game: bool)
+signal difficulty_selected(difficulty: String)
 signal hero_selected(hero_id: String)
 signal zone_selected(zone_index: int)
 signal training_requested(stat_name: String)
@@ -23,6 +24,7 @@ var screens: Array[Control] = []
 var main_menu: Control
 var hero_screen: Control
 var map_screen: Control
+var difficulty_screen: Control
 var enemies_screen: Control
 var bosses_screen: Control
 var training_screen: Control
@@ -31,10 +33,13 @@ var training_info: Label
 var voice_button: Button
 var voice_enabled := true
 var map_from_game := false
+var map_buttons: Array[Button] = []
+var unlocked_zones: Array = [0]
 
 func build() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_main()
+	_build_difficulty()
 	_build_heroes()
 	_build_map()
 	enemies_screen = _build_gallery(false)
@@ -59,6 +64,15 @@ func set_voice(active: bool) -> void:
 	voice_enabled = active
 	if is_instance_valid(voice_button):
 		voice_button.text = "VOIX FRANÇAISE : " + ("ACTIVÉE" if active else "DÉSACTIVÉE")
+
+func set_unlocked_zones(value: Array) -> void:
+	unlocked_zones = value.duplicate()
+	for index in range(map_buttons.size()):
+		var button := map_buttons[index]
+		if not is_instance_valid(button):
+			continue
+		var status := "DÉBLOQUÉE" if unlocked_zones.has(index) else "À DÉCOUVRIR EN BATEAU"
+		button.text = str(index + 1) + "  •  " + String(ZONE_NAMES[index]).replace("\n", " ") + "\n" + status
 
 func _build_main() -> void:
 	main_menu = Control.new()
@@ -87,7 +101,7 @@ func _build_main() -> void:
 	reference.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(reference)
 
-	_reference_hotspot(canvas, Rect2(38, 174, 326, 66), "Jouer une nouvelle partie", func(): play_requested.emit(true))
+	_reference_hotspot(canvas, Rect2(38, 174, 326, 66), "Jouer une nouvelle partie", func(): _show(difficulty_screen))
 	_reference_hotspot(canvas, Rect2(38, 244, 326, 66), "Continuer la partie", func(): play_requested.emit(false))
 	_reference_hotspot(canvas, Rect2(38, 313, 326, 64), "Choisir Cheikh, Yvane ou Nelvyn", func(): _show(hero_screen))
 	_reference_hotspot(canvas, Rect2(38, 380, 326, 64), "Entraînement", func(): _show(training_screen))
@@ -111,6 +125,39 @@ func _build_main() -> void:
 			"Voyager : " + String(ZONE_NAMES[index]).replace("\n", " "),
 			_emit_zone.bind(index)
 		)
+
+func _build_difficulty() -> void:
+	difficulty_screen = _screen("CHOISIS TON AVENTURE", "La difficulté peut être modifiée en recommençant une nouvelle partie.")
+	var row := HBoxContainer.new()
+	row.position = Vector2(75, 160)
+	row.size = Vector2(1770, 610)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 26)
+	difficulty_screen.add_child(row)
+	var modes := [
+		["decouverte", "DÉCOUVERTE", GREEN, "Tu prends quelques dégâts mais tu ne peux pas mourir.\nIdéal pour explorer l’archipel et naviguer librement."],
+		["intermediaire", "INTERMÉDIAIRE", BLUE, "Dégâts équilibrés et mort possible.\nLe mode aventure conseillé pour progresser."],
+		["difficile", "DIFFICILE", RED, "Ennemis plus résistants, rapides et puissants.\nLes boss ne pardonnent presque aucune erreur."]
+	]
+	for mode in modes:
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(560, 565)
+		card.add_theme_stylebox_override("panel", _style(PANEL, Color(mode[2]), 28, 4))
+		var column := VBoxContainer.new()
+		column.alignment = BoxContainer.ALIGNMENT_CENTER
+		column.add_theme_constant_override("separation", 24)
+		card.add_child(column)
+		column.add_child(_title("⚓" if String(mode[0]) == "decouverte" else "⚔" if String(mode[0]) == "intermediaire" else "☠", 92, Color(mode[2]).lightened(0.18)))
+		column.add_child(_title(String(mode[1]), 39))
+		var description := _title(String(mode[3]), 23, Color("d7e0e5"))
+		description.custom_minimum_size.y = 170
+		column.add_child(description)
+		var choose := _button("COMMENCER", Color(mode[2]), 88, 28)
+		var mode_id := String(mode[0])
+		choose.pressed.connect(func(): difficulty_selected.emit(mode_id))
+		column.add_child(choose)
+		row.add_child(card)
+	_add_back(difficulty_screen)
 
 func _build_heroes() -> void:
 	hero_screen = _screen("CHOIX DU HÉROS", "Trois personnages jouables. Choisis celui que tu contrôles.")
@@ -136,10 +183,12 @@ func _build_map() -> void:
 	var descriptions: Array[String] = ["Quais, navires et premier capitaine", "Cascades, végétation et créatures", "Glace, blizzard et traces dans la neige", "Ruines, chaleur et sable", "Lave, cendres et Général Volkan", "Orages, forteresse et Amiral Vorga"]
 	for i in range(ZONE_NAMES.size()):
 		var zone_name: String = String(ZONE_NAMES[i]).replace("\n", " ")
-		var zone := _button(str(i + 1) + "  •  " + zone_name + "\n" + descriptions[i], ZONE_COLORS[i], 300, 25)
+		var status := "DÉBLOQUÉE" if unlocked_zones.has(i) else "À DÉCOUVRIR EN BATEAU"
+		var zone := _button(str(i + 1) + "  •  " + zone_name + "\n" + descriptions[i] + "\n" + status, ZONE_COLORS[i], 300, 25)
 		zone.custom_minimum_size = Vector2(550, 300)
 		zone.pressed.connect(_emit_zone.bind(i))
 		grid.add_child(zone)
+		map_buttons.append(zone)
 	_add_map_back()
 
 func _build_gallery(is_bosses: bool) -> Control:

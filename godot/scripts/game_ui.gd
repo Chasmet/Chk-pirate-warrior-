@@ -2,6 +2,7 @@ class_name GameUI
 extends CanvasLayer
 
 signal play_requested(new_game: bool)
+signal difficulty_selected(difficulty: String)
 signal hero_selected(hero_id: String)
 signal zone_selected(zone_index: int)
 signal training_requested(stat_name: String)
@@ -11,7 +12,9 @@ signal aura_requested
 signal dodge_requested
 signal switch_requested
 signal move_changed(value: Vector2)
+signal camera_stick_changed(value: Vector2)
 signal camera_dragged(relative: Vector2)
+signal boat_requested
 signal pause_requested
 signal resume_requested
 signal quit_to_menu_requested
@@ -40,8 +43,15 @@ var zone_label: Label
 var mission_label: Label
 var weather_label: Label
 var coins_label: Label
+var navigation_label: Label
+var difficulty_label: Label
 var hero_view: TextureRect
+var boat_button: Button
+var combat_buttons: Array[Button] = []
 var current_hero_id := "cheikh"
+var current_hero_frame := 0
+var hero_front_view := false
+var sailing := false
 var overlay_marker_emitted := false
 var attack_held := false
 var attack_repeat_timer := 0.0
@@ -52,6 +62,7 @@ func _ready() -> void:
 	add_child(menu)
 	menu.build()
 	menu.play_requested.connect(func(value: bool): play_requested.emit(value))
+	menu.difficulty_selected.connect(func(value: String): difficulty_selected.emit(value))
 	menu.hero_selected.connect(func(value: String): hero_selected.emit(value))
 	menu.zone_selected.connect(func(value: int): zone_selected.emit(value))
 	menu.training_requested.connect(func(value: String): training_requested.emit(value))
@@ -102,6 +113,31 @@ func show_game_over() -> void:
 func set_voice_enabled(active: bool) -> void:
 	menu.set_voice(active)
 
+func set_unlocked_zones(zones: Array) -> void:
+	menu.set_unlocked_zones(zones)
+
+func update_difficulty(value: String) -> void:
+	var display := "DÉCOUVERTE" if value == "decouverte" else "DIFFICILE" if value == "difficile" else "INTERMÉDIAIRE"
+	difficulty_label.text = "MODE " + display
+
+func update_navigation(text: String, bearing: float, _distance: float) -> void:
+	if is_instance_valid(navigation_label):
+		navigation_label.text = _bearing_arrow(bearing) + "  " + text
+
+func set_boat_action(label: String, available: bool, on_boat: bool) -> void:
+	if is_instance_valid(boat_button):
+		boat_button.text = label
+		boat_button.disabled = not available
+	set_boat_mode(on_boat)
+
+func set_boat_mode(active: bool) -> void:
+	sailing = active
+	if is_instance_valid(hero_view):
+		hero_view.visible = not active
+	for button in combat_buttons:
+		if is_instance_valid(button):
+			button.disabled = active
+
 func update_stats(health: float, max_health: float, energy: float, aura: float, level: int, _xp: int, coins: int) -> void:
 	health_bar.max_value = max_health
 	health_bar.value = health
@@ -120,15 +156,18 @@ func update_hero(hero_id: String, display_name: String) -> void:
 	hero_label.text = display_name.to_upper()
 	update_hero_pose(hero_id, 0)
 
-func update_hero_pose(hero_id: String, frame: int) -> void:
+func update_hero_pose(hero_id: String, frame: int, front_view: bool = false) -> void:
 	if not HeroFactory.HEROES.has(hero_id) or not is_instance_valid(hero_view):
 		return
 	current_hero_id = hero_id
+	current_hero_frame = clampi(frame, 0, 3)
+	hero_front_view = front_view
 	var profile: Dictionary = HeroFactory.HEROES[hero_id]
 	var atlas_texture := AtlasTexture.new()
-	atlas_texture.atlas = load(String(profile["third_person_sprite"])) as Texture2D
+	var texture_path := String(profile["sprite"]) if front_view else String(profile["third_person_sprite"])
+	atlas_texture.atlas = load(texture_path) as Texture2D
 	var frame_width := float(atlas_texture.atlas.get_width()) / 4.0
-	atlas_texture.region = Rect2(frame_width * clampi(frame, 0, 3), 0.0, frame_width, float(atlas_texture.atlas.get_height()))
+	atlas_texture.region = Rect2(frame_width * current_hero_frame, 0.0, frame_width, float(atlas_texture.atlas.get_height()))
 	hero_view.texture = atlas_texture
 
 func update_zone(name: String) -> void:
@@ -220,12 +259,31 @@ func _build_hud() -> void:
 	weather_label.add_theme_color_override("font_color", Color("a9c9de"))
 	mission_box.add_child(weather_label)
 
+	var navigation_panel := PanelContainer.new()
+	_set_rect(navigation_panel, 0.5, 0.0, 0.5, 0.0, -420, 152, 840, 76)
+	navigation_panel.add_theme_stylebox_override("panel", _style(Color(0.01, 0.035, 0.055, 0.84), GOLD, 18, 2))
+	hud.add_child(navigation_panel)
+	navigation_label = Label.new()
+	navigation_label.text = "↑  REJOINS LE QUAI"
+	navigation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	navigation_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	navigation_label.add_theme_font_size_override("font_size", 23)
+	navigation_label.add_theme_color_override("font_color", GOLD_LIGHT)
+	navigation_panel.add_child(navigation_label)
+
 	coins_label = Label.new()
 	_set_rect(coins_label, 1.0, 0.0, 1.0, 0.0, -510, 25, 255, 54)
 	coins_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	coins_label.add_theme_font_size_override("font_size", 27)
 	coins_label.add_theme_color_override("font_color", GOLD_LIGHT)
 	hud.add_child(coins_label)
+	difficulty_label = Label.new()
+	_set_rect(difficulty_label, 1.0, 0.0, 1.0, 0.0, -540, 70, 285, 44)
+	difficulty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	difficulty_label.add_theme_font_size_override("font_size", 18)
+	difficulty_label.add_theme_color_override("font_color", Color("b9d4e3"))
+	difficulty_label.text = "MODE INTERMÉDIAIRE"
+	hud.add_child(difficulty_label)
 	var map := _small_button("CARTE")
 	_set_rect(map, 1.0, 0.0, 1.0, 0.0, -240, 18, 105, 68)
 	map.pressed.connect(func(): pause_requested.emit(); show_map())
@@ -241,10 +299,32 @@ func _build_hud() -> void:
 	joystick.knob_radius = 38.0
 	joystick.vector_changed.connect(func(value: Vector2): move_changed.emit(value))
 	hud.add_child(joystick)
+	var camera_joystick := QuinetJoystick.new()
+	camera_joystick.name = "StickCaméra360"
+	_set_rect(camera_joystick, 0.0, 1.0, 0.0, 1.0, 276, -238, 216, 216)
+	camera_joystick.radius = 72.0
+	camera_joystick.knob_radius = 30.0
+	camera_joystick.deadzone = 0.08
+	camera_joystick.vector_changed.connect(func(value: Vector2): camera_stick_changed.emit(value))
+	hud.add_child(camera_joystick)
+	var camera_caption := Label.new()
+	_set_rect(camera_caption, 0.0, 1.0, 0.0, 1.0, 284, -258, 200, 34)
+	camera_caption.text = "CAMÉRA 360°"
+	camera_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	camera_caption.add_theme_font_size_override("font_size", 18)
+	camera_caption.add_theme_color_override("font_color", GOLD_LIGHT)
+	camera_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(camera_caption)
 	var hero := _action_button("HÉROS", Color("785a9e"), 126, 25)
-	_set_rect(hero, 0.0, 1.0, 0.0, 1.0, 286, -126, 108, 108)
+	_set_rect(hero, 0.0, 1.0, 0.0, 1.0, 510, -124, 108, 108)
 	hero.pressed.connect(func(): switch_requested.emit())
 	hud.add_child(hero)
+	combat_buttons.append(hero)
+	boat_button = _button("EMBARQUER", Color("8a5b2c"), 92, 21)
+	_set_rect(boat_button, 0.0, 1.0, 0.0, 1.0, 630, -116, 190, 92)
+	boat_button.disabled = true
+	boat_button.pressed.connect(func(): boat_requested.emit())
+	hud.add_child(boat_button)
 
 	var attack := _action_button("ATTAQUE", RED, 158, 27)
 	_set_rect(attack, 1.0, 1.0, 1.0, 1.0, -180, -180, 158, 158)
@@ -254,18 +334,22 @@ func _build_hud() -> void:
 	)
 	attack.button_up.connect(func(): attack_held = false)
 	hud.add_child(attack)
+	combat_buttons.append(attack)
 	var skill := _action_button("POUVOIR", BLUE, 128, 23)
 	_set_rect(skill, 1.0, 1.0, 1.0, 1.0, -326, -146, 128, 128)
 	skill.pressed.connect(func(): skill_requested.emit())
 	hud.add_child(skill)
+	combat_buttons.append(skill)
 	var dodge := _action_button("ESQUIVE", Color("3c7b86"), 116, 20)
 	_set_rect(dodge, 1.0, 1.0, 1.0, 1.0, -456, -130, 116, 116)
 	dodge.pressed.connect(func(): dodge_requested.emit())
 	hud.add_child(dodge)
+	combat_buttons.append(dodge)
 	var aura := _action_button("DÉFERLER", Color("b98126"), 126, 21)
 	_set_rect(aura, 1.0, 1.0, 1.0, 1.0, -176, -330, 126, 126)
 	aura.pressed.connect(func(): aura_requested.emit())
 	hud.add_child(aura)
+	combat_buttons.append(aura)
 
 func _build_pause() -> void:
 	pause_screen = ColorRect.new()
@@ -377,3 +461,8 @@ func _set_rect(control: Control, anchor_left: float, anchor_top: float, anchor_r
 	control.offset_top = y
 	control.offset_right = x + width
 	control.offset_bottom = y + height
+
+func _bearing_arrow(bearing: float) -> String:
+	var directions := ["↑", "↖", "←", "↙", "↓", "↘", "→", "↗"]
+	var index := posmod(roundi(bearing / (PI / 4.0)), directions.size())
+	return directions[index]

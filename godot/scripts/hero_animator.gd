@@ -68,7 +68,7 @@ func _process(delta: float) -> void:
 		sprite.frame = frame
 		if frame != displayed_frame:
 			displayed_frame = frame
-			controller.hero_pose_changed.emit(controller.hero_id, frame)
+			controller.emit_hero_pose(frame)
 		var breathing := sin(animation_time * 3.2) * 0.010
 		var running_bob := absf(sin(animation_time * 12.0)) * 0.045 * movement
 		sprite.position.y = float(HeroFactory.HEROES[controller.hero_id]["sprite_y"]) + breathing + running_bob
@@ -85,6 +85,9 @@ func _process(delta: float) -> void:
 
 func _update_camera_feedback() -> void:
 	if not is_instance_valid(controller.camera):
+		return
+	if controller.boat_mode:
+		controller.camera.position = camera_rest_position
 		return
 	var shake := Vector3(
 		sin(animation_time * 47.0),

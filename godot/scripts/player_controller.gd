@@ -4,6 +4,8 @@ extends CharacterBody3D
 signal stats_changed(health: float, max_health: float, energy: float, aura: float, level: int, xp: int, coins: int)
 signal hero_changed(hero_id: String, display_name: String)
 signal hero_pose_changed(hero_id: String, frame: int)
+signal hero_view_changed(hero_id: String, frame: int, front_view: bool)
+signal boat_mode_changed(active: bool)
 signal player_defeated
 signal enemy_defeated(profile: Dictionary)
 
@@ -13,6 +15,7 @@ var save_data: Dictionary = {}
 var hero_id := "cheikh"
 var hero_visual: CharacterBody3D
 var move_input := Vector2.ZERO
+var camera_stick_input := Vector2.ZERO
 var camera_yaw := 0.0
 var camera_pitch := -0.14
 var camera_target_yaw := 0.0
@@ -48,6 +51,15 @@ var assisted_target: EnemyAI
 var stats_emit_timer := 0.0
 var hero_frame_probe_time := 0.0
 var hero_frame_confirmed := false
+var current_hero_frame := 0
+var camera_front_view := false
+var difficulty := "intermediaire"
+var damage_taken_multiplier := 1.0
+var can_be_defeated := true
+var boat_mode := false
+var boat_visual: Node3D
+var boat_heading := 0.0
+var boat_speed := 0.0
 
 func configure(data: Dictionary) -> void:
 	save_data = data
@@ -56,10 +68,12 @@ func configure(data: Dictionary) -> void:
 	xp = int(save_data.get("xp", 0))
 	coins = int(save_data.get("coins", 250))
 	training = save_data.get("training", {"force": 0, "vitesse": 0, "energie": 0})
+	set_difficulty(String(save_data.get("difficulty", "intermediaire")))
 	_recalculate_stats()
 	_build_collision()
 	_build_camera()
 	_build_fx()
+	_build_boat()
 	set_hero(hero_id)
 	_emit_stats()
 
@@ -82,6 +96,15 @@ func _physics_process(delta: float) -> void:
 		aura_time -= delta
 		if aura_time <= 0.0:
 			_set_aura_visual(false)
+
+	if boat_mode:
+		_physics_boat(delta)
+		_update_camera(delta, -global_transform.basis.z)
+		stats_emit_timer -= delta
+		if stats_emit_timer <= 0.0:
+			stats_emit_timer = 0.12
+			_emit_stats()
+		return
 
 	if queued_attack_time > 0.0 and attack_cooldown <= 0.0 and dodge_time <= 0.0:
 		queued_attack_time = 0.0
@@ -137,6 +160,12 @@ func _physics_process(delta: float) -> void:
 func set_move_input(value: Vector2) -> void:
 	move_input = value.limit_length(1.0) if value.length() >= 0.08 else Vector2.ZERO
 
+func set_camera_stick(value: Vector2) -> void:
+	camera_stick_input = value.limit_length(1.0) if value.length() >= 0.08 else Vector2.ZERO
+	if not camera_stick_input.is_zero_approx():
+		camera_manual_timer = 1.8
+		camera_recenter_timer = 1.15
+
 func add_camera_drag(relative: Vector2) -> void:
 	camera_target_yaw -= relative.x * 0.0037
 	camera_target_pitch = clampf(camera_target_pitch - relative.y * 0.0028, -0.48, 0.12)
@@ -153,10 +182,16 @@ func set_hero(new_hero_id: String) -> void:
 	hero_visual.set_collision_mask_value(1, false)
 	add_child(hero_visual)
 	hero_visual.position = Vector3.ZERO
+	var character_art := hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
+	if character_art != null:
+		# Le héros est cadré proprement dans le HUD 2.5D. Masquer cette copie
+		# 3D évite la grande silhouette coupée qui apparaissait à gauche.
+		character_art.visible = false
 	save_data["hero"] = hero_id
 	_recalculate_stats()
 	var profile: Dictionary = HeroFactory.HEROES[hero_id]
 	hero_changed.emit(hero_id, String(profile["display_name"]))
+	hero_view_changed.emit(hero_id, current_hero_frame, camera_front_view)
 	_set_aura_visual(aura_time > 0.0)
 
 func switch_hero() -> void:
@@ -166,7 +201,7 @@ func switch_hero() -> void:
 	VoiceFR.speak("Tu contrôles maintenant " + String(HeroFactory.HEROES[hero_id]["display_name"]) + ".")
 
 func attack() -> void:
-	if dodge_time > 0.0:
+	if boat_mode or dodge_time > 0.0:
 		return
 	if attack_cooldown > 0.0:
 		if attack_cooldown <= 0.24:
@@ -201,6 +236,7 @@ func _perform_attack() -> void:
 		hits = _damage_in_front(damage, 4.5 if hero_id == "cheikh" else 5.2, 0.18, 5.0 if combo_step < 3 else 10.0)
 
 	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.34 + float(combo_step) * 0.14)
+	_spawn_attack_arc(Color(HeroFactory.HEROES[hero_id]["aura"]), 1.0 + float(combo_step) * 0.26, hits > 0)
 	Input.vibrate_handheld(24 if combo_step < 3 else 58)
 	if hits > 0:
 		aura = minf(100.0, aura + float(hits) * (6.5 + combo_step))
@@ -217,7 +253,7 @@ func _yvane_ranged_attack(damage: float) -> int:
 	return count
 
 func skill() -> void:
-	if skill_cooldown > 0.0 or energy < 30.0 or dodge_time > 0.0:
+	if boat_mode or skill_cooldown > 0.0 or energy < 30.0 or dodge_time > 0.0:
 		return
 	assisted_target = _nearest_enemy(18.0)
 	if is_instance_valid(assisted_target):
@@ -241,12 +277,13 @@ func skill() -> void:
 		hits = _damage_around_point(center, damage, 9.5, 12.0)
 	aura = minf(100.0, aura + float(hits) * 10.0 + 7.0)
 	_play_combat_fx(Color(HeroFactory.HEROES[hero_id]["aura"]), 0.82)
+	_spawn_attack_arc(Color(HeroFactory.HEROES[hero_id]["aura"]), 2.7, hits > 0)
 	Input.vibrate_handheld(90)
 	var skill_name := "Onde du capitaine" if hero_id == "cheikh" else "Éclair des sept vagues" if hero_id == "yvane" else "Atelier suprême Quinet"
 	VoiceFR.speak(skill_name + " !", true)
 
 func dodge() -> void:
-	if dodge_cooldown > 0.0 or dodge_time > 0.0:
+	if boat_mode or dodge_cooldown > 0.0 or dodge_time > 0.0:
 		return
 	var direction := _world_move_direction()
 	if direction.length_squared() < 0.02:
@@ -262,7 +299,7 @@ func dodge() -> void:
 	Input.vibrate_handheld(24)
 
 func activate_aura() -> void:
-	if aura < 100.0 or aura_time > 0.0:
+	if boat_mode or aura < 100.0 or aura_time > 0.0:
 		return
 	aura = 0.0
 	aura_time = 16.0 + float(training.get("energie", 0))
@@ -275,20 +312,23 @@ func activate_aura() -> void:
 	VoiceFR.speak(title + ". Déferlement d'énergie !", true)
 
 func receive_damage(amount: float) -> void:
-	if invulnerability > 0.0 or health <= 0.0:
+	if boat_mode or invulnerability > 0.0 or health <= 0.0:
 		return
 	var defense := 1.0 + float(level - 1) * 0.025
 	if hero_id == "cheikh":
 		defense *= 1.25
 	if aura_time > 0.0:
 		defense *= 1.55
-	health -= amount / defense
+	health -= amount * damage_taken_multiplier / defense
 	invulnerability = 0.52
 	aura = minf(100.0, aura + amount * 0.45)
 	combo_step = 0
 	combo_timer = 0.0
 	Input.vibrate_handheld(70)
-	if health <= 0.0:
+	if not can_be_defeated and health <= 1.0:
+		health = 1.0
+		invulnerability = 1.25
+	elif health <= 0.0:
 		health = 0.0
 		player_defeated.emit()
 	_emit_stats()
@@ -314,7 +354,74 @@ func get_save_snapshot(zone: int) -> Dictionary:
 	save_data["xp"] = xp
 	save_data["coins"] = coins
 	save_data["training"] = training
+	save_data["difficulty"] = difficulty
 	return save_data
+
+func set_difficulty(value: String) -> void:
+	difficulty = value if ["decouverte", "intermediaire", "difficile"].has(value) else "intermediaire"
+	match difficulty:
+		"decouverte":
+			damage_taken_multiplier = 0.28
+			can_be_defeated = false
+		"difficile":
+			damage_taken_multiplier = 1.45
+			can_be_defeated = true
+		_:
+			damage_taken_multiplier = 1.0
+			can_be_defeated = true
+	save_data["difficulty"] = difficulty
+
+func enter_boat(spawn_position: Vector3, target_position: Vector3) -> void:
+	boat_mode = true
+	global_position = spawn_position
+	global_position.y = 1.05
+	velocity = Vector3.ZERO
+	boat_speed = 0.0
+	var target_direction := target_position - global_position
+	target_direction.y = 0.0
+	if target_direction.length_squared() > 0.01:
+		boat_heading = atan2(-target_direction.x, -target_direction.z)
+	else:
+		boat_heading = rotation.y
+	rotation.y = boat_heading
+	if is_instance_valid(hero_visual):
+		hero_visual.hide()
+	if is_instance_valid(boat_visual):
+		boat_visual.show()
+	camera_target_yaw = boat_heading
+	camera_target_pitch = -0.22
+	camera_manual_timer = 0.0
+	camera_recenter_timer = 0.0
+	boat_mode_changed.emit(true)
+
+func exit_boat(landing_position: Vector3) -> void:
+	boat_mode = false
+	global_position = landing_position
+	velocity = Vector3.ZERO
+	boat_speed = 0.0
+	if is_instance_valid(boat_visual):
+		boat_visual.hide()
+	if is_instance_valid(hero_visual):
+		hero_visual.show()
+		var character_art := hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
+		if character_art != null:
+			character_art.hide()
+	camera_target_pitch = -0.14
+	camera_target_yaw = rotation.y
+	boat_mode_changed.emit(false)
+
+func emit_hero_pose(frame: int) -> void:
+	current_hero_frame = clampi(frame, 0, 3)
+	hero_pose_changed.emit(hero_id, current_hero_frame)
+	hero_view_changed.emit(hero_id, current_hero_frame, camera_front_view)
+
+func navigation_bearing(target_position: Vector3) -> float:
+	var direction := target_position - global_position
+	direction.y = 0.0
+	if direction.length_squared() < 0.01:
+		return 0.0
+	var world_yaw := atan2(-direction.x, -direction.z)
+	return wrapf(world_yaw - camera_yaw, -PI, PI)
 
 func _world_move_direction() -> Vector3:
 	var raw_input := _active_move_input()
@@ -445,6 +552,32 @@ func _skill_damage() -> float:
 	var base := 95.0 if hero_id == "cheikh" else 78.0 if hero_id == "yvane" else 88.0
 	return base + float(level - 1) * 7.0 + float(training.get("energie", 0)) * 6.0
 
+func _physics_boat(delta: float) -> void:
+	var input_value := _active_move_input()
+	var throttle := clampf(-input_value.y, -1.0, 1.0)
+	var steering := clampf(input_value.x, -1.0, 1.0)
+	var steering_grip := lerpf(0.36, 1.0, clampf(absf(boat_speed) / 16.0, 0.0, 1.0))
+	if absf(throttle) > 0.06 or absf(boat_speed) > 0.8:
+		boat_heading -= steering * steering_grip * 1.45 * delta
+	var target_speed := throttle * (18.5 if throttle >= 0.0 else 7.0)
+	boat_speed = move_toward(boat_speed, target_speed, (7.2 if absf(throttle) > 0.05 else 4.0) * delta)
+	var forward := -Basis(Vector3.UP, boat_heading).z
+	var desired_velocity := forward * boat_speed
+	velocity.x = move_toward(velocity.x, desired_velocity.x, 8.5 * delta)
+	velocity.z = move_toward(velocity.z, desired_velocity.z, 8.5 * delta)
+	velocity.y = 0.0
+	rotation.y = boat_heading
+	move_and_slide()
+	global_position.y = 1.05
+	if is_instance_valid(boat_visual):
+		var sailing_ratio := clampf(absf(boat_speed) / 18.5, 0.0, 1.0)
+		boat_visual.position.y = sin(Time.get_ticks_msec() * 0.0034) * (0.035 + sailing_ratio * 0.06)
+		boat_visual.rotation.z = lerpf(boat_visual.rotation.z, -steering * 0.09 * sailing_ratio, 1.0 - exp(-4.0 * delta))
+		boat_visual.rotation.x = sin(Time.get_ticks_msec() * 0.0022) * (0.018 + sailing_ratio * 0.018)
+		var wake := boat_visual.get_node_or_null("Sillage") as GPUParticles3D
+		if wake != null:
+			wake.emitting = absf(boat_speed) > 1.6
+
 func _build_collision() -> void:
 	var collision := CollisionShape3D.new()
 	collision.name = "CollisionJoueur"
@@ -487,11 +620,19 @@ func _build_camera() -> void:
 func _update_camera(delta: float, direction: Vector3) -> void:
 	if not is_instance_valid(camera_pivot):
 		return
+	if not camera_stick_input.is_zero_approx():
+		camera_target_yaw -= camera_stick_input.x * 2.05 * delta
+		camera_target_pitch = clampf(camera_target_pitch - camera_stick_input.y * 1.18 * delta, -0.54, 0.18)
+		camera_manual_timer = 1.8
+		camera_recenter_timer = 1.15
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	var camera_forward := -Basis(Vector3.UP, camera_yaw).z
 	var moving_forward := direction.length_squared() > 0.02 and direction.dot(camera_forward) > 0.18
 	if camera_manual_timer <= 0.0 and camera_recenter_timer <= 0.0:
-		if assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
+		if boat_mode:
+			camera_target_yaw = lerp_angle(camera_target_yaw, boat_heading, 1.0 - exp(-2.4 * delta))
+			camera_target_pitch = lerpf(camera_target_pitch, -0.22, 1.0 - exp(-2.0 * delta))
+		elif assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
 			var target_direction := assisted_target.global_position - global_position
 			target_direction.y = 0.0
 			if target_direction.length_squared() > 0.01:
@@ -502,21 +643,34 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	camera_yaw = lerp_angle(camera_yaw, camera_target_yaw, 1.0 - exp(-9.5 * delta))
 	camera_pitch = lerpf(camera_pitch, camera_target_pitch, 1.0 - exp(-9.0 * delta))
 
-	var hero_height := float(HeroFactory.HEROES[hero_id]["height"])
+	var hero_height := 3.0 if boat_mode else float(HeroFactory.HEROES[hero_id]["height"])
 	var look_ahead := Vector3(velocity.x, 0.0, velocity.z) * 0.035
-	var desired_anchor := global_position + Vector3(0.0, hero_height * 0.68 + 0.18, 0.0) + look_ahead
+	var desired_anchor := global_position + Vector3(0.0, 2.25 if boat_mode else hero_height * 0.68 + 0.18, 0.0) + look_ahead
 	camera_pivot.global_position = camera_pivot.global_position.lerp(desired_anchor, 1.0 - exp(-11.0 * delta))
 	camera_pivot.rotation.y = camera_yaw
 	camera_pivot.rotation.x = camera_pitch
 
-	var running_ratio := clampf(horizontal_speed / maxf(_movement_speed(), 0.1), 0.0, 1.0)
-	var target_length := lerpf(4.35, 4.75, running_ratio)
+	var running_ratio := clampf(horizontal_speed / (18.5 if boat_mode else maxf(_movement_speed(), 0.1)), 0.0, 1.0)
+	var target_length := lerpf(7.6, 9.2, running_ratio) if boat_mode else lerpf(4.35, 4.75, running_ratio)
 	camera_arm.spring_length = lerpf(camera_arm.spring_length, target_length, 1.0 - exp(-5.5 * delta))
-	var target_fov := lerpf(58.0, 63.0, running_ratio)
+	var target_fov := lerpf(62.0, 69.0, running_ratio) if boat_mode else lerpf(58.0, 63.0, running_ratio)
 	if aura_time > 0.0:
 		target_fov += 3.0
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-4.5 * delta))
-	_confirm_hero_framing(delta, hero_height)
+	if not boat_mode:
+		_update_camera_facing()
+		_confirm_hero_framing(delta, hero_height)
+
+func _update_camera_facing() -> void:
+	var orbit_angle := absf(wrapf(camera_yaw - rotation.y, -PI, PI))
+	var new_front_view := camera_front_view
+	if camera_front_view and orbit_angle < 1.34:
+		new_front_view = false
+	elif not camera_front_view and orbit_angle > 1.72:
+		new_front_view = true
+	if new_front_view != camera_front_view:
+		camera_front_view = new_front_view
+		hero_view_changed.emit(hero_id, current_hero_frame, camera_front_view)
 
 func _confirm_hero_framing(delta: float, hero_height: float) -> void:
 	if hero_frame_confirmed or not is_instance_valid(hero_visual) or not camera.current:
@@ -572,6 +726,12 @@ func _build_fx() -> void:
 	combat_fx.position.y = 1.05
 	add_child(combat_fx)
 
+func _build_boat() -> void:
+	boat_visual = QuinetBoatFactory.create_boat()
+	boat_visual.name = "BateauJouable"
+	boat_visual.hide()
+	add_child(boat_visual)
+
 func _play_combat_fx(color: Color, scale_factor: float) -> void:
 	var process := combat_fx.process_material as ParticleProcessMaterial
 	if process != null:
@@ -589,6 +749,33 @@ func _play_combat_fx(color: Color, scale_factor: float) -> void:
 		material.emission_energy_multiplier = 7.0
 		quad.material = material
 	combat_fx.restart()
+
+func _spawn_attack_arc(color: Color, scale_factor: float, confirmed_hit: bool) -> void:
+	var arc := MeshInstance3D.new()
+	arc.name = "TraînéeAttaque"
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = 0.72
+	mesh.outer_radius = 1.0
+	mesh.rings = 20
+	mesh.ring_segments = 34
+	arc.mesh = mesh
+	arc.position = Vector3(0, 0.98, -0.75)
+	arc.rotation_degrees.x = 90.0
+	arc.scale = Vector3.ONE * (0.5 + scale_factor * 0.18)
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(color, 0.90 if confirmed_hit else 0.52)
+	material.emission_enabled = true
+	material.emission = color
+	material.emission_energy_multiplier = 7.5 if confirmed_hit else 3.8
+	arc.material_override = material
+	add_child(arc)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(arc, "scale", Vector3.ONE * (1.2 + scale_factor * 0.62), 0.22)
+	tween.tween_property(arc, "transparency", 1.0, 0.24)
+	tween.chain().tween_callback(arc.queue_free)
 
 func _set_aura_visual(active: bool) -> void:
 	if not is_instance_valid(hero_visual):

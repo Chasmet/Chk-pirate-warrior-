@@ -18,6 +18,8 @@ var boss := false
 var phase := 1
 var orbit_sign := 1.0
 var preferred_distance := 2.1
+var difficulty := "intermediaire"
+var attack_delay_multiplier := 1.0
 var aura_particles: GPUParticles3D
 var attack_marker: MeshInstance3D
 var health_bar_root: Node3D
@@ -28,11 +30,25 @@ func configure(data: Dictionary, player: Node3D) -> void:
 	profile = data
 	target = player
 	boss = bool(profile.get("boss", false))
+	difficulty = String(profile.get("difficulty", "intermediaire"))
 	max_health = float(profile.get("health", 100.0))
-	health = max_health
 	speed = float(profile.get("speed", 3.2))
 	attack_range = float(profile.get("range", 1.7))
 	attack_damage = float(profile.get("damage", 8.0))
+	match difficulty:
+		"decouverte":
+			max_health *= 0.78 if not boss else 0.68
+			speed *= 0.86
+			attack_damage *= 0.34
+			attack_delay_multiplier = 1.42
+		"difficile":
+			max_health *= 1.32 if not boss else 1.48
+			speed *= 1.12
+			attack_damage *= 1.58
+			attack_delay_multiplier = 0.78
+		_:
+			attack_delay_multiplier = 1.0
+	health = max_health
 	preferred_distance = maxf(attack_range * 0.92, 1.55)
 	orbit_sign = -1.0 if randi() % 2 == 0 else 1.0
 	attack_cooldown = randf_range(0.35, 1.15)
@@ -109,15 +125,16 @@ func health_ratio() -> float:
 	return clampf(health / max_health, 0.0, 1.0)
 
 func _start_attack() -> void:
-	attack_windup = 0.48 if not boss else 0.38
-	attack_cooldown = 1.45 if not boss else 1.02
+	attack_windup = (0.48 if not boss else 0.38) * lerpf(1.0, attack_delay_multiplier, 0.45)
+	attack_cooldown = (1.45 if not boss else 1.02) * attack_delay_multiplier
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_update_attack_marker(true)
 
 func _finish_attack(distance: float) -> void:
 	_update_attack_marker(false)
-	if distance <= attack_range + 0.85 and is_instance_valid(target):
+	var boss_reach := float(phase - 1) * 0.55 if boss else 0.0
+	if distance <= attack_range + 0.85 + boss_reach and is_instance_valid(target):
 		player_hit.emit(attack_damage * (1.0 + 0.25 * float(phase - 1)))
 		var forward := (target.global_position - global_position).normalized()
 		velocity += forward * (5.0 if not boss else 8.5)
