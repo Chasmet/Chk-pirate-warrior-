@@ -1,0 +1,16 @@
+# Godot
+godot/.godot/
+godot/android/
+build/
+*.apk
+*.aab
+
+# Android / Gradle local state
+.gradle/
+local.properties
+**/build/
+
+# IDE and operating-system files
+.idea/
+*.iml
+.DS_Store
