@@ -8,6 +8,7 @@ var tracked_visual_id := 0
 var source_sprite: Sprite3D
 var hero_view: TextureRect
 var atlas_texture: AtlasTexture
+var chroma_material: ShaderMaterial
 var tracked_texture: Texture2D
 var tracked_hframes := -1
 var tracked_frame := -1
@@ -26,12 +27,32 @@ func _ready() -> void:
 	add_child(hero_view)
 	atlas_texture = AtlasTexture.new()
 	hero_view.texture = atlas_texture
+
+	var shader := Shader.new()
+	shader.code = """
+shader_type canvas_item;
+render_mode unshaded;
+
+uniform vec3 key_color = vec3(1.0, 0.0, 1.0);
+uniform float key_inner = 0.10;
+uniform float key_outer = 0.32;
+
+void fragment() {
+    vec4 source = texture(TEXTURE, UV);
+    float key_distance = distance(source.rgb, key_color);
+    float chroma_alpha = smoothstep(key_inner, key_outer, key_distance);
+    COLOR = vec4(source.rgb, source.a * chroma_alpha) * COLOR;
+}
+"""
+	chroma_material = ShaderMaterial.new()
+	chroma_material.shader = shader
+	hero_view.material = chroma_material
 	set_process(true)
 
 func _process(delta: float) -> void:
 	label_cleanup_timer -= delta
 	if label_cleanup_timer <= 0.0:
-		label_cleanup_timer = 0.5
+		label_cleanup_timer = 0.35
 		_hide_broken_world_labels()
 
 	if not is_instance_valid(player):
@@ -132,10 +153,15 @@ func _update_screen_position() -> void:
 func _hide_broken_world_labels() -> void:
 	# Label3D produit des rectangles blancs avec le pilote OpenGL de certains
 	# téléphones et de l’émulateur. Les objectifs restent affichés dans le HUD.
-	for node in get_tree().root.find_children("*", "Label3D", true, false):
+	_hide_labels_recursive(get_tree().root)
+
+func _hide_labels_recursive(node: Node) -> void:
+	if node is Label3D:
 		var label := node as Label3D
-		if is_instance_valid(label):
-			label.visible = false
+		label.visible = false
+		label.layers = SOURCE_LAYER
+	for child in node.get_children():
+		_hide_labels_recursive(child)
 
 func _find_player() -> PlayerController:
 	var named := get_tree().root.find_child("ÉquipageQuinet", true, false)
