@@ -330,7 +330,22 @@ jobs:
             echo "Le bouton Jouer n’a pas ouvert la partie."
             exit 1
           fi
-          sleep 4
+
+          GAME_VISUAL_READY=0
+          for attempt in $(seq 1 75); do
+            "$ADB" exec-out screencap -p > android-gameplay.png
+            if [ "$(stat -c %s android-gameplay.png)" -gt 100000 ] &&
+               ! cmp -s android-menu.png android-gameplay.png; then
+              GAME_VISUAL_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$GAME_VISUAL_READY" -ne 1 ]; then
+            echo "La scène 3D n’a pas remplacé visuellement le menu."
+            exit 1
+          fi
+
           "$ADB" shell input swipe 270 900 440 700 800
           "$ADB" shell input tap 2280 955
           sleep 4
