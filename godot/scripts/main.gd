@@ -105,6 +105,7 @@ func _start_game(new_game: bool) -> void:
 	get_tree().paused = false
 	ui.show_hud()
 	_sync_ui()
+	print("CHK_GAMEPLAY_READY hero=%s" % player.hero_id)
 	VoiceFR.speak("L'aventure commence. Protège ta famille et libère l'archipel.")
 
 func _pause_game() -> void:

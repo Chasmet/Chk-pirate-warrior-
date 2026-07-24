@@ -302,9 +302,35 @@ jobs:
             exit 1
           fi
 
-          "$ADB" exec-out screencap -p > android-menu.png
+          MENU_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" exec-out screencap -p > android-menu.png
+            if [ "$(stat -c %s android-menu.png)" -gt 100000 ]; then
+              MENU_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$MENU_READY" -ne 1 ]; then
+            echo "Le menu Android n’a pas fini de s’afficher."
+            exit 1
+          fi
+
           "$ADB" shell input tap 490 260
-          sleep 10
+          GAME_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt; then
+              GAME_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$GAME_READY" -ne 1 ]; then
+            echo "Le bouton Jouer n’a pas ouvert la partie."
+            exit 1
+          fi
+          sleep 4
           "$ADB" shell input swipe 270 900 440 700 800
           "$ADB" shell input tap 2280 955
           sleep 4
@@ -317,6 +343,11 @@ jobs:
           "$ADB" shell dumpsys activity activities | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
           "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
           "$ADB" logcat -d > android-logcat.txt
+          grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt
+          if cmp -s android-menu.png android-gameplay.png; then
+            echo "La capture de gameplay est identique au menu."
+            exit 1
+          fi
 
           python3 - <<'PY'
           import struct
