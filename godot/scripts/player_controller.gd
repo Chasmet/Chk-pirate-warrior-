@@ -45,6 +45,8 @@ var camera: Camera3D
 var combat_fx: GPUParticles3D
 var assisted_target: EnemyAI
 var stats_emit_timer := 0.0
+var hero_frame_probe_time := 0.0
+var hero_frame_confirmed := false
 
 func configure(data: Dictionary) -> void:
 	save_data = data
@@ -467,6 +469,10 @@ func _build_camera() -> void:
 	camera_arm.spring_length = 4.55
 	camera_arm.margin = 0.22
 	camera_arm.collision_mask = 1
+	# Le bras ne doit jamais heurter la capsule du joueur qu'il suit.
+	# Sans cette exclusion, Android rapproche la caméra au contact du héros
+	# et transforme involontairement la vue troisième personne en vue subjective.
+	camera_arm.add_excluded_object(get_rid())
 	camera_pivot.add_child(camera_arm)
 	camera = Camera3D.new()
 	camera.name = "CameraJoueur"
@@ -509,6 +515,39 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	if aura_time > 0.0:
 		target_fov += 3.0
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-4.5 * delta))
+	_confirm_hero_framing(delta, hero_height)
+
+func _confirm_hero_framing(delta: float, hero_height: float) -> void:
+	if hero_frame_confirmed or not is_instance_valid(hero_visual) or not camera.current:
+		return
+	hero_frame_probe_time += delta
+	if hero_frame_probe_time < 0.35:
+		return
+	var hero_center := hero_visual.global_position + Vector3(0.0, hero_height * 0.52, 0.0)
+	var viewport_size := get_viewport().get_visible_rect().size
+	var screen_position := camera.unproject_position(hero_center)
+	var camera_distance := camera.global_position.distance_to(hero_visual.global_position)
+	var framed := (
+		not camera.is_position_behind(hero_center)
+		and camera_arm.get_hit_length() > 3.2
+		and camera_distance > 3.2
+		and screen_position.x > viewport_size.x * 0.12
+		and screen_position.x < viewport_size.x * 0.88
+		and screen_position.y > viewport_size.y * 0.12
+		and screen_position.y < viewport_size.y * 0.92
+	)
+	if framed:
+		hero_frame_confirmed = true
+		print(
+			"CHK_HERO_FRAMED hero=%s camera_distance=%.2f arm=%.2f screen=%d,%d"
+			% [
+				hero_id,
+				camera_distance,
+				camera_arm.get_hit_length(),
+				roundi(screen_position.x),
+				roundi(screen_position.y)
+			]
+		)
 
 func _build_fx() -> void:
 	combat_fx = GPUParticles3D.new()

@@ -331,6 +331,20 @@ jobs:
             exit 1
           fi
 
+          HERO_FRAMED=0
+          for attempt in $(seq 1 45); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_HERO_FRAMED hero=cheikh' android-logcat.txt; then
+              HERO_FRAMED=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$HERO_FRAMED" -ne 1 ]; then
+            echo "La caméra n’a pas cadré le héros à la troisième personne."
+            exit 1
+          fi
+
           GAME_VISUAL_READY=0
           for attempt in $(seq 1 75); do
             "$ADB" exec-out screencap -p > android-gameplay.png
@@ -359,6 +373,7 @@ jobs:
           "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
           "$ADB" logcat -d > android-logcat.txt
           grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_HERO_FRAMED hero=cheikh' android-logcat.txt
           if cmp -s android-menu.png android-gameplay.png; then
             echo "La capture de gameplay est identique au menu."
             exit 1

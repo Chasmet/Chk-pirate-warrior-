@@ -26,6 +26,7 @@ func _run() -> void:
 	_check(is_equal_approx(player.health, player.max_health), "le héros commence avec sa vie complète")
 	_check(player.camera_pivot.top_level, "la caméra troisième personne suit le héros avec inertie")
 	_check(player.camera.position.x > 0.4, "la caméra est placée au-dessus de l’épaule")
+	_check(player.camera_arm.get_hit_length() > 3.2, "la caméra ne percute pas la capsule du héros")
 
 	var sprite := player.get_node_or_null("Visuel_cheikh/RigVisuel/CharacterArt") as Sprite3D
 	_check(sprite != null, "le personnage troisième personne de Cheikh est visible")
