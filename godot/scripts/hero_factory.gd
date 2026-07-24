@@ -10,9 +10,9 @@ const HEROES := {
 		"aura": Color("ef4b32"),
 		"role": "Capitaine puissant",
 		"weapon": "Sabre courbe",
-		"sprite": "res://assets/heroes/cheikh_poses.png",
-		"third_person_sprite": "res://assets/heroes/cheikh_third_person.png",
-		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.png",
+		"sprite": "res://assets/heroes/cheikh_poses.jpg",
+		"third_person_sprite": "res://assets/heroes/cheikh_third_person.jpg",
+		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.jpg",
 		"pixel_size": 0.00660,
 		"sprite_y": 1.02
 	},
@@ -24,9 +24,9 @@ const HEROES := {
 		"aura": Color("31a9f3"),
 		"role": "Éclaireur électrique",
 		"weapon": "Fronde",
-		"sprite": "res://assets/heroes/yvane_poses.png",
-		"third_person_sprite": "res://assets/heroes/yvane_third_person.png",
-		"steering_sprite": "res://assets/heroes/yvane_steering_v24.png",
+		"sprite": "res://assets/heroes/yvane_poses.jpg",
+		"third_person_sprite": "res://assets/heroes/yvane_third_person.jpg",
+		"steering_sprite": "res://assets/heroes/yvane_steering_v24.jpg",
 		"pixel_size": 0.00584,
 		"sprite_y": 0.89
 	},
@@ -38,9 +38,9 @@ const HEROES := {
 		"aura": Color("76df72"),
 		"role": "Inventeur tactique",
 		"weapon": "Gadgets",
-		"sprite": "res://assets/heroes/nelvyn_poses.png",
-		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.png",
-		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.png",
+		"sprite": "res://assets/heroes/nelvyn_poses.jpg",
+		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.jpg",
+		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.jpg",
 		"pixel_size": 0.00516,
 		"sprite_y": 0.77
 	}

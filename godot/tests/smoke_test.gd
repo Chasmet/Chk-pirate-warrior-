@@ -49,7 +49,7 @@ func _run() -> void:
 			sprite.texture != null
 			and sprite.texture.get_width() == 888
 			and sprite.texture.get_height() == 444,
-			"la texture PNG Android de dos est importée avec sa transparence mobile"
+			"la texture JPEG Android de dos est importée avec sa transparence mobile"
 		)
 		_check(sprite.visible, "le héros est réellement visible dans le monde 3D")
 		_check(not sprite.no_depth_test, "les murs et le relief peuvent occulter le héros")
@@ -67,7 +67,7 @@ func _run() -> void:
 		await physics_frame
 	_check(player.camera_front_view, "la caméra peut passer devant pour montrer le visage")
 	if sprite != null:
-		_check(sprite.texture.resource_path.ends_with("cheikh_poses.png"), "la vue avant affiche réellement le visage de Cheikh dans le monde 3D")
+		_check(sprite.texture.resource_path.ends_with("cheikh_poses.jpg"), "la vue avant affiche réellement le visage de Cheikh dans le monde 3D")
 
 	var start_position := player.global_position
 	player.set_move_input(Vector2(1.0, 0.0))
@@ -140,7 +140,7 @@ func _run() -> void:
 	var pilot_sprite := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	_check(player.hero_visual.visible and pilot_sprite != null and pilot_sprite.visible, "le pilote est visible physiquement au gouvernail")
 	if pilot_sprite != null:
-		_check(pilot_sprite.texture.resource_path.ends_with("nelvyn_steering_v24.png"), "la pose de pilotage PNG est rendue dans le monde 3D")
+		_check(pilot_sprite.texture.resource_path.ends_with("nelvyn_steering_v24.jpg"), "la pose de pilotage JPEG est rendue dans le monde 3D")
 	var boat_start := player.global_position
 	player.set_move_input(Vector2(-0.72, -1.0))
 	for _frame in range(36):
