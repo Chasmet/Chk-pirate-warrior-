@@ -36,11 +36,15 @@ func _stabilize_world_visuals(root: Node) -> void:
 	print("CHK_GAMEPLAY_REPAIR_READY world=%s" % root.name)
 
 func _cleanup_recursive(node: Node) -> void:
+	var node_name := String(node.name)
 	if node is Label3D:
 		# Les informations utiles sont déjà présentes dans le HUD et la mini-carte.
 		node.queue_free()
 		return
-	if String(node.name) == "BarreDeVie":
+	if node_name.begins_with("BaliseDestination_"):
+		_disable_destination_beacon(node)
+		return
+	if node_name == "BarreDeVie":
 		_disable_enemy_health_bar(node)
 		return
 	if node is GPUParticles3D:
@@ -48,25 +52,35 @@ func _cleanup_recursive(node: Node) -> void:
 		# rendus comme de grands rectangles blancs. Ils sont coupés jusqu'à leur
 		# remplacement par des effets mobiles basés sur des meshes/tweens.
 		_disable_particle(node as GPUParticles3D)
-	elif node is MultiMeshInstance3D and String(node.name) == "HerbeDense":
+	elif node is MultiMeshInstance3D and node_name == "HerbeDense":
 		# Le MultiMesh de milliers de quads n'est pas assez fiable sur tous les GPU.
 		(node as MultiMeshInstance3D).visible = false
 	elif node is GeometryInstance3D:
 		var geometry := node as GeometryInstance3D
-		var label := String(geometry.name)
-		if label in ["Palme", "Feuillage", "SousBois"]:
-			_apply_safe_foliage_material(geometry, label)
+		if node_name in ["Palme", "Feuillage", "SousBois"]:
+			_apply_safe_foliage_material(geometry, node_name)
 	for child in node.get_children():
 		_cleanup_recursive(child)
 
 func _disable_unstable_overlays_recursive(node: Node) -> void:
-	if String(node.name) == "BarreDeVie":
+	var node_name := String(node.name)
+	if node_name.begins_with("BaliseDestination_"):
+		_disable_destination_beacon(node)
+		return
+	if node_name == "BarreDeVie":
 		_disable_enemy_health_bar(node)
 		return
 	if node is GPUParticles3D:
 		_disable_particle(node as GPUParticles3D)
 	for child in node.get_children():
 		_disable_unstable_overlays_recursive(child)
+
+func _disable_destination_beacon(marker: Node) -> void:
+	# La mini-carte et le bandeau donnent déjà la direction et la distance. Le
+	# faisceau de 16 m ressemblait à un pilier blanc géant depuis l'île voisine.
+	if marker is Node3D:
+		(marker as Node3D).visible = false
+	marker.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _disable_enemy_health_bar(bar: Node) -> void:
 	# Les deux QuadMesh de chaque ennemi formaient les paires de panneaux blancs
