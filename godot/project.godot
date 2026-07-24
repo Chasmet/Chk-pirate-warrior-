@@ -13,6 +13,10 @@ config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.012, 0.026, 0.052, 1)
 boot_splash/show_image=false
 
+[autoload]
+
+ThirdPersonCameraGuard="*res://scripts/third_person_camera_guard.gd"
+
 [display]
 
 window/size/viewport_width=1920
