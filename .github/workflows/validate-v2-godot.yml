@@ -318,9 +318,10 @@ jobs:
 
           # Nouvelle partie ouvre d’abord le choix des trois difficultés.
           "$ADB" shell input tap 490 260
-          sleep 2
+          sleep 3
+          "$ADB" exec-out screencap -p > android-difficulty.png
           # Carte centrale : mode INTERMÉDIAIRE.
-          "$ADB" shell input tap 1200 610
+          "$ADB" shell input tap 1200 835
           GAME_READY=0
           for attempt in $(seq 1 30); do
             "$ADB" logcat -d > android-logcat.txt
@@ -436,6 +437,7 @@ jobs:
             android-window.txt
             android-logcat.txt
             android-menu.png
+            android-difficulty.png
             android-gameplay.png
           if-no-files-found: warn
           retention-days: 7
