@@ -31,23 +31,38 @@ func _stabilize_world_visuals(root: Node) -> void:
 
 func _cleanup_recursive(node: Node) -> void:
 	if node is Label3D:
-		# Les polices 3D devenaient des rectangles blancs/noirs sur certains
-		# pilotes OpenGL Android. Toutes les informations utiles existent déjà
-		# dans le HUD 2D et la mini-carte, donc ces labels sont supprimés.
+		# Les informations utiles sont déjà présentes dans le HUD et la mini-carte.
+		# Supprimer les textes 3D évite les quads de police instables sur OpenGL mobile.
 		node.queue_free()
 		return
 	if node is MultiMeshInstance3D and String(node.name) == "HerbeDense":
-		# Le MultiMesh de milliers de quads provoquait aussi des artefacts sur
-		# quelques GPU mobiles. Le terrain, les arbres et les arbustes restent.
+		# Le MultiMesh de milliers de quads n'est pas assez fiable sur tous les GPU.
 		(node as MultiMeshInstance3D).visible = false
 	elif node is GeometryInstance3D:
 		var geometry := node as GeometryInstance3D
 		var label := String(geometry.name)
 		if label in ["Palme", "Feuillage", "SousBois"]:
-			geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			geometry.visibility_range_end = minf(geometry.visibility_range_end if geometry.visibility_range_end > 0.0 else 150.0, 150.0)
+			_apply_safe_foliage_material(geometry, label)
 	for child in node.get_children():
 		_cleanup_recursive(child)
+
+func _apply_safe_foliage_material(geometry: GeometryInstance3D, label: String) -> void:
+	# Le shader de vent déformait certains meshes en longues bandes blanches sur
+	# l'émulateur Android. Un matériau standard garde la végétation propre et
+	# lisible; l'animation du vent sera faite par rotation de nœuds, sans shader.
+	var color := Color("276f3b")
+	if label == "Palme":
+		color = Color("1f7040")
+	elif label == "SousBois":
+		color = Color("3f7b3b")
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.86
+	material.metallic = 0.0
+	material.cull_mode = BaseMaterial3D.CULL_BACK
+	geometry.material_override = material
+	geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	geometry.visibility_range_end = minf(geometry.visibility_range_end if geometry.visibility_range_end > 0.0 else 150.0, 150.0)
 
 func _repair_land_position(delta: float, world: Node) -> void:
 	if player.global_position.y < -1.0:
