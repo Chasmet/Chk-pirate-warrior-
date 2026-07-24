@@ -30,9 +30,15 @@ func _stabilize_world_visuals(root: Node) -> void:
 	print("CHK_GAMEPLAY_REPAIR_READY world=%s" % root.name)
 
 func _cleanup_recursive(node: Node) -> void:
+	if node is Label3D:
+		# Les polices 3D devenaient des rectangles blancs/noirs sur certains
+		# pilotes OpenGL Android. Toutes les informations utiles existent déjà
+		# dans le HUD 2D et la mini-carte, donc ces labels sont supprimés.
+		node.queue_free()
+		return
 	if node is MultiMeshInstance3D and String(node.name) == "HerbeDense":
-		# Le MultiMesh de milliers de quads provoquait des rectangles blancs/noirs
-		# sur certains GPU Android. Le terrain et les arbustes restent visibles.
+		# Le MultiMesh de milliers de quads provoquait aussi des artefacts sur
+		# quelques GPU mobiles. Le terrain, les arbres et les arbustes restent.
 		(node as MultiMeshInstance3D).visible = false
 	elif node is GeometryInstance3D:
 		var geometry := node as GeometryInstance3D
