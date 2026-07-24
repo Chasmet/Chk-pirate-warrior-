@@ -254,10 +254,33 @@ jobs:
           "$ADB" shell settings put system user_rotation 1
           "$ADB" shell wm size 2400x1080
           "$ADB" shell wm density 420
+          sleep 5
           "$ADB" install -r build/CHK-Pirate-Warrior-V2-debug.apk
+          sleep 5
           "$ADB" logcat -c
-          "$ADB" shell monkey -p fr.chk.piratewarrior.v2 -c android.intent.category.LAUNCHER 1
-          sleep 15
+          "$ADB" shell am force-stop fr.chk.piratewarrior.v2
+          "$ADB" shell am start -W \
+            -n fr.chk.piratewarrior.v2/com.godot.game.GodotAppLauncher
+
+          APP_READY=0
+          for attempt in $(seq 1 60); do
+            if "$ADB" shell dumpsys window windows |
+                grep -q 'mCurrentFocus.*fr.chk.piratewarrior.v2' &&
+               "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null; then
+              APP_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$APP_READY" -ne 1 ]; then
+            echo "Le jeu Android ne reste pas au premier plan."
+            "$ADB" shell dumpsys activity top | head -n 80
+            "$ADB" shell dumpsys window windows |
+              grep -E 'mCurrentFocus|mFocusedApp' || true
+            "$ADB" logcat -d | tail -n 400
+            exit 1
+          fi
+          sleep 5
 
           "$ADB" exec-out screencap -p > android-menu.png
           "$ADB" shell input tap 490 260
@@ -265,6 +288,9 @@ jobs:
           "$ADB" shell input swipe 270 900 440 700 800
           "$ADB" shell input tap 2280 955
           sleep 4
+          "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null
+          "$ADB" shell dumpsys window windows |
+            grep -q 'mCurrentFocus.*fr.chk.piratewarrior.v2'
           "$ADB" exec-out screencap -p > android-gameplay.png
 
           "$ADB" shell wm size | tee android-window.txt
@@ -285,11 +311,15 @@ jobs:
           PY
 
           "$ADB" logcat -d > android-logcat.txt
-          if grep -E 'FATAL EXCEPTION|AndroidRuntime: FATAL|Process: fr.chk.piratewarrior.v2.*has died' android-logcat.txt; then
+          if grep -E \
+              'FATAL EXCEPTION|AndroidRuntime: FATAL|Process(:)? fr.chk.piratewarrior.v2.*has died|Force quitting Godot instance|ERROR: Condition "!_start_success"' \
+              android-logcat.txt; then
             echo 'Crash Android détecté.'
             exit 1
           fi
-          grep -q 'fr.chk.piratewarrior.v2' android-window.txt
+          grep -E -q \
+            'ACTIVITY fr.chk.piratewarrior.v2|mCurrentFocus=.*fr.chk.piratewarrior.v2' \
+            android-window.txt
 
       - name: Publier les journaux et les captures Android
         if: always()
