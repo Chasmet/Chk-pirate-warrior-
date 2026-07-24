@@ -121,11 +121,26 @@ jobs:
             exit 1
           fi
 
+      - name: Tester le gameplay et les trois héros
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot \
+            --script res://tests/smoke_test.gd 2>&1 | tee godot-smoke-test.log
+          if grep -E "SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|ÉCHEC|ERROR:" godot-smoke-test.log; then
+            echo "Le test fonctionnel du gameplay a échoué."
+            exit 1
+          fi
+          grep -q "SMOKE TEST RÉUSSI" godot-smoke-test.log
+
       - name: Construire l’APK Godot V2
         shell: bash
         run: |
           set -o pipefail
           mkdir -p build
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "Keystore=$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
           "$GODOT_BIN" --verbose --headless --path godot \
             --export-debug "Android V2 Debug" \
             "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
@@ -182,6 +197,7 @@ jobs:
 
           "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | tee emulator-avd-list.log
           grep -qx 'chk_pixel' emulator-avd-list.log
+          test -f "$ANDROID_AVD_HOME/chk_pixel.ini" || test -d "$ANDROID_AVD_HOME/chk_pixel.avd"
 
       - name: Lancer et tester le jeu sur Android virtuel
         shell: bash
@@ -204,12 +220,21 @@ jobs:
           EMULATOR_PID=$!
           trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
 
+          DEVICE_READY=0
           for attempt in $(seq 1 120); do
-            "$ADB" devices | grep -q '^emulator-' && break
+            if "$ADB" devices | grep -q '^emulator-'; then
+              DEVICE_READY=1
+              break
+            fi
             sleep 2
           done
-          "$ADB" wait-for-device
+          if [ "$DEVICE_READY" -ne 1 ]; then
+            echo "Le téléphone virtuel n’est pas apparu."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
 
+          "$ADB" wait-for-device
           BOOT_READY=0
           for attempt in $(seq 1 150); do
             BOOT_COMPLETED=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
@@ -219,7 +244,11 @@ jobs:
             fi
             sleep 2
           done
-          test "$BOOT_READY" = "1"
+          if [ "$BOOT_READY" -ne 1 ]; then
+            echo "Android n’a pas terminé son démarrage."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
 
           "$ADB" shell settings put system accelerometer_rotation 0
           "$ADB" shell settings put system user_rotation 1
@@ -231,10 +260,10 @@ jobs:
           sleep 15
 
           "$ADB" exec-out screencap -p > android-menu.png
-          "$ADB" shell input tap 260 285
+          "$ADB" shell input tap 490 260
           sleep 10
-          "$ADB" shell input swipe 270 830 440 650 800
-          "$ADB" shell input tap 2180 830
+          "$ADB" shell input swipe 270 900 440 700 800
+          "$ADB" shell input tap 2280 955
           sleep 4
           "$ADB" exec-out screencap -p > android-gameplay.png
 
@@ -270,6 +299,7 @@ jobs:
           path: |
             godot-validation.log
             godot-runtime.log
+            godot-smoke-test.log
             godot-export.log
             apk-manifest.txt
             apk-sha256.txt

@@ -40,6 +40,8 @@ var zone_label: Label
 var mission_label: Label
 var weather_label: Label
 var coins_label: Label
+var attack_held := false
+var attack_repeat_timer := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -57,7 +59,16 @@ func _ready() -> void:
 	_build_game_over()
 	show_main_menu()
 
+func _process(delta: float) -> void:
+	if not attack_held or not is_instance_valid(hud) or not hud.visible:
+		return
+	attack_repeat_timer -= delta
+	if attack_repeat_timer <= 0.0:
+		attack_repeat_timer = 0.14
+		attack_requested.emit()
+
 func show_main_menu() -> void:
+	attack_held = false
 	hud.hide()
 	pause_screen.hide()
 	game_over_screen.hide()
@@ -65,6 +76,7 @@ func show_main_menu() -> void:
 	menu.show_main()
 
 func show_hud() -> void:
+	attack_held = false
 	menu.hide()
 	pause_screen.hide()
 	game_over_screen.hide()
@@ -121,7 +133,7 @@ func _build_hud() -> void:
 	hud.add_child(camera_area)
 
 	var stats_panel := PanelContainer.new()
-	_set_rect(stats_panel, 0.0, 0.0, 0.0, 0.0, 22, 18, 570, 190)
+	_set_rect(stats_panel, 0.0, 0.0, 0.0, 0.0, 18, 16, 510, 172)
 	stats_panel.add_theme_stylebox_override("panel", _style(HUD_DARK, GOLD, 22, 3))
 	hud.add_child(stats_panel)
 	var stats := VBoxContainer.new()
@@ -155,7 +167,7 @@ func _build_hud() -> void:
 	stats.add_child(aura_row[2])
 
 	var mission := PanelContainer.new()
-	_set_rect(mission, 0.5, 0.0, 0.5, 0.0, -380, 18, 760, 150)
+	_set_rect(mission, 0.5, 0.0, 0.5, 0.0, -330, 16, 660, 126)
 	mission.add_theme_stylebox_override("panel", _style(Color(0.008, 0.022, 0.045, 0.86), Color("7ea6bc"), 22, 3))
 	hud.add_child(mission)
 	var mission_box := VBoxContainer.new()
@@ -193,30 +205,34 @@ func _build_hud() -> void:
 	hud.add_child(pause)
 
 	var joystick := QuinetJoystick.new()
-	_set_rect(joystick, 0.0, 1.0, 0.0, 1.0, 28, -302, 284, 284)
-	joystick.radius = 104.0
-	joystick.knob_radius = 44.0
+	_set_rect(joystick, 0.0, 1.0, 0.0, 1.0, 24, -266, 248, 248)
+	joystick.radius = 88.0
+	joystick.knob_radius = 38.0
 	joystick.vector_changed.connect(func(value: Vector2): move_changed.emit(value))
 	hud.add_child(joystick)
 	var hero := _action_button("HÉROS", Color("785a9e"), 126, 25)
-	_set_rect(hero, 0.0, 1.0, 0.0, 1.0, 320, -150, 126, 126)
+	_set_rect(hero, 0.0, 1.0, 0.0, 1.0, 286, -126, 108, 108)
 	hero.pressed.connect(func(): switch_requested.emit())
 	hud.add_child(hero)
 
-	var attack := _action_button("ATTAQUE", RED, 182, 31)
-	_set_rect(attack, 1.0, 1.0, 1.0, 1.0, -208, -208, 182, 182)
-	attack.pressed.connect(func(): attack_requested.emit())
+	var attack := _action_button("ATTAQUE", RED, 158, 27)
+	_set_rect(attack, 1.0, 1.0, 1.0, 1.0, -180, -180, 158, 158)
+	attack.button_down.connect(func():
+		attack_held = true
+		attack_repeat_timer = 0.0
+	)
+	attack.button_up.connect(func(): attack_held = false)
 	hud.add_child(attack)
-	var skill := _action_button("POUVOIR", BLUE, 150, 27)
-	_set_rect(skill, 1.0, 1.0, 1.0, 1.0, -382, -164, 150, 150)
+	var skill := _action_button("POUVOIR", BLUE, 128, 23)
+	_set_rect(skill, 1.0, 1.0, 1.0, 1.0, -326, -146, 128, 128)
 	skill.pressed.connect(func(): skill_requested.emit())
 	hud.add_child(skill)
-	var dodge := _action_button("ESQUIVE", Color("3c7b86"), 132, 22)
-	_set_rect(dodge, 1.0, 1.0, 1.0, 1.0, -530, -148, 132, 132)
+	var dodge := _action_button("ESQUIVE", Color("3c7b86"), 116, 20)
+	_set_rect(dodge, 1.0, 1.0, 1.0, 1.0, -456, -130, 116, 116)
 	dodge.pressed.connect(func(): dodge_requested.emit())
 	hud.add_child(dodge)
-	var aura := _action_button("DÉFERLER", Color("b98126"), 150, 24)
-	_set_rect(aura, 1.0, 1.0, 1.0, 1.0, -224, -386, 150, 150)
+	var aura := _action_button("DÉFERLER", Color("b98126"), 126, 21)
+	_set_rect(aura, 1.0, 1.0, 1.0, 1.0, -176, -330, 126, 126)
 	aura.pressed.connect(func(): aura_requested.emit())
 	hud.add_child(aura)
 

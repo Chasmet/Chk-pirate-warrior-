@@ -7,6 +7,8 @@ config_version=5
 
 config/name="CHK Pirate Warrior V2"
 run/main_scene="res://scenes/main.tscn"
+run/max_fps=60
+config/icon="res://assets/ui/icon_512.png"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.012, 0.026, 0.052, 1)
 boot_splash/show_image=false
@@ -31,7 +33,7 @@ renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 textures/default_filters/anisotropic_filtering_level=4
 textures/vram_compression/import_etc2_astc=true
-lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/size=2048
 anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/use_debanding=true
 occlusion_culling/use_occlusion_culling=true
@@ -58,7 +60,3 @@ aura={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":81)]}
 dodge={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":4194325),Object(InputEventKey,"physical_keycode":70)]}
 switch_hero={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":9)]}
 pause_game={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":4194305)]}
-
-[application_run]
-
-main_run_args="--fullscreen"

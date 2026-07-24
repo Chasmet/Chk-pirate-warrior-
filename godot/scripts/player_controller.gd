@@ -15,6 +15,7 @@ var move_input := Vector2.ZERO
 var camera_yaw := 0.0
 var camera_pitch := -0.12
 var camera_manual_timer := 0.0
+var assist_lock_time := 0.0
 var health := 140.0
 var max_health := 140.0
 var energy := 100.0
@@ -40,6 +41,7 @@ var camera_arm: SpringArm3D
 var camera: Camera3D
 var combat_fx: GPUParticles3D
 var assisted_target: EnemyAI
+var stats_emit_timer := 0.0
 
 func configure(data: Dictionary) -> void:
 	save_data = data
@@ -65,9 +67,10 @@ func _physics_process(delta: float) -> void:
 	combo_timer = maxf(0.0, combo_timer - delta)
 	invulnerability = maxf(0.0, invulnerability - delta)
 	camera_manual_timer = maxf(0.0, camera_manual_timer - delta)
+	assist_lock_time = maxf(0.0, assist_lock_time - delta)
 	if combo_timer <= 0.0:
 		combo_step = 0
-	energy = minf(100.0 + float(training.get("energie", 0)) * 5.0, energy + delta * 9.0)
+	energy = minf(100.0, energy + delta * (9.0 + float(training.get("energie", 0)) * 0.75))
 	if aura_time > 0.0:
 		aura_time -= delta
 		if aura_time <= 0.0:
@@ -86,9 +89,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = attack_lunge_direction.x * _attack_lunge_speed()
 		velocity.z = attack_lunge_direction.z * _attack_lunge_speed()
 	else:
-		var speed_multiplier := lerpf(0.72, 1.0, maxf(analog_strength, 0.55))
+		var speed_multiplier := analog_strength
 		if analog_strength > 0.92:
-			speed_multiplier *= 1.13
+			speed_multiplier *= 1.08
 		var speed := _movement_speed() * speed_multiplier * (1.28 if aura_time > 0.0 else 1.0)
 		var acceleration := 42.0 if direction.length_squared() > 0.02 else 55.0
 		velocity.x = move_toward(velocity.x, direction.x * speed, delta * acceleration)
@@ -111,7 +114,10 @@ func _physics_process(delta: float) -> void:
 		switch_hero()
 	if InputMap.has_action("dodge") and Input.is_action_just_pressed("dodge"):
 		dodge()
-	_emit_stats()
+	stats_emit_timer -= delta
+	if stats_emit_timer <= 0.0:
+		stats_emit_timer = 0.08
+		_emit_stats()
 
 func set_move_input(value: Vector2) -> void:
 	move_input = value if value.length() >= 0.08 else Vector2.ZERO
@@ -156,6 +162,7 @@ func _perform_attack() -> void:
 	assisted_target = _nearest_enemy(_attack_assist_range())
 	if is_instance_valid(assisted_target):
 		_face_enemy(assisted_target)
+		assist_lock_time = 0.62
 	combo_step = combo_step % 3 + 1
 	combo_timer = 1.05
 	var base_cooldown := 0.43 if hero_id == "cheikh" else 0.25 if hero_id == "yvane" else 0.32
@@ -199,6 +206,7 @@ func skill() -> void:
 	assisted_target = _nearest_enemy(18.0)
 	if is_instance_valid(assisted_target):
 		_face_enemy(assisted_target)
+		assist_lock_time = 0.92
 	skill_cooldown = 4.0 if hero_id == "cheikh" else 3.0 if hero_id == "yvane" else 3.5
 	energy -= 30.0
 	var damage := _skill_damage()
@@ -395,9 +403,10 @@ func _level_for_xp(value: int) -> int:
 	return result
 
 func _recalculate_stats() -> void:
+	var health_ratio := clampf(health / maxf(max_health, 1.0), 0.01, 1.0)
 	var base_hp := 165.0 if hero_id == "cheikh" else 115.0 if hero_id == "yvane" else 125.0
 	max_health = base_hp + float(level - 1) * 13.0 + float(training.get("force", 0)) * 15.0
-	health = clampf(health, 1.0, max_health)
+	health = clampf(max_health * health_ratio, 1.0, max_health)
 
 func _movement_speed() -> float:
 	var base := 7.4 if hero_id == "cheikh" else 10.2 if hero_id == "yvane" else 8.7
@@ -435,17 +444,17 @@ func _build_camera() -> void:
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "PivotCamera"
 	add_child(camera_pivot)
-	camera_pivot.position = Vector3(0.0, 1.42, 0.0)
+	camera_pivot.position = Vector3(0.0, 1.28, 0.0)
 	camera_arm = SpringArm3D.new()
 	camera_arm.name = "BrasCamera"
-	camera_arm.spring_length = 3.65
+	camera_arm.spring_length = 4.15
 	camera_arm.margin = 0.18
 	camera_arm.collision_mask = 1
 	camera_pivot.add_child(camera_arm)
 	camera = Camera3D.new()
 	camera.name = "CameraJoueur"
 	camera.current = true
-	camera.fov = 64.0
+	camera.fov = 61.0
 	camera.near = 0.06
 	camera.far = 800.0
 	camera.position = Vector3(0.42, 0.22, 0.0)
@@ -455,7 +464,7 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	if not is_instance_valid(camera_pivot):
 		return
 	if camera_manual_timer <= 0.0:
-		if is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
+		if assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
 			var target_direction := assisted_target.global_position - global_position
 			target_direction.y = 0.0
 			if target_direction.length_squared() > 0.01:
@@ -466,7 +475,7 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	camera_pivot.rotation.y = lerp_angle(camera_pivot.rotation.y, camera_yaw, delta * 13.0)
 	camera_pivot.rotation.x = lerpf(camera_pivot.rotation.x, camera_pitch, delta * 10.0)
 	var moving := Vector2(velocity.x, velocity.z).length()
-	var target_fov := 68.0 if moving > _movement_speed() * 0.85 else 64.0
+	var target_fov := 65.0 if moving > _movement_speed() * 0.85 else 61.0
 	if aura_time > 0.0:
 		target_fov += 4.0
 	camera.fov = lerpf(camera.fov, target_fov, delta * 4.0)

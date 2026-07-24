@@ -1,15 +1,7 @@
 class_name EmbeddedArt
 extends RefCounted
 
-static var _heroes: Texture2D
 static var _interface: Texture2D
-
-static func heroes_texture() -> Texture2D:
-	if _heroes == null:
-		_heroes = _gradient_texture([
-			Color("071426"), Color("0d507b"), Color("29a5d2"), Color("f0c46b")
-		], 1280, 720)
-	return _heroes
 
 static func interface_texture() -> Texture2D:
 	if _interface == null:

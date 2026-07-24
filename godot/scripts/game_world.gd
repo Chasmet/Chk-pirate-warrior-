@@ -19,7 +19,6 @@ const ZONES := [
 var save_data: Dictionary = {}
 var player: PlayerController
 var hero_animator: QuinetHeroAnimator
-var character_enhancer: QuinetReferenceCharacterEnhancer
 var visuals: WorldVisuals
 var current_zone := 0
 var zone_kills := 0
@@ -41,7 +40,29 @@ func configure(data: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	if is_instance_valid(player):
+		_keep_player_on_island()
 		visuals.update_world(delta, player.global_position)
+
+func _keep_player_on_island() -> void:
+	var center: Vector3 = ZONES[current_zone]["spawn"]
+	if player.global_position.y < -4.0:
+		player.global_position = center
+		player.velocity = Vector3.ZERO
+		player.receive_damage(18.0)
+		VoiceFR.speak("Attention à l’océan. Retour sur l’île.")
+		return
+	var offset := player.global_position - center
+	offset.y = 0.0
+	if offset.length() > 57.0:
+		var corrected := center + offset.normalized() * 57.0
+		corrected.y = player.global_position.y
+		player.global_position = corrected
+		var outward := offset.normalized()
+		var flat_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
+		if flat_velocity.dot(outward) > 0.0:
+			flat_velocity -= outward * flat_velocity.dot(outward)
+			player.velocity.x = flat_velocity.x
+			player.velocity.z = flat_velocity.z
 
 func travel_to_zone(index: int, announce: bool = true) -> void:
 	current_zone = clampi(index, 0, ZONES.size() - 1)
@@ -73,10 +94,6 @@ func _build_player() -> void:
 	hero_animator.name = "AnimationHéros"
 	player.add_child(hero_animator)
 	hero_animator.bind(player)
-	character_enhancer = QuinetReferenceCharacterEnhancer.new()
-	character_enhancer.name = "ModélisationRéférence"
-	player.add_child(character_enhancer)
-	character_enhancer.bind(player)
 	player.enemy_defeated.connect(_on_enemy_defeated)
 	player.player_defeated.connect(_on_player_defeated)
 	player_ready.emit(player)

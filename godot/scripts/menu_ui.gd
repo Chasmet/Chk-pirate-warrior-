@@ -61,70 +61,56 @@ func set_voice(active: bool) -> void:
 		voice_button.text = "VOIX FRANÇAISE : " + ("ACTIVÉE" if active else "DÉSACTIVÉE")
 
 func _build_main() -> void:
-	main_menu = _screen("", "")
-	var left := _panel(main_menu, Vector2(18, 18), Vector2(410, 828), GOLD)
-	var left_box := VBoxContainer.new()
-	left_box.add_theme_constant_override("separation", 11)
-	left.add_child(left_box)
-	left_box.add_child(_title("☠  CHK PIRATE WARRIOR", 37))
-	left_box.add_child(_title("L'ARCHIPEL DES QUINET", 22, Color("d7c9aa")))
-	left_box.add_child(HSeparator.new())
-	var actions := [
-		["⚔  JOUER", RED, func(): play_requested.emit(true)],
-		["▶  CONTINUER", BLUE, func(): play_requested.emit(false)],
-		["♛  CHOIX DU HÉROS", PURPLE, func(): _show(hero_screen)],
-		["◎  ENTRAÎNEMENT", GREEN, func(): _show(training_screen)],
-		["⚙  PARAMÈTRES", Color("4f5968"), func(): _show(settings_screen)]
+	main_menu = Control.new()
+	main_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(main_menu)
+	screens.append(main_menu)
+
+	var backdrop := ColorRect.new()
+	backdrop.color = Color("020914")
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	main_menu.add_child(backdrop)
+
+	var canvas := Control.new()
+	canvas.name = "MenuRéférence"
+	canvas.set_anchors_preset(Control.PRESET_CENTER)
+	canvas.position = Vector2(-768, -432)
+	canvas.size = Vector2(1536, 864)
+	main_menu.add_child(canvas)
+
+	var reference := TextureRect.new()
+	reference.texture = load("res://assets/ui/menu_reference.jpg") as Texture2D
+	reference.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	reference.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	reference.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	reference.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(reference)
+
+	_reference_hotspot(canvas, Rect2(38, 174, 326, 66), "Jouer une nouvelle partie", func(): play_requested.emit(true))
+	_reference_hotspot(canvas, Rect2(38, 244, 326, 66), "Continuer la partie", func(): play_requested.emit(false))
+	_reference_hotspot(canvas, Rect2(38, 313, 326, 64), "Choisir Cheikh, Yvane ou Nelvyn", func(): _show(hero_screen))
+	_reference_hotspot(canvas, Rect2(38, 380, 326, 64), "Entraînement", func(): _show(training_screen))
+	_reference_hotspot(canvas, Rect2(38, 446, 326, 64), "Paramètres", func(): _show(settings_screen))
+	_reference_hotspot(canvas, Rect2(8, 512, 373, 308), "Galerie des ennemis", func(): _show(enemies_screen))
+	_reference_hotspot(canvas, Rect2(1028, 465, 500, 354), "Galerie des boss", func(): _show(bosses_screen))
+	_reference_hotspot(canvas, Rect2(390, 74, 492, 458), "Choix du héros", func(): _show(hero_screen))
+
+	var zone_rects := [
+		Rect2(917, 72, 188, 146),
+		Rect2(1110, 72, 188, 146),
+		Rect2(1304, 72, 188, 146),
+		Rect2(917, 272, 188, 146),
+		Rect2(1110, 272, 188, 146),
+		Rect2(1304, 272, 188, 146)
 	]
-	for action in actions:
-		var action_button := _button(String(action[0]), Color(action[1]), 88, 27)
-		action_button.pressed.connect(action[2])
-		left_box.add_child(action_button)
-	var galleries := HBoxContainer.new()
-	galleries.add_theme_constant_override("separation", 10)
-	left_box.add_child(galleries)
-	var enemies := _button("ENNEMIS", Color("8b5b36"), 78, 21)
-	enemies.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enemies.pressed.connect(func(): _show(enemies_screen))
-	galleries.add_child(enemies)
-	var bosses := _button("BOSS", Color("862f38"), 78, 21)
-	bosses.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bosses.pressed.connect(func(): _show(bosses_screen))
-	galleries.add_child(bosses)
-
-	var center := _panel(main_menu, Vector2(446, 18), Vector2(850, 828), Color("7b6040"))
-	var center_box := VBoxContainer.new()
-	center_box.add_theme_constant_override("separation", 6)
-	center.add_child(center_box)
-	center_box.add_child(_title("L'ÉQUIPAGE QUINET", 38))
-	center_box.add_child(_title("AVENTURE  •  FAMILLE  •  LÉGENDE", 19, Color("cdbd9b")))
-	var hero_row := HBoxContainer.new()
-	hero_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	hero_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hero_row.add_theme_constant_override("separation", 10)
-	center_box.add_child(hero_row)
-	for hero_id in ["nelvyn", "cheikh", "yvane"]:
-		hero_row.add_child(_hero_card(hero_id, Vector2(255, 670), false))
-
-	var right := _panel(main_menu, Vector2(1314, 18), Vector2(588, 828), Color("6d8da0"))
-	var right_box := VBoxContainer.new()
-	right_box.add_theme_constant_override("separation", 10)
-	right.add_child(right_box)
-	right_box.add_child(_title("CARTE DU MONDE", 36))
-	var map_grid := GridContainer.new()
-	map_grid.columns = 2
-	map_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	map_grid.add_theme_constant_override("h_separation", 10)
-	map_grid.add_theme_constant_override("v_separation", 10)
-	right_box.add_child(map_grid)
-	for i in range(ZONE_NAMES.size()):
-		var zone := _button(str(i + 1) + "\n" + ZONE_NAMES[i], ZONE_COLORS[i], 173, 20)
-		zone.custom_minimum_size = Vector2(270, 173)
-		zone.pressed.connect(func(): zone_selected.emit(i))
-		map_grid.add_child(zone)
-	var full_map := _button("OUVRIR LA CARTE COMPLÈTE", Color("244f69"), 74, 22)
-	full_map.pressed.connect(func(): show_map(false))
-	right_box.add_child(full_map)
+	for index in range(zone_rects.size()):
+		_reference_hotspot(
+			canvas,
+			zone_rects[index],
+			"Voyager : " + String(ZONE_NAMES[index]).replace("\n", " "),
+			_emit_zone.bind(index)
+		)
 
 func _build_heroes() -> void:
 	hero_screen = _screen("CHOIX DU HÉROS", "Trois personnages jouables. Choisis celui que tu contrôles.")
@@ -152,7 +138,7 @@ func _build_map() -> void:
 		var zone_name: String = String(ZONE_NAMES[i]).replace("\n", " ")
 		var zone := _button(str(i + 1) + "  •  " + zone_name + "\n" + descriptions[i], ZONE_COLORS[i], 300, 25)
 		zone.custom_minimum_size = Vector2(550, 300)
-		zone.pressed.connect(func(): zone_selected.emit(i))
+		zone.pressed.connect(_emit_zone.bind(i))
 		grid.add_child(zone)
 	_add_map_back()
 
@@ -262,15 +248,15 @@ func _hero_preview(hero_id: String, preview_size: Vector2) -> SubViewportContain
 	viewport.add_child(stage)
 	var hero := HeroFactory.create_hero(hero_id)
 	stage.add_child(hero)
-	hero.scale = Vector3.ONE * (1.55 if hero_id == "cheikh" else 1.75)
+	hero.scale = Vector3.ONE
 	var nameplate := hero.get_node_or_null("Nom")
 	if nameplate != null:
 		nameplate.hide()
 	var camera := Camera3D.new()
 	stage.add_child(camera)
-	camera.position = Vector3(0, 1.20, -4.15 if hero_id == "cheikh" else -3.65)
-	camera.look_at_from_position(camera.position, Vector3(0, 0.92, 0), Vector3.UP)
-	camera.fov = 35.0
+	camera.position = Vector3(0, 1.05, -3.25 if hero_id == "cheikh" else -2.85)
+	camera.look_at_from_position(camera.position, Vector3(0, float(HeroFactory.HEROES[hero_id]["height"]) * 0.48, 0), Vector3.UP)
+	camera.fov = 34.0
 	camera.current = true
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, 145, 0)
@@ -363,6 +349,9 @@ func _show(target: Control) -> void:
 		screen.hide()
 	target.show()
 
+func _emit_zone(zone_index: int) -> void:
+	zone_selected.emit(zone_index)
+
 func _button(text_value: String, color: Color, height: float, font_size: int = 24) -> Button:
 	var button := Button.new()
 	button.text = text_value
@@ -372,6 +361,33 @@ func _button(text_value: String, color: Color, height: float, font_size: int = 2
 	button.add_theme_stylebox_override("hover", _style(color.lightened(0.08), GOLD_LIGHT, 18, 4))
 	button.add_theme_stylebox_override("pressed", _style(color.darkened(0.28), Color.WHITE, 18, 5))
 	return button
+
+func _reference_hotspot(parent: Control, rect: Rect2, tooltip: String, callback: Callable) -> void:
+	var hotspot := Button.new()
+	hotspot.position = rect.position
+	hotspot.size = rect.size
+	hotspot.flat = true
+	hotspot.tooltip_text = tooltip
+	hotspot.focus_mode = Control.FOCUS_NONE
+	hotspot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var clear := StyleBoxFlat.new()
+	clear.bg_color = Color.TRANSPARENT
+	clear.border_color = Color.TRANSPARENT
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(0.96, 0.66, 0.16, 0.10)
+	hover.border_color = GOLD_LIGHT
+	hover.set_border_width_all(3)
+	hover.set_corner_radius_all(12)
+	var pressed := StyleBoxFlat.new()
+	pressed.bg_color = Color(1.0, 0.73, 0.22, 0.24)
+	pressed.border_color = Color.WHITE
+	pressed.set_border_width_all(4)
+	pressed.set_corner_radius_all(12)
+	hotspot.add_theme_stylebox_override("normal", clear)
+	hotspot.add_theme_stylebox_override("hover", hover)
+	hotspot.add_theme_stylebox_override("pressed", pressed)
+	hotspot.pressed.connect(callback)
+	parent.add_child(hotspot)
 
 func _style(background: Color, border: Color, radius: int, width: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
