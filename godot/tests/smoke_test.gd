@@ -61,14 +61,18 @@ func _run() -> void:
 	for _frame in range(40):
 		await physics_frame
 	_check(player.camera_front_view, "la caméra peut passer devant pour montrer le visage")
+	if sprite != null:
+		_check(sprite.texture.resource_path.ends_with("cheikh_poses.webp"), "la vue avant affiche réellement le visage de Cheikh dans le monde 3D")
 
 	var start_position := player.global_position
 	player.set_move_input(Vector2(1.0, 0.0))
-	for _frame in range(12):
+	for _frame in range(20):
 		await physics_frame
 	player.set_move_input(Vector2.ZERO)
 	_check(player.global_position.distance_to(start_position) > 0.25, "le joystick déplace réellement le héros")
 	_check(Vector2(player.velocity.x, player.velocity.z).length() < player._movement_speed() * 1.2, "l’accélération du héros reste maîtrisée")
+	var movement_heading := atan2(-player.velocity.x, -player.velocity.z)
+	_check(absf(wrapf(player.rotation.y - movement_heading, -PI, PI)) < 0.35, "le héros se tourne dans la direction choisie au joystick")
 
 	var enemies := get_nodes_in_group("enemies")
 	if not enemies.is_empty():
@@ -139,8 +143,8 @@ func _run() -> void:
 	player.set_move_input(Vector2.ZERO)
 	_check(player.global_position.distance_to(boat_start) > 0.5, "le joueur navigue lui-même avec le joystick")
 	_check(player.boat_speed > 0.0, "le bateau possède accélération et inertie")
-	_check(absf(player.boat_turn_rate) > 0.05, "le virage possède une réponse progressive au gouvernail")
-	_check(player.camera_arm.spring_length > 9.0, "la caméra marine recule pour cadrer le navire et son pilote")
+	_check(absf(player.boat_turn_rate) > 0.20, "le gouvernail répond rapidement sans supprimer l’inertie du navire")
+	_check(player.camera_arm.spring_length > 12.5 and player.camera_target_pitch < -0.28, "la caméra marine cadre le navire entier et son pilote depuis le haut")
 	var helm := player.boat_visual.get_node_or_null("PosteDePilotage/Gouvernail3D") as Node3D
 	_check(helm != null and absf(helm.rotation.z) > 0.08, "le gouvernail tourne visiblement avec le joystick")
 	var target_dock := world.get_dock_position(1, true)

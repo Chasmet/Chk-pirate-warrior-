@@ -5,7 +5,7 @@ La branche `v2-godot-3d` lance automatiquement :
 1. l’import complet du projet avec Godot 4.7.1 ;
 2. l’analyse de toutes les erreurs GDScript ;
 3. le démarrage réel du jeu en mode headless ;
-4. les 82 contrôles du contact réel avec le relief, du déplacement, de la caméra 360°, du combat, des trois héros, de la traversée complète en bateau, du dégagement du quai, de la balise de destination mobile, de la météo, du gouvernail, des collisions de décor, des animaux, de l’accostage, des difficultés, des six boss, de la carte et du menu ;
+4. les 84 contrôles du contact réel avec le relief, du déplacement, de la caméra 360° avec visage visible, de l’orientation du héros, du combat, des trois héros, de la traversée complète en bateau, du dégagement du quai, de la balise de destination mobile, de la météo, du gouvernail, des collisions de décor, des animaux, de l’accostage, des difficultés, des six boss, de la carte et du menu ;
 5. l’export d’une APK Android arm64 et x86_64 signée en mode debug ;
 6. la vérification du manifeste et du mode paysage ;
 7. l’installation et le lancement sur un Pixel 7 Pro virtuel ;

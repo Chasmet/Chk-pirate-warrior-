@@ -71,7 +71,7 @@ godot --headless --path godot --quit-after 180
 godot --headless --path godot --script res://tests/smoke_test.gd
 ```
 
-Le smoke test couvre 82 points : atterrissage réel sur le relief, héros 3D, caméra, traversée complète en bateau, dégagement du quai, balise de destination mobile, météo, gouvernail, collisions de décor, animaux, végétation, combat, accostage, déblocage, difficultés, boss, carte et interface. Le workflow GitHub vérifie ensuite l’import, le démarrage, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
+Le smoke test couvre 84 points : atterrissage réel sur le relief, héros 3D, caméra orbitale avec visage visible, orientation du héros, traversée complète en bateau, dégagement du quai, balise de destination mobile, météo, gouvernail, collisions de décor, animaux, végétation, combat, accostage, déblocage, difficultés, boss, carte et interface. Le workflow GitHub vérifie ensuite l’import, le démarrage, l’APK signée, le mode paysage et l’exécution sur un téléphone Android virtuel.
 
 ## Univers
 

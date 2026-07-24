@@ -13,6 +13,8 @@ signal enemy_defeated(profile: Dictionary)
 const HERO_ORDER := ["cheikh", "yvane", "nelvyn"]
 const BOAT_WATERLINE := 0.58
 const BOAT_MAX_SPEED := 23.0
+const BOAT_CAMERA_REST_LENGTH := 13.4
+const BOAT_CAMERA_REST_PITCH := -0.31
 
 var save_data: Dictionary = {}
 var hero_id := "cheikh"
@@ -411,11 +413,11 @@ func enter_boat(spawn_position: Vector3, target_position: Vector3) -> void:
 		hero_visual.show()
 		_set_boat_hero_art(0.0)
 	camera_target_yaw = boat_heading
-	camera_target_pitch = -0.16
+	camera_target_pitch = BOAT_CAMERA_REST_PITCH
 	camera_manual_timer = 0.0
 	camera_recenter_timer = 0.0
 	if is_instance_valid(camera_arm):
-		camera_arm.spring_length = 10.8
+		camera_arm.spring_length = BOAT_CAMERA_REST_LENGTH
 	_snap_camera_to_player()
 	boat_pilot_marker_emitted = false
 	boat_mode_changed.emit(true)
@@ -614,20 +616,23 @@ func _physics_boat(delta: float) -> void:
 	var weather_speed_factor := lerpf(1.0, 0.78, sea_state)
 	var maximum_forward_speed := BOAT_MAX_SPEED * weather_speed_factor
 	var speed_ratio := clampf(absf(boat_speed) / maxf(maximum_forward_speed, 0.1), 0.0, 1.0)
-	var steering_grip := lerpf(0.28, 1.0, speed_ratio)
+	# Conduite arcade lisible sur écran tactile : le navire répond dès les
+	# premiers mètres, puis garde une légère inertie quand il prend sa vitesse.
+	var steering_grip := lerpf(0.58, 1.0, smoothstep(0.0, 0.72, speed_ratio))
 	var reverse_factor := -0.72 if boat_speed < -0.35 else 1.0
-	var desired_turn_rate := steering * steering_grip * lerpf(1.32, 1.08, sea_state) * reverse_factor
+	var desired_turn_rate := steering * steering_grip * lerpf(1.58, 1.30, sea_state) * reverse_factor
 	if absf(throttle) < 0.06 and absf(boat_speed) < 0.65:
 		desired_turn_rate = 0.0
-	boat_turn_rate = move_toward(boat_turn_rate, desired_turn_rate, 2.8 * delta)
+	boat_turn_rate = move_toward(boat_turn_rate, desired_turn_rate, 4.8 * delta)
 	boat_heading -= boat_turn_rate * delta
 	var target_speed := throttle * (maximum_forward_speed if throttle >= 0.0 else 7.0)
-	var engine_response := (5.8 if absf(throttle) > 0.05 else 1.55) * lerpf(1.0, 0.76, sea_state)
+	var engine_response := (7.2 if absf(throttle) > 0.05 else 2.4) * lerpf(1.0, 0.78, sea_state)
 	boat_speed = move_toward(boat_speed, target_speed, engine_response * delta)
 	var forward: Vector3 = -Basis(Vector3.UP, boat_heading).z
 	var desired_velocity: Vector3 = forward * boat_speed
-	velocity.x = move_toward(velocity.x, desired_velocity.x, 5.4 * delta)
-	velocity.z = move_toward(velocity.z, desired_velocity.z, 5.4 * delta)
+	var hull_grip := lerpf(9.5, 7.0, sea_state)
+	velocity.x = move_toward(velocity.x, desired_velocity.x, hull_grip * delta)
+	velocity.z = move_toward(velocity.z, desired_velocity.z, hull_grip * delta)
 	velocity.y = 0.0
 	rotation.y = boat_heading
 	move_and_slide()
@@ -721,8 +726,8 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	var moving_forward := direction.length_squared() > 0.02 and direction.dot(camera_forward) > 0.18
 	if camera_manual_timer <= 0.0 and camera_recenter_timer <= 0.0:
 		if boat_mode:
-			camera_target_yaw = lerp_angle(camera_target_yaw, boat_heading, 1.0 - exp(-2.4 * delta))
-			camera_target_pitch = lerpf(camera_target_pitch, -0.16, 1.0 - exp(-2.0 * delta))
+			camera_target_yaw = lerp_angle(camera_target_yaw, boat_heading, 1.0 - exp(-4.2 * delta))
+			camera_target_pitch = lerpf(camera_target_pitch, BOAT_CAMERA_REST_PITCH, 1.0 - exp(-3.2 * delta))
 		elif assist_lock_time > 0.0 and is_instance_valid(assisted_target) and assisted_target.health > 0.0 and assisted_target.global_position.distance_to(global_position) < 13.0:
 			var target_direction := assisted_target.global_position - global_position
 			target_direction.y = 0.0
@@ -736,7 +741,7 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 
 	var hero_height := 3.6 if boat_mode else float(HeroFactory.HEROES[hero_id]["height"])
 	var look_ahead := Vector3(velocity.x, 0.0, velocity.z) * 0.035
-	var desired_anchor := global_position + Vector3(0.0, 3.35 if boat_mode else hero_height * 0.68 + 0.18, 0.0) + look_ahead
+	var desired_anchor := global_position + Vector3(0.0, 4.25 if boat_mode else hero_height * 0.68 + 0.18, 0.0) + look_ahead
 	if camera_pivot.global_position.distance_to(desired_anchor) > 18.0:
 		camera_pivot.global_position = desired_anchor
 	camera_pivot.global_position = camera_pivot.global_position.lerp(desired_anchor, 1.0 - exp(-11.0 * delta))
@@ -744,9 +749,9 @@ func _update_camera(delta: float, direction: Vector3) -> void:
 	camera_pivot.rotation.x = camera_pitch
 
 	var running_ratio := clampf(horizontal_speed / (22.5 if boat_mode else maxf(_movement_speed(), 0.1)), 0.0, 1.0)
-	var target_length := lerpf(10.8, 12.6, running_ratio) if boat_mode else lerpf(4.35, 4.75, running_ratio)
+	var target_length := lerpf(BOAT_CAMERA_REST_LENGTH, 14.6, running_ratio) if boat_mode else lerpf(4.35, 4.75, running_ratio)
 	camera_arm.spring_length = lerpf(camera_arm.spring_length, target_length, 1.0 - exp(-5.5 * delta))
-	var target_fov := lerpf(62.0, 69.0, running_ratio) if boat_mode else lerpf(58.0, 63.0, running_ratio)
+	var target_fov := lerpf(64.0, 70.0, running_ratio) if boat_mode else lerpf(58.0, 63.0, running_ratio)
 	if aura_time > 0.0:
 		target_fov += 3.0
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-4.5 * delta))
@@ -763,6 +768,7 @@ func _update_camera_facing() -> void:
 		new_front_view = true
 	if new_front_view != camera_front_view:
 		camera_front_view = new_front_view
+		_set_land_hero_art()
 		hero_view_changed.emit(hero_id, current_hero_frame, camera_front_view)
 
 func _confirm_hero_framing(delta: float, hero_height: float) -> void:
@@ -835,7 +841,12 @@ func _set_land_hero_art() -> void:
 	if sprite == null:
 		return
 	var profile: Dictionary = HeroFactory.HEROES[hero_id]
-	sprite.texture = load(String(profile["third_person_sprite"])) as Texture2D
+	# Le Sprite3D reste physiquement dans le monde et suit l’orientation du
+	# contrôleur. La planche avant est utilisée quand la caméra orbite devant,
+	# afin de montrer réellement le visage plutôt qu’un dos toujours billbordé.
+	var texture_path := String(profile["sprite"]) if camera_front_view else String(profile["third_person_sprite"])
+	if sprite.texture == null or sprite.texture.resource_path != texture_path:
+		sprite.texture = load(texture_path) as Texture2D
 	sprite.hframes = 4
 	sprite.frame = clampi(current_hero_frame, 0, 3)
 	sprite.position.y = float(profile["sprite_y"])
@@ -867,7 +878,7 @@ func _snap_camera_to_player() -> void:
 	if not is_instance_valid(camera_pivot):
 		return
 	var hero_height := 3.6 if boat_mode else float(HeroFactory.HEROES[hero_id]["height"])
-	camera_pivot.global_position = global_position + Vector3(0.0, 3.35 if boat_mode else hero_height * 0.68 + 0.18, 0.0)
+	camera_pivot.global_position = global_position + Vector3(0.0, 4.25 if boat_mode else hero_height * 0.68 + 0.18, 0.0)
 	camera_yaw = camera_target_yaw
 	camera_pitch = camera_target_pitch
 	camera_pivot.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
