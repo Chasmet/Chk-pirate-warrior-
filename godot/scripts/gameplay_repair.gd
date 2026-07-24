@@ -24,7 +24,7 @@ func _process(delta: float) -> void:
 	visual_guard_timer -= delta
 	if visual_guard_timer <= 0.0 and is_instance_valid(world):
 		visual_guard_timer = 1.0
-		_disable_unstable_particles_recursive(world)
+		_disable_unstable_overlays_recursive(world)
 
 	if player.boat_mode:
 		rescue_delay = 0.0
@@ -39,6 +39,9 @@ func _cleanup_recursive(node: Node) -> void:
 	if node is Label3D:
 		# Les informations utiles sont déjà présentes dans le HUD et la mini-carte.
 		node.queue_free()
+		return
+	if String(node.name) == "BarreDeVie":
+		_disable_enemy_health_bar(node)
 		return
 	if node is GPUParticles3D:
 		# Sur plusieurs pilotes OpenGL Android, les quads de particules étaient
@@ -56,11 +59,26 @@ func _cleanup_recursive(node: Node) -> void:
 	for child in node.get_children():
 		_cleanup_recursive(child)
 
-func _disable_unstable_particles_recursive(node: Node) -> void:
+func _disable_unstable_overlays_recursive(node: Node) -> void:
+	if String(node.name) == "BarreDeVie":
+		_disable_enemy_health_bar(node)
+		return
 	if node is GPUParticles3D:
 		_disable_particle(node as GPUParticles3D)
 	for child in node.get_children():
-		_disable_unstable_particles_recursive(child)
+		_disable_unstable_overlays_recursive(child)
+
+func _disable_enemy_health_bar(bar: Node) -> void:
+	# Les deux QuadMesh de chaque ennemi formaient les paires de panneaux blancs
+	# et sombres visibles sur l'île. La cible sera affichée dans une jauge 2D.
+	if bar is Node3D:
+		(bar as Node3D).visible = false
+	bar.process_mode = Node.PROCESS_MODE_DISABLED
+	for child in bar.get_children():
+		if child is GeometryInstance3D:
+			var geometry := child as GeometryInstance3D
+			geometry.visible = false
+			geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func _disable_particle(particles: GPUParticles3D) -> void:
 	particles.emitting = false
