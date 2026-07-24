@@ -1,0 +1,63 @@
+name: Convertir les héros WebP en PNG Android
+
+on:
+  push:
+    branches: [ v2-godot-3d ]
+    paths:
+      - '.github/workflows/convert-hero-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  conversion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer la branche 3D
+        uses: actions/checkout@v6
+        with:
+          ref: v2-godot-3d
+          fetch-depth: 0
+
+      - name: Installer Pillow
+        run: python3 -m pip install --quiet pillow
+
+      - name: Convertir les références originales
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          root = Path('godot/assets/heroes')
+          for source in sorted(root.glob('*.webp')):
+              image = Image.open(source).convert('RGBA')
+              image = image.resize((888, 444), Image.Resampling.LANCZOS)
+              destination = source.with_suffix('.png')
+              image.save(destination, 'PNG', optimize=True, compress_level=9)
+              alpha = image.getchannel('A').getextrema()
+              if alpha != (0, 255):
+                  raise RuntimeError(f'Alpha incorrect pour {destination}: {alpha}')
+              print(f'{source.name} -> {destination.name} ({destination.stat().st_size} octets)')
+
+          factory = Path('godot/scripts/hero_factory.gd')
+          text = factory.read_text(encoding='utf-8')
+          text = text.replace('.webp"', '.png"')
+          factory.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commiter les PNG transparents
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "CHK Pirate Warrior CI"
+          git config user.email "actions@github.com"
+          git add godot/assets/heroes/*.png godot/scripts/hero_factory.gd
+          if git diff --cached --quiet; then
+            echo "Aucun changement à commiter."
+            exit 0
+          fi
+          git commit -m "fix(assets): convertir les héros originaux en PNG Android"
+          git push origin HEAD:v2-godot-3d
