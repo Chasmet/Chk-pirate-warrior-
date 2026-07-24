@@ -80,12 +80,12 @@ static func _build_character_art(root: Node3D, profile: Dictionary, third_person
 	sprite.double_sided = true
 	sprite.shaded = false
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# Priorité absolue à la lisibilité du héros sur mobile : il ne doit jamais
-	# disparaître derrière le terrain à cause d’un conflit de profondeur.
-	sprite.no_depth_test = true
+	# Le depth test reste actif : un mur doit pouvoir passer devant le héros.
+	# La caméra garde désormais elle-même une vraie distance de troisième personne.
+	sprite.no_depth_test = false
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	sprite.alpha_scissor_threshold = 0.04
-	sprite.render_priority = 100
+	sprite.render_priority = 8
 	sprite.modulate = Color.WHITE
 	sprite.visible = true
 	root.add_child(sprite)
