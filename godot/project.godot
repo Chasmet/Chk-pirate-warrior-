@@ -1,5 +1,6 @@
 ; CHK Pirate Warrior V2 — Godot 4.7.1
 ; Monde ouvert 3D mobile en français.
+; Les héros utilisent des textures PNG lossless dédiées à Android.
 
 config_version=5
 
