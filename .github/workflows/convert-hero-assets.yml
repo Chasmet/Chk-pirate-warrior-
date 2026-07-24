@@ -1,4 +1,4 @@
-name: Convertir les héros WebP en PNG Android
+name: Convertir les héros pour Android
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Installer Pillow
         run: python3 -m pip install --quiet pillow
 
-      - name: Convertir et verrouiller les imports Android
+      - name: Créer les textures JPEG détourées
         shell: bash
         run: |
           set -euo pipefail
@@ -33,14 +33,15 @@ jobs:
           import hashlib
 
           root = Path('godot/assets/heroes')
+          key_color = (255, 0, 255)
           for source in sorted(root.glob('*.webp')):
-              image = Image.open(source).convert('RGBA')
-              image = image.resize((888, 444), Image.Resampling.LANCZOS)
-              destination = source.with_suffix('.png')
-              image.save(destination, 'PNG', optimize=True, compress_level=9)
-              alpha = image.getchannel('A').getextrema()
-              if alpha != (0, 255):
-                  raise RuntimeError(f'Alpha incorrect pour {destination}: {alpha}')
+              rgba = Image.open(source).convert('RGBA').resize((888, 444), Image.Resampling.LANCZOS)
+              rgb_source = rgba.convert('RGB')
+              mask = rgba.getchannel('A').point(lambda value: 255 if value > 8 else 0)
+              output = Image.new('RGB', rgba.size, key_color)
+              output.paste(rgb_source, mask=mask)
+              destination = source.with_suffix('.jpg')
+              output.save(destination, 'JPEG', quality=98, subsampling=0, optimize=True)
 
               resource_path = f'res://assets/heroes/{destination.name}'
               path_hash = hashlib.md5(resource_path.encode('utf-8')).hexdigest()
@@ -79,7 +80,7 @@ jobs:
           process/channel_remap/green=1
           process/channel_remap/blue=2
           process/channel_remap/alpha=3
-          process/fix_alpha_border=true
+          process/fix_alpha_border=false
           process/premult_alpha=false
           process/normal_map_invert_y=false
           process/hdr_as_srgb=false
@@ -87,24 +88,33 @@ jobs:
           process/size_limit=0
           detect_3d/compress_to=0
           '''
-              destination.with_suffix('.png.import').write_text(import_text, encoding='utf-8')
-              print(f'{source.name} -> {destination.name}, import lossless Android')
+              destination.with_suffix('.jpg.import').write_text(import_text, encoding='utf-8')
+              print(f'{source.name} -> {destination.name}, fond magenta détournable')
 
           factory = Path('godot/scripts/hero_factory.gd')
-          text = factory.read_text(encoding='utf-8').replace('.webp"', '.png"')
+          text = factory.read_text(encoding='utf-8')
+          text = text.replace('.webp"', '.jpg"').replace('.png"', '.jpg"')
           factory.write_text(text, encoding='utf-8')
+
+          smoke = Path('godot/tests/smoke_test.gd')
+          test_text = smoke.read_text(encoding='utf-8')
+          test_text = test_text.replace('texture PNG Android', 'texture JPEG Android')
+          test_text = test_text.replace('cheikh_poses.png', 'cheikh_poses.jpg')
+          test_text = test_text.replace('nelvyn_steering_v24.png', 'nelvyn_steering_v24.jpg')
+          test_text = test_text.replace('pose de pilotage PNG', 'pose de pilotage JPEG')
+          smoke.write_text(test_text, encoding='utf-8')
           PY
 
-      - name: Commiter les PNG et leurs imports lossless
+      - name: Commiter les JPEG détourés
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "CHK Pirate Warrior CI"
           git config user.email "actions@github.com"
-          git add godot/assets/heroes/*.png godot/assets/heroes/*.png.import godot/scripts/hero_factory.gd
+          git add godot/assets/heroes/*.jpg godot/assets/heroes/*.jpg.import godot/scripts/hero_factory.gd godot/tests/smoke_test.gd
           if git diff --cached --quiet; then
             echo "Aucun changement à commiter."
             exit 0
           fi
-          git commit -m "fix(assets): forcer les héros en textures lossless Android"
+          git commit -m "fix(assets): utiliser des héros JPEG détourés sur Android"
           git push origin HEAD:v2-godot-3d
