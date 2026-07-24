@@ -3,6 +3,7 @@ extends Node
 var player: PlayerController
 var cleaned_world_id := 0
 var rescue_delay := 0.0
+var visual_guard_timer := 0.0
 
 func _ready() -> void:
 	process_priority = 1600
@@ -20,6 +21,11 @@ func _process(delta: float) -> void:
 		cleaned_world_id = world.get_instance_id()
 		_stabilize_world_visuals(world)
 
+	visual_guard_timer -= delta
+	if visual_guard_timer <= 0.0 and is_instance_valid(world):
+		visual_guard_timer = 1.0
+		_disable_unstable_particles_recursive(world)
+
 	if player.boat_mode:
 		rescue_delay = 0.0
 		return
@@ -32,10 +38,14 @@ func _stabilize_world_visuals(root: Node) -> void:
 func _cleanup_recursive(node: Node) -> void:
 	if node is Label3D:
 		# Les informations utiles sont déjà présentes dans le HUD et la mini-carte.
-		# Supprimer les textes 3D évite les quads de police instables sur OpenGL mobile.
 		node.queue_free()
 		return
-	if node is MultiMeshInstance3D and String(node.name) == "HerbeDense":
+	if node is GPUParticles3D:
+		# Sur plusieurs pilotes OpenGL Android, les quads de particules étaient
+		# rendus comme de grands rectangles blancs. Ils sont coupés jusqu'à leur
+		# remplacement par des effets mobiles basés sur des meshes/tweens.
+		_disable_particle(node as GPUParticles3D)
+	elif node is MultiMeshInstance3D and String(node.name) == "HerbeDense":
 		# Le MultiMesh de milliers de quads n'est pas assez fiable sur tous les GPU.
 		(node as MultiMeshInstance3D).visible = false
 	elif node is GeometryInstance3D:
@@ -46,10 +56,22 @@ func _cleanup_recursive(node: Node) -> void:
 	for child in node.get_children():
 		_cleanup_recursive(child)
 
+func _disable_unstable_particles_recursive(node: Node) -> void:
+	if node is GPUParticles3D:
+		_disable_particle(node as GPUParticles3D)
+	for child in node.get_children():
+		_disable_unstable_particles_recursive(child)
+
+func _disable_particle(particles: GPUParticles3D) -> void:
+	particles.emitting = false
+	particles.visible = false
+	particles.process_mode = Node.PROCESS_MODE_DISABLED
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
 func _apply_safe_foliage_material(geometry: GeometryInstance3D, label: String) -> void:
-	# Le shader de vent déformait certains meshes en longues bandes blanches sur
-	# l'émulateur Android. Un matériau standard garde la végétation propre et
-	# lisible; l'animation du vent sera faite par rotation de nœuds, sans shader.
+	# Le shader de vent déformait certains meshes sur le rendu mobile. Un
+	# matériau standard conserve une végétation propre; le mouvement sera animé
+	# au niveau des nœuds plutôt que dans le vertex shader.
 	var color := Color("276f3b")
 	if label == "Palme":
 		color = Color("1f7040")
