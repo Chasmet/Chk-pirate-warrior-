@@ -126,9 +126,6 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "JAVA_HOME=$JAVA_HOME"
-          echo "Keystore=$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
           "$GODOT_BIN" --verbose --headless --path godot \
             --export-debug "Android V2 Debug" \
             "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
@@ -185,7 +182,6 @@ jobs:
 
           "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | tee emulator-avd-list.log
           grep -qx 'chk_pixel' emulator-avd-list.log
-          test -f "$ANDROID_AVD_HOME/chk_pixel.ini" || test -d "$ANDROID_AVD_HOME/chk_pixel.avd"
 
       - name: Lancer et tester le jeu sur Android virtuel
         shell: bash
@@ -208,21 +204,12 @@ jobs:
           EMULATOR_PID=$!
           trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
 
-          DEVICE_READY=0
           for attempt in $(seq 1 120); do
-            if "$ADB" devices | grep -q '^emulator-'; then
-              DEVICE_READY=1
-              break
-            fi
+            "$ADB" devices | grep -q '^emulator-' && break
             sleep 2
           done
-          if [ "$DEVICE_READY" -ne 1 ]; then
-            echo "Le téléphone virtuel n’est pas apparu."
-            tail -n 200 emulator-runtime.log
-            exit 1
-          fi
-
           "$ADB" wait-for-device
+
           BOOT_READY=0
           for attempt in $(seq 1 150); do
             BOOT_COMPLETED=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
@@ -232,34 +219,40 @@ jobs:
             fi
             sleep 2
           done
-          if [ "$BOOT_READY" -ne 1 ]; then
-            echo "Android n’a pas terminé son démarrage."
-            tail -n 200 emulator-runtime.log
-            exit 1
-          fi
+          test "$BOOT_READY" = "1"
 
           "$ADB" shell settings put system accelerometer_rotation 0
-          "$ADB" shell settings put system user_rotation 0
+          "$ADB" shell settings put system user_rotation 1
+          "$ADB" shell wm size 2400x1080
+          "$ADB" shell wm density 420
           "$ADB" install -r build/CHK-Pirate-Warrior-V2-debug.apk
           "$ADB" logcat -c
           "$ADB" shell monkey -p fr.chk.piratewarrior.v2 -c android.intent.category.LAUNCHER 1
-          sleep 18
+          sleep 15
+
+          "$ADB" exec-out screencap -p > android-menu.png
+          "$ADB" shell input tap 260 285
+          sleep 10
+          "$ADB" shell input swipe 270 830 440 650 800
+          "$ADB" shell input tap 2180 830
+          sleep 4
+          "$ADB" exec-out screencap -p > android-gameplay.png
 
           "$ADB" shell wm size | tee android-window.txt
-          "$ADB" shell dumpsys activity activities | grep -m 1 'mResumedActivity' | tee -a android-window.txt
-          "$ADB" shell dumpsys window displays | grep -E -m 4 'orientation|mCurrentFocus|mFocusedApp' | tee -a android-window.txt || true
-          "$ADB" exec-out screencap -p > android-emulator.png
+          "$ADB" shell dumpsys activity top | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
+          "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
 
           python3 - <<'PY'
           import struct
           from pathlib import Path
-          path = Path('android-emulator.png')
-          assert path.stat().st_size > 10000, 'Capture Android vide'
-          with path.open('rb') as stream:
-              stream.seek(16)
-              width, height = struct.unpack('>II', stream.read(8))
-          print(f'Capture Android: {width}x{height}')
-          assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
+          for name in ('android-menu.png', 'android-gameplay.png'):
+              path = Path(name)
+              assert path.stat().st_size > 10000, f'Capture Android vide: {name}'
+              with path.open('rb') as stream:
+                  stream.seek(16)
+                  width, height = struct.unpack('>II', stream.read(8))
+              print(f'{name}: {width}x{height}')
+              assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
           PY
 
           "$ADB" logcat -d > android-logcat.txt
@@ -269,7 +262,7 @@ jobs:
           fi
           grep -q 'fr.chk.piratewarrior.v2' android-window.txt
 
-      - name: Publier les journaux et la capture Android
+      - name: Publier les journaux et les captures Android
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -286,6 +279,7 @@ jobs:
             emulator-runtime.log
             android-window.txt
             android-logcat.txt
-            android-emulator.png
+            android-menu.png
+            android-gameplay.png
           if-no-files-found: warn
           retention-days: 7
