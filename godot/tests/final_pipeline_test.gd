@@ -79,7 +79,7 @@ func _run() -> void:
 
 	# ÉTAPE 3 — sauvegarde et scène finale exportable.
 	var save := SaveSystem.default_data()
-	_check(save.has("hero_id") and save.has("unlocked_zones"), "la sauvegarde conserve le héros et la progression")
+	_check(save.has("hero") and save.has("zone") and save.has("unlocked_zones"), "la sauvegarde conserve le héros et la progression")
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	_check(packed != null, "la scène principale finale est chargeable")
 
