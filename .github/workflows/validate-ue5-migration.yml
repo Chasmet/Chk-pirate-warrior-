@@ -1,0 +1,65 @@
+name: Valider migration Unreal Engine 5.8
+
+on:
+  push:
+    branches:
+      - ue5-migration
+  pull_request:
+    paths:
+      - "unreal/**"
+      - ".github/workflows/validate-ue5-migration.yml"
+  workflow_dispatch:
+
+jobs:
+  validation-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vérifier le fichier uproject
+        run: |
+          python -m json.tool unreal/CHKPirateWarrior/CHKPirateWarrior.uproject > /dev/null
+          grep -q '"EngineAssociation": "5.8"' unreal/CHKPirateWarrior/CHKPirateWarrior.uproject
+
+      - name: Vérifier la structure C++
+        run: |
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior.Target.cs
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarriorEditor.Target.cs
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKPirateWarrior.Build.cs
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKCharacter.cpp
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKBoatPawn.cpp
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKSaveGame.h
+          grep -q 'IMPLEMENT_PRIMARY_GAME_MODULE' unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKPirateWarrior.cpp
+
+      - name: Vérifier la configuration Android
+        run: |
+          grep -q 'TargetSDKVersion=35' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'MinSDKVersion=26' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bBuildForArm64=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bSupportsVulkan=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+
+      - name: Vérifier les scripts Python
+        run: |
+          python -m py_compile unreal/CHKPirateWarrior/Scripts/import_original_assets.py
+
+      - name: Vérifier les assets originaux
+        run: |
+          for file in \
+            SM_CHK_Crate.obj \
+            SM_CHK_Rock_A.obj \
+            SM_CHK_Anchor.obj \
+            SM_CHK_DockModule.obj \
+            CHK_Original.mtl; do
+            test -s "unreal/CHKPirateWarrior/ContentSource/Original/$file"
+          done
+
+      - name: Résumé
+        run: |
+          echo "Migration Unreal Engine 5.8 : structure source valide."
+          echo "La compilation complète exige une installation Unreal Engine sur un runner Windows auto-hébergé."
