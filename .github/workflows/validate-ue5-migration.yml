@@ -52,7 +52,7 @@ jobs:
           python -m py_compile unreal/CHKPirateWarrior/Scripts/import_original_assets.py
           python -m py_compile unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py
 
-      - name: Contrôler le budget mobile de 5 Gio
+      - name: Contrôler le budget mobile de 5 Go
         run: |
           python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
 
@@ -70,5 +70,5 @@ jobs:
       - name: Résumé
         run: |
           echo "Migration Unreal Engine 5.8 : structure source valide."
-          echo "Budget Android verrouillé à 5 Gio maximum."
+          echo "Budget Android verrouillé : 4,5 Go livrés et 5 Go installés maximum."
           echo "La compilation complète exige une installation Unreal Engine sur un runner Windows auto-hébergé."
