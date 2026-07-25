@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_alpha_prepass;
+render_mode unshaded, cull_disabled, depth_prepass_alpha;
 
 uniform sampler2D albedo_texture : source_color;
 uniform vec3 key_color = vec3(1.0, 0.0, 1.0);
