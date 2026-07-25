@@ -1,18 +1,21 @@
-; CHK Pirate Warrior V2 — Godot 4.7.1
+; CHK Pirate Warrior — Godot 4.7.1
 ; Monde ouvert 3D mobile en français.
-; Les héros utilisent des textures JPEG détourées dédiées à Android.
+; Passe V3.2 : intégration monde des héros et présentation cinématique.
 
 config_version=5
 
 [application]
 
-config/name="CHK Pirate Warrior V3.0 Studio"
+config/name="CHK Pirate Warrior V3.2 AAA"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.012, 0.026, 0.052, 1)
-boot_splash/show_image=false
+boot_splash/show_image=true
+boot_splash/image="res://assets/ui/menu_reference.jpg"
+boot_splash/fullsize=true
+boot_splash/use_filter=true
 
 [autoload]
 
@@ -24,6 +27,7 @@ BoatPresentationDirector="*res://scripts/boat_presentation_director.gd"
 StudioGameplayUpgrade="*res://scripts/studio_gameplay_upgrade.gd"
 ArchipelagoMinimap="*res://scripts/archipelago_minimap.gd"
 TargetHealthHud="*res://scripts/target_health_hud.gd"
+AAAPresentationDirector="*res://scripts/aaa_presentation_director.gd"
 
 [display]
 
@@ -43,7 +47,7 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
-textures/default_filters/anisotropic_filtering_level=4
+textures/default_filters/anisotropic_filtering_level=8
 textures/vram_compression/import_etc2_astc=true
 lights_and_shadows/directional_shadow/size=2048
 anti_aliasing/quality/msaa_3d=2
