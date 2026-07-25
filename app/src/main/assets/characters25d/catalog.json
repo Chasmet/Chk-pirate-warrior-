@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "protectedHeroes": ["CHEIKH", "YVANE", "NELVYN"],
   "rules": {
     "format": "WEBP transparent",
@@ -17,22 +17,23 @@
   "islands": [
     {
       "index": 0,
-      "name": "Baie solaire",
-      "palette": ["#F5C451", "#D94A3A", "#2A526B"],
+      "name": "Port des Naufragés",
+      "palette": ["#2B211D", "#7B2F26", "#B88952"],
+      "reference": "docs/references/OFFICIAL_VISUAL_REFERENCES.md",
       "characters": [
-        {"id":"capitaine_helios","name":"Capitaine Hélios","rank":"BOSS","weapon":"sabre solaire","ability":"attaque de zone, charge lumineuse, seconde phase ardente","sheet":"characters25d/island_01/capitaine_helios/sheet.webp"},
-        {"id":"sirocco","name":"Sirocco","rank":"COMMANDER","weapon":"double sabre","ability":"enchaînements rapides et dash","sheet":"characters25d/island_01/sirocco/sheet.webp"},
-        {"id":"braise","name":"Braise","rank":"SUBORDINATE","weapon":"dague courbe","ability":"harcèlement et fumée aveuglante","sheet":"characters25d/island_01/braise/sheet.webp"},
-        {"id":"marea","name":"Maréa","rank":"COMMANDER","weapon":"deux pistolets","ability":"tir mobile et ricochets","sheet":"characters25d/island_01/marea/sheet.webp"},
-        {"id":"cliquet","name":"Cliquet","rank":"SUBORDINATE","weapon":"carabine courte","ability":"tirs de couverture","sheet":"characters25d/island_01/cliquet/sheet.webp"},
-        {"id":"baron_tambour","name":"Baron Tambour","rank":"COMMANDER","weapon":"marteau naval","ability":"ondes de choc","sheet":"characters25d/island_01/baron_tambour/sheet.webp"},
-        {"id":"pave","name":"Pavé","rank":"SUBORDINATE","weapon":"bouclier lourd","ability":"blocage et poussée","sheet":"characters25d/island_01/pave/sheet.webp"}
+        {"id":"brakor","name":"Brakor, Gardien du Port","rank":"BOSS","weapon":"grande ancre-chaîne","ability":"traction par chaîne, choc d'ancre, contrôle de zone, phase de rage","sheet":"characters25d/island_01/brakor/sheet.webp"},
+        {"id":"tireur_quais","name":"Tireur des Quais","rank":"COMMANDER","weapon":"fusil long","ability":"tirs de précision, recul tactique, salves de couverture","sheet":"characters25d/island_01/tireur_quais/sheet.webp"},
+        {"id":"voleur_agile","name":"Voleur Agile","rank":"SUBORDINATE","weapon":"double lame","ability":"esquive, attaque dans le dos, vol rapide","sheet":"characters25d/island_01/voleur_agile/sheet.webp"},
+        {"id":"maitre_croc","name":"Maître Croc","rank":"COMMANDER","weapon":"sabre courbe et crochet","ability":"duel agressif, crochet d'attraction, contre-attaque","sheet":"characters25d/island_01/maitre_croc/sheet.webp"},
+        {"id":"porte_chaine","name":"Porte-Chaîne","rank":"SUBORDINATE","weapon":"masse-chaîne","ability":"attaque circulaire, interruption et renversement","sheet":"characters25d/island_01/porte_chaine/sheet.webp"},
+        {"id":"ingenieur_amarres","name":"Ingénieur des Amarres","rank":"COMMANDER","weapon":"outils, chaînes et masse mécanique","ability":"pièges, immobilisation et dispositifs du quai","sheet":"characters25d/island_01/ingenieur_amarres/sheet.webp"},
+        {"id":"guetteur_phare","name":"Guetteur du Phare","rank":"SUBORDINATE","weapon":"longue-vue, pistolet et lame courte","ability":"repérage, marquage de cible et tir à distance","sheet":"characters25d/island_01/guetteur_phare/sheet.webp"}
       ]
     },
     {
       "index": 1,
-      "name": "Royaume des glaces",
-      "palette": ["#DFF4FF", "#6AAED6", "#263B59"],
+      "name": "Jungle Sauvage",
+      "palette": ["#7CCB78", "#315E3F", "#D0E4BC"],
       "characters": [
         {"id":"roi_boreal","name":"Roi Boréal","rank":"BOSS","weapon":"grande épée de glace","ability":"gel, murs de glace, tempête blanche","sheet":"characters25d/island_02/roi_boreal/sheet.webp"},
         {"id":"hastel","name":"Hastel","rank":"COMMANDER","weapon":"lance givrée","ability":"charges perforantes","sheet":"characters25d/island_02/hastel/sheet.webp"},
@@ -45,8 +46,8 @@
     },
     {
       "index": 2,
-      "name": "Désert des corsaires",
-      "palette": ["#E6B85C", "#A85D2A", "#3F2B23"],
+      "name": "Royaume des Neiges",
+      "palette": ["#DFF4FF", "#6AAED6", "#263B59"],
       "characters": [
         {"id":"sultan_dune","name":"Sultan des Dunes","rank":"BOSS","weapon":"cimeterre royal","ability":"mirages, tempête de sable, attaque souterraine","sheet":"characters25d/island_03/sultan_dune/sheet.webp"},
         {"id":"zahir","name":"Zahir","rank":"COMMANDER","weapon":"lames courbes","ability":"téléportations courtes","sheet":"characters25d/island_03/zahir/sheet.webp"},
@@ -59,8 +60,8 @@
     },
     {
       "index": 3,
-      "name": "Volcan rouge",
-      "palette": ["#FF7A3D", "#7A1F22", "#2B2020"],
+      "name": "Désert des Corsaires",
+      "palette": ["#E6B85C", "#A85D2A", "#3F2B23"],
       "characters": [
         {"id":"seigneur_magma","name":"Seigneur Magma","rank":"BOSS","weapon":"hallebarde volcanique","ability":"lave, explosion, armure en fusion","sheet":"characters25d/island_04/seigneur_magma/sheet.webp"},
         {"id":"ignara","name":"Ignara","rank":"COMMANDER","weapon":"fouets de lave","ability":"zones brûlantes","sheet":"characters25d/island_04/ignara/sheet.webp"},
@@ -73,8 +74,8 @@
     },
     {
       "index": 4,
-      "name": "Jungle brumeuse",
-      "palette": ["#7CCB78", "#315E3F", "#D0E4BC"],
+      "name": "Île Volcanique",
+      "palette": ["#FF7A3D", "#7A1F22", "#2B2020"],
       "characters": [
         {"id":"reine_mousson","name":"Reine Mousson","rank":"BOSS","weapon":"lame végétale","ability":"brume, racines, poison","sheet":"characters25d/island_05/reine_mousson/sheet.webp"},
         {"id":"liane","name":"Liane","rank":"COMMANDER","weapon":"fouet végétal","ability":"immobilisation","sheet":"characters25d/island_05/liane/sheet.webp"},
@@ -87,7 +88,7 @@
     },
     {
       "index": 5,
-      "name": "Mer de la tempête",
+      "name": "Forteresse de la Tempête",
       "palette": ["#87C8FF", "#42507A", "#E9F1FF"],
       "characters": [
         {"id":"amiral_foudre","name":"Amiral Foudre","rank":"BOSS","weapon":"trident électrique","ability":"éclairs, vagues, phase orage","sheet":"characters25d/island_06/amiral_foudre/sheet.webp"},
