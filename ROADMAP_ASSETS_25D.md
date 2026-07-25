@@ -1,139 +1,142 @@
-# Feuille de route — Assets 2.5D et faune 3D
+# Feuille de route - Assets 2.5D et faune 3D
 
 ## Règle de validation
 
-Un personnage n'est **pas terminé** uniquement parce que sa fiche JSON existe. Il devient terminé seulement lorsque :
+Un personnage n'est pas terminé uniquement parce que sa fiche JSON ou une illustration de référence existe. Il devient terminé seulement lorsque :
 
-1. sa planche artistique `sheet.webp` est produite ;
-2. toutes ses bandes d'animation WEBP existent ;
+1. sa planche artistique de référence est verrouillée ;
+2. toutes ses bandes d'animation WEBP transparentes existent ;
 3. les quatre directions sont cohérentes ;
-4. le moteur Android les charge réellement ;
-5. les collisions et attaques correspondent aux frames ;
-6. GitHub Actions valide les tests, le lint et `assembleDebug` ;
-7. un test sur téléphone confirme la stabilité.
+4. le pivot est centré au niveau des pieds ;
+5. le moteur Android charge réellement les bandes ;
+6. les collisions et attaques correspondent aux frames ;
+7. GitHub Actions valide les tests, le lint et `assembleDebug` ;
+8. un test sur téléphone confirme le rendu et la stabilité.
 
-## Personnages originaux protégés
+## Héros originaux protégés
 
 - [x] Cheikh conservé dans le projet.
 - [x] Yvane conservé dans le projet.
 - [x] Nelvyn conservé dans le projet.
-- [ ] Retrouver et reconnecter les planches artistiques originales exactes.
-- [ ] Remplacer les frames provisoires générées par le code.
-- [ ] Valider les animations marche, course, attaque, saut, dégâts et pilotage.
+- [ ] Retrouver et reconnecter les planches artistiques originales exactes du menu officiel.
+- [ ] Remplacer les frames provisoires générées par `Character25D`.
+- [ ] Valider marche, course, attaque, saut, dégâts, esquive et pilotage.
 
 ## Infrastructure commune
 
 - [x] Catalogue Java des 42 ennemis importants 2.5D.
-- [x] Catalogue JSON des chemins et palettes.
-- [x] Format officiel des planches de référence.
-- [x] Format mobile des bandes d'animation.
+- [x] Catalogue JSON synchronisé avec les six rosters officiels.
+- [x] Format WEBP transparent 256 x 256 par frame.
 - [x] Chargeur Android `SpriteStrip25D`.
-- [x] Tests sur les quantités, identifiants et chemins.
-- [ ] Gestionnaire de cache par île.
-- [ ] Libération automatique des textures au changement d'île.
-- [ ] Fallback visuel lorsque l'asset est absent.
-- [ ] Liaison animation/attaque/collision.
+- [x] Cache `Enemy25DAssetBank` limité aux sept personnages de l'île active.
+- [x] Libération des textures au changement d'île.
+- [x] Journalisation des fichiers manquants et invalides.
+- [x] Fallback conservé lorsque les bandes sont absentes.
+- [ ] Liaison complète animation / attaque / collision / recul / défaite.
+- [ ] Vérification visuelle automatique des pivots et dimensions.
 
-## Boss 2.5D
+## État réel des six îles
 
-### Île 1 — Baie solaire
+Le PDF officiel contient une référence visuelle pour chaque île. Il ne contient pas encore les bandes WEBP transparentes finales prêtes à être utilisées directement par le moteur.
 
-- [x] Fiche technique : Capitaine Hélios.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+### Île 1 - Port des Naufragés
 
-### Île 2 — Royaume des glaces
+Roster officiel :
 
-- [x] Fiche technique : Roi Boréal.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+- Boss : Brakor.
+- Commandants : Tireur des Quais, Maître Croc, Ingénieur des Amarres.
+- Subordonnés importants : Voleur Agile, Porte-Chaîne, Guetteur du Phare.
 
-### Île 3 — Désert des corsaires
+État :
 
-- [x] Fiche technique : Sultan des Dunes.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+- [x] Référence visuelle reçue.
+- [x] Noms et identifiants verrouillés.
+- [ ] `sheet.webp` transparent de Brakor.
+- [ ] Bandes de Brakor : idle, walk, run, attack, power, special, dodge, hurt, knockback, defeat, intro, rage, phase2, area_attack, ultimate.
+- [ ] Bandes des six autres personnages.
+- [ ] Intégration IA et test sur téléphone.
 
-### Île 4 — Volcan rouge
+### Île 2 - Jungle Sauvage
 
-- [x] Fiche technique : Seigneur Magma.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+Roster officiel :
 
-### Île 5 — Jungle brumeuse
+- Boss : Malkor.
+- Commandants : Zaya, Kongo, Silex.
+- Subordonnés importants : Ronce, Tika, Mamba.
 
-- [x] Fiche technique : Reine Mousson.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+État :
 
-### Île 6 — Mer de la tempête
+- [x] Référence visuelle reçue.
+- [x] Noms et identifiants verrouillés.
+- [ ] Planches transparentes et bandes d'animation.
+- [ ] Intégration IA et test sur téléphone.
 
-- [x] Fiche technique : Amiral Foudre.
-- [ ] Planche artistique WEBP.
-- [ ] Bandes d'animation.
-- [ ] Phase 2 et attaque ultime.
-- [ ] Intégration moteur.
+### Île 3 - Royaume des Neiges
 
-## Commandants et subordonnés 2.5D
+Roster officiel :
 
-### Baie solaire
+- Boss : Skarn.
+- Commandants : Eira, Volkr, Nivor.
+- Subordonnés importants : Brume, Harka, Flint.
 
-- [x] Sirocco + Braise : fiche technique.
-- [x] Maréa + Cliquet : fiche technique.
-- [x] Baron Tambour + Pavé : fiche technique.
-- [ ] Planches artistiques et animations.
+État :
 
-### Royaume des glaces
+- [x] Référence visuelle détaillée reçue.
+- [x] Noms et identifiants verrouillés.
+- [ ] Extraire ou redessiner de vraies bandes transparentes ; les miniatures de la planche ne sont pas des assets finaux.
+- [ ] Intégration IA et test sur téléphone.
 
-- [x] Hastel + Givre : fiche technique.
-- [x] Sylka + Flocon : fiche technique.
-- [x] Brakka + Stal : fiche technique.
-- [ ] Planches artistiques et animations.
+### Île 4 - Désert des Corsaires
 
-### Désert des corsaires
+Roster textuel officiel utilisé par le code :
 
-- [x] Zahir + Kef : fiche technique.
-- [x] Noura + Mira : fiche technique.
-- [x] Grom + Roc : fiche technique.
-- [ ] Planches artistiques et animations.
+- Boss : Zahrek.
+- Commandants : Qamar, Sirok, Dune.
+- Subordonnés importants : Khepri, Safra, Rakh.
 
-### Volcan rouge
+État :
 
-- [x] Ignara + Cendre : fiche technique.
-- [x] Bombax + Mèche : fiche technique.
-- [x] Chainor + Crochet : fiche technique.
-- [ ] Planches artistiques et animations.
+- [x] Référence visuelle reçue.
+- [x] Roster textuel verrouillé dans le code.
+- [!] L'illustration du PDF affiche des noms différents ; validation artistique nécessaire avant la production finale.
+- [ ] Planches transparentes et bandes d'animation.
+- [ ] Intégration IA et test sur téléphone.
 
-### Jungle brumeuse
+### Île 5 - Île Volcanique
 
-- [x] Liane + Ronce : fiche technique.
-- [x] Totem + Masque : fiche technique.
-- [x] Koba + Singe Rouge : fiche technique.
-- [ ] Planches artistiques et animations.
+Roster officiel :
 
-### Mer de la tempête
+- Boss : Vulkar.
+- Commandants : Cendre, Magma, Pyros.
+- Subordonnés importants : Basalte, Scorie, Fumar.
 
-- [x] Volt + Étincelle : fiche technique.
-- [x] Zéphira + Rafale : fiche technique.
-- [x] Tonnerre + Mousse Noir : fiche technique.
-- [ ] Planches artistiques et animations.
+État :
+
+- [x] Référence visuelle détaillée reçue.
+- [x] Noms et identifiants verrouillés.
+- [ ] Planches transparentes et bandes d'animation.
+- [ ] Intégration IA et test sur téléphone.
+
+### Île 6 - Forteresse de la Tempête
+
+Roster officiel :
+
+- Boss : Tempyr.
+- Commandants : Orage, Volt, Cyclone.
+- Subordonnés importants : Brisk, Tonnerre, Fulgur.
+
+État :
+
+- [x] Référence visuelle détaillée reçue.
+- [x] Noms et identifiants verrouillés.
+- [ ] Planches transparentes et bandes d'animation.
+- [ ] Intégration IA et test sur téléphone.
 
 ## Faune et créatures 3D
 
 - [x] Catalogue de 48 espèces ou variantes.
-- [x] 8 entrées par île.
-- [x] 2 paisibles, 2 hostiles, 2 oiseaux, 1 rare et 1 marine par île.
-- [x] Budget maximal d'instances par espèce.
+- [x] Huit entrées prévues par île.
+- [x] Budget maximal d'instances défini.
 - [ ] Modèles GLB optimisés.
 - [ ] Textures compressées.
 - [ ] LOD proche, moyen et lointain.
@@ -143,9 +146,12 @@ Un personnage n'est **pas terminé** uniquement parce que sa fiche JSON existe. 
 ## Ordre de production
 
 1. reconnecter les trois héros originaux ;
-2. produire et intégrer Capitaine Hélios ;
-3. produire les six personnages liés de l'île 1 ;
-4. valider mémoire, collisions et fluidité sur Android ;
-5. reproduire le processus île par île ;
-6. intégrer ensuite les animaux 3D avec LOD ;
-7. fusionner dans `main` seulement après validation complète.
+2. produire Brakor et ses bandes complètes ;
+3. produire les six personnages importants du Port des Naufragés ;
+4. intégrer les animations aux états d'IA ;
+5. valider mémoire, collisions et fluidité sur Android ;
+6. demander une vidéo de gameplay ;
+7. corriger avant de passer à la Jungle Sauvage ;
+8. continuer île par île dans l'ordre officiel ;
+9. intégrer ensuite les animaux 3D avec LOD ;
+10. fusionner dans `main` uniquement après validation complète.
