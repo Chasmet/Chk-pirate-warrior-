@@ -179,10 +179,9 @@ func _trigger_boss_special(enemy: EnemyAI, distance: float) -> void:
 func _queue_area_hit(enemy: EnemyAI, radius: float, damage_multiplier: float, delay: float) -> void:
 	var enemy_ref := weakref(enemy)
 	get_tree().create_timer(delay).timeout.connect(func():
-		var resolved = enemy_ref.get_ref()
-		if not resolved is EnemyAI:
+		var active := enemy_ref.get_ref() as EnemyAI
+		if not is_instance_valid(active):
 			return
-		var active := resolved as EnemyAI
 		if active.health <= 0.0 or not is_instance_valid(active.target):
 			return
 		if active.global_position.distance_to(active.target.global_position) <= radius:
