@@ -11,4 +11,5 @@ class CHKPIRATEWARRIOR_API ACHKGameMode : public AGameModeBase
 
 public:
     ACHKGameMode();
+    virtual void StartPlay() override;
 };
