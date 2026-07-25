@@ -31,7 +31,13 @@ public:
     ACHKCharacter* GetActiveCharacter() const;
 
     UFUNCTION(BlueprintPure, Category="HUD")
+    ACHKBoatPawn* GetActiveBoat() const;
+
+    UFUNCTION(BlueprintPure, Category="HUD")
     bool IsSailing() const;
+
+    UFUNCTION(BlueprintPure, Category="HUD")
+    float GetBoatSpeedKmh() const;
 
     UFUNCTION(BlueprintPure, Category="HUD")
     FString GetMissionText() const { return MissionText; }
@@ -55,6 +61,8 @@ private:
     void TouchPressed(ETouchIndex::Type FingerIndex, FVector Location);
     ACHKBoatPawn* FindNearestBoat(float MaximumDistance) const;
     void ApplyLoadedProgress();
+    void ClampCameraPitch();
+    bool IsTouchInsideButton(const FVector2D& TouchPosition, const FVector2D& ButtonCenter, float Radius) const;
 
     TWeakObjectPtr<ACHKCharacter> LandCharacter;
     TWeakObjectPtr<ACHKBoatPawn> ActiveBoat;
