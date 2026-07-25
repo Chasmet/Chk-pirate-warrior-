@@ -1,57 +1,26 @@
-extends CanvasLayer
+extends Node
 
-const SOURCE_LAYER := 1 << 19
+# Les héros restent dans le monde 3D : perspective, occultation par les murs,
+# distance réelle et caméra 360°. Le shader retire le fond magenta des JPEG
+# sans projeter le personnage comme une image collée à l'écran.
+
 const VISIBLE_LAYER := 1
+const WORLD_SHADER := preload("res://shaders/hero_chroma_world.gdshader")
 
 var player: PlayerController
 var tracked_visual_id := 0
 var source_sprite: Sprite3D
-var hero_view: TextureRect
-var atlas_texture: AtlasTexture
-var chroma_material: ShaderMaterial
+var world_material: ShaderMaterial
 var tracked_texture: Texture2D
-var tracked_hframes := -1
-var tracked_frame := -1
 var label_cleanup_timer := 0.0
-var animation_time := 0.0
+var renderer_logged := false
 
 func _ready() -> void:
-	layer = 0
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = 2000
-	hero_view = TextureRect.new()
-	hero_view.name = "HérosOriginalProjeté"
-	hero_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hero_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hero_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hero_view.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	hero_view.visible = false
-	add_child(hero_view)
-	atlas_texture = AtlasTexture.new()
-	hero_view.texture = atlas_texture
-
-	var shader := Shader.new()
-	shader.code = """
-shader_type canvas_item;
-render_mode unshaded;
-
-uniform vec3 key_color = vec3(1.0, 0.0, 1.0);
-uniform float key_inner = 0.10;
-uniform float key_outer = 0.32;
-
-void fragment() {
-    vec4 source = texture(TEXTURE, UV);
-    float key_distance = distance(source.rgb, key_color);
-    float chroma_alpha = smoothstep(key_inner, key_outer, key_distance);
-    COLOR = vec4(source.rgb, source.a * chroma_alpha) * COLOR;
-}
-"""
-	chroma_material = ShaderMaterial.new()
-	chroma_material.shader = shader
-	hero_view.material = chroma_material
 	set_process(true)
 
 func _process(delta: float) -> void:
-	animation_time += delta
 	label_cleanup_timer -= delta
 	if label_cleanup_timer <= 0.0:
 		label_cleanup_timer = 0.35
@@ -60,11 +29,11 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		player = _find_player()
 		tracked_visual_id = 0
+		renderer_logged = false
 		if not is_instance_valid(player):
-			hero_view.visible = false
 			return
+
 	if not is_instance_valid(player.hero_visual):
-		hero_view.visible = false
 		return
 	if player.hero_visual.get_instance_id() != tracked_visual_id:
 		tracked_visual_id = player.hero_visual.get_instance_id()
@@ -72,84 +41,54 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(source_sprite):
 		_bind_current_hero()
 	if not is_instance_valid(source_sprite) or not is_instance_valid(player.camera):
-		hero_view.visible = false
 		return
 
-	source_sprite.layers = SOURCE_LAYER
-	source_sprite.visible = true
-	player.camera.cull_mask &= ~SOURCE_LAYER
-	player.camera.cull_mask |= VISIBLE_LAYER
-	var old_renderer := player.hero_visual.get_node_or_null("RigVisuel/CharacterRenderer3D") as MeshInstance3D
-	if is_instance_valid(old_renderer):
-		old_renderer.visible = false
-
-	_sync_atlas()
-	_update_screen_position()
+	_apply_world_space_rules()
+	_sync_material()
 
 func _bind_current_hero() -> void:
 	source_sprite = null
+	world_material = null
 	tracked_texture = null
-	tracked_hframes = -1
-	tracked_frame = -1
 	if not is_instance_valid(player) or not is_instance_valid(player.hero_visual):
 		return
 	source_sprite = player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	if source_sprite == null:
 		return
-	source_sprite.layers = SOURCE_LAYER
-	_sync_atlas(true)
-	print("CHK_HERO_SCREEN_RENDERER_READY hero=%s" % player.hero_id)
+	world_material = ShaderMaterial.new()
+	world_material.shader = WORLD_SHADER
+	world_material.set_shader_parameter("key_inner", 0.075)
+	world_material.set_shader_parameter("key_outer", 0.31)
+	world_material.set_shader_parameter("contrast", 1.07)
+	world_material.set_shader_parameter("saturation", 1.08)
+	source_sprite.material_override = world_material
+	_sync_material(true)
+	if not renderer_logged:
+		renderer_logged = true
+		print("CHK_HERO_WORLD_MATERIAL_READY hero=%s depth_test=1 chroma_key=1" % player.hero_id)
 
-func _sync_atlas(force: bool = false) -> void:
+func _apply_world_space_rules() -> void:
+	source_sprite.layers = VISIBLE_LAYER
+	source_sprite.visible = true
+	source_sprite.no_depth_test = false
+	source_sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	source_sprite.double_sided = true
+	source_sprite.shaded = false
+	source_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	source_sprite.render_priority = 4
+	player.camera.cull_mask |= VISIBLE_LAYER
+
+func _sync_material(force: bool = false) -> void:
+	if not is_instance_valid(source_sprite) or world_material == null:
+		return
 	var texture := source_sprite.texture
-	var hframes := maxi(1, source_sprite.hframes)
-	var frame := clampi(source_sprite.frame, 0, hframes - 1)
 	if texture == null:
-		hero_view.visible = false
+		source_sprite.visible = false
 		return
 	if force or texture != tracked_texture:
 		tracked_texture = texture
-		atlas_texture.atlas = texture
-	if force or hframes != tracked_hframes or frame != tracked_frame:
-		tracked_hframes = hframes
-		tracked_frame = frame
-		var frame_width := float(texture.get_width()) / float(hframes)
-		atlas_texture.region = Rect2(frame_width * float(frame), 0.0, frame_width, float(texture.get_height()))
-	hero_view.modulate = source_sprite.modulate
-
-func _update_screen_position() -> void:
-	var texture := source_sprite.texture
-	if texture == null:
-		hero_view.visible = false
-		return
-	var viewport_size := get_viewport().get_visible_rect().size
-	var frame_width := float(texture.get_width()) / float(maxi(1, source_sprite.hframes))
-	var aspect := frame_width / maxf(float(texture.get_height()), 1.0)
-	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
-	var movement := clampf(horizontal_speed / maxf(player._movement_speed(), 0.1), 0.0, 1.0) if not player.boat_mode else clampf(absf(player.boat_speed) / PlayerController.BOAT_MAX_SPEED, 0.0, 1.0)
-	var stride := sin(animation_time * lerpf(4.2, 11.5, movement))
-	var breathing := sin(animation_time * 2.8) * 2.0
-	var action_pulse := 1.035 if tracked_frame in [2, 3] else 1.0
-
-	if player.boat_mode:
-		var world_anchor := player.global_position + Vector3.UP * 2.15
-		if player.camera.is_position_behind(world_anchor):
-			hero_view.visible = false
-			return
-		var projected := player.camera.unproject_position(world_anchor)
-		var display_height := viewport_size.y * 0.155 * action_pulse
-		var display_size := Vector2(display_height * aspect, display_height)
-		var sway := Vector2(stride * 2.2, breathing + absf(stride) * 2.0 * movement)
-		hero_view.position = projected - Vector2(display_size.x * 0.5, display_size.y * 0.88) + sway
-		hero_view.size = display_size
-	else:
-		var display_height := viewport_size.y * 0.45 * action_pulse
-		var display_size := Vector2(display_height * aspect, display_height)
-		var center_x := viewport_size.x * 0.50 + stride * 4.0 * movement
-		var bottom_y := viewport_size.y * 0.92 + breathing + absf(stride) * 7.0 * movement
-		hero_view.position = Vector2(center_x - display_size.x * 0.5, bottom_y - display_size.y)
-		hero_view.size = display_size
-	hero_view.visible = true
+		world_material.set_shader_parameter("albedo_texture", texture)
+	world_material.set_shader_parameter("tint", source_sprite.modulate)
 
 func _hide_broken_world_labels() -> void:
 	_hide_labels_recursive(get_tree().root)
@@ -158,7 +97,7 @@ func _hide_labels_recursive(node: Node) -> void:
 	if node is Label3D:
 		var label := node as Label3D
 		label.visible = false
-		label.layers = SOURCE_LAYER
+		label.layers = 1 << 19
 	for child in node.get_children():
 		_hide_labels_recursive(child)
 
