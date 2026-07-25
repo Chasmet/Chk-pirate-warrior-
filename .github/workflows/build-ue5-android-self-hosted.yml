@@ -16,12 +16,23 @@ jobs:
         with:
           lfs: true
 
+      - name: Installer Python pour les contrôles
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Vérifier Unreal Engine
         shell: pwsh
         run: |
           if (-not $env:UE_ROOT) { throw "La variable UE_ROOT doit pointer vers Unreal Engine 5.8." }
           $uat = Join-Path $env:UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
           if (-not (Test-Path $uat)) { throw "RunUAT.bat introuvable dans UE_ROOT." }
+
+      - name: Contrôler le budget des sources
+        shell: pwsh
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Construire et empaqueter Android
         shell: pwsh
@@ -32,15 +43,23 @@ jobs:
             -project="$env:PROJECT" `
             -noP4 `
             -platform=Android `
-            -clientconfig=Development `
+            -clientconfig=Shipping `
             -build `
             -cook `
             -stage `
             -pak `
             -iostore `
+            -compressed `
+            -nodebuginfo `
             -archive `
             -archivedirectory="$env:OUTPUT" `
             -utf8output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Refuser tout build supérieur à 5 Gio
+        shell: pwsh
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py "$env:OUTPUT" --build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Calculer les empreintes
