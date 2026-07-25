@@ -85,20 +85,33 @@ jobs:
           cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
           test -s "$TEMPLATE_DIR/android_debug.apk"
 
-      - name: Importer les ressources
+      - name: Importer les ressources et vérifier les scripts
         shell: bash
         run: |
           set -o pipefail
           timeout 300s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Tester sans bloquer la création de l'APK
-        continue-on-error: true
+      - name: Tester réellement le démarrage
         shell: bash
         run: |
-          set +e
-          timeout 240s "$GODOT_BIN" --headless --path godot --quit-after 180 2>&1 | tee godot-runtime.log
+          set -o pipefail
+          timeout 240s "$GODOT_BIN" --headless --path godot --quit-after 240 2>&1 | tee godot-runtime.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|ERROR:' godot-runtime.log
+
+      - name: Tester caméra océan relief et cadrage
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/camera_regression_test.gd 2>&1 | tee godot-camera-test.log
+          grep -q 'CAMERA REGRESSION TEST RÉUSSI' godot-camera-test.log
+
+      - name: Tester le pipeline complet
+        shell: bash
+        run: |
+          set -o pipefail
           "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
-          exit 0
+          grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
       - name: Construire l'APK Android finale
         shell: bash
@@ -112,13 +125,14 @@ jobs:
           unzip -t build/CHK-Pirate-Warrior-Final-debug.apk >/dev/null
           sha256sum build/CHK-Pirate-Warrior-Final-debug.apk | tee build/SHA256.txt
 
-      - name: Publier l'APK réelle
+      - name: Publier l'APK testée
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-Final-APK
+          name: CHK-Pirate-Warrior-Tested-APK
           path: |
             build/CHK-Pirate-Warrior-Final-debug.apk
             build/SHA256.txt
+            godot-camera-test.log
             godot-final-test.log
             godot-export.log
           if-no-files-found: error
@@ -128,10 +142,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-Final-diagnostics
+          name: CHK-Pirate-Warrior-Test-diagnostics
           path: |
             godot-import.log
             godot-runtime.log
+            godot-camera-test.log
             godot-final-test.log
             godot-export.log
           if-no-files-found: ignore
