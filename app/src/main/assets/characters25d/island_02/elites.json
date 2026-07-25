@@ -1,0 +1,68 @@
+{
+  "island": 1,
+  "name": "Royaume des glaces",
+  "commanders": [
+    {
+      "id": "hastel",
+      "name": "Hastel",
+      "silhouette": "lancier grand et droit, manteau blanc étroit",
+      "face": "joues creuses, barbe courte grise, casque ouvert",
+      "weapon": "lance givrée à pointe bleue",
+      "combatRole": "charger",
+      "signature": "charge perforante laissant une traînée de glace",
+      "continuity": ["lance main droite", "cape blanche", "épaulette bleue gauche"]
+    },
+    {
+      "id": "sylka",
+      "name": "Sylka",
+      "silhouette": "archère souple avec cape en fourrure courte",
+      "face": "visage fin, cheveux blancs tressés, masque sous les yeux",
+      "weapon": "arc polaire translucide",
+      "combatRole": "ranged_trapper",
+      "signature": "pièges de glace et flèches ralentissantes",
+      "continuity": ["tresse côté droit", "carquois dans le dos", "arc tenu main gauche"]
+    },
+    {
+      "id": "brakka",
+      "name": "Brakka",
+      "silhouette": "guerrier blindé très large, bras surdimensionnés",
+      "face": "mâchoire carrée, barbe gelée, casque sans cornes",
+      "weapon": "gantelets blindés",
+      "combatRole": "heavy_guard",
+      "signature": "garde totale puis contre-coup brise-armure",
+      "continuity": ["gantelet droit plus volumineux", "fourrure sombre", "casque sans décoration"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "givre",
+      "name": "Givre",
+      "linkedCommander": "hastel",
+      "silhouette": "éclaireur léger avec plusieurs javelots",
+      "weapon": "javelots courts",
+      "combatRole": "skirmisher",
+      "signature": "lance un javelot puis recule",
+      "continuity": ["trois javelots dans le dos", "capuche bleue", "gant blanc main droite"]
+    },
+    {
+      "id": "flocon",
+      "name": "Flocon",
+      "linkedCommander": "sylka",
+      "silhouette": "arbalétrier compact avec épaules couvertes de neige",
+      "weapon": "arbalète répétitive",
+      "combatRole": "burst_ranged",
+      "signature": "salve courte de trois carreaux",
+      "continuity": ["arbalète tenue à deux mains", "lunette sur l'œil gauche", "manteau gris"]
+    },
+    {
+      "id": "stal",
+      "name": "Stal",
+      "linkedCommander": "brakka",
+      "silhouette": "soldat trapu en plaques de glace",
+      "weapon": "masse courte",
+      "combatRole": "guard_breaker",
+      "signature": "frappe verticale qui casse la garde",
+      "continuity": ["masse main droite", "bouclier dorsal", "casque fermé"]
+    }
+  ]
+}
