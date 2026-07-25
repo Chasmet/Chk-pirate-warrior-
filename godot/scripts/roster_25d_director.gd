@@ -118,6 +118,7 @@ func _apply_pending_boss_visual() -> void:
 		var profile := Enemy25DCatalog.boss_for_zone(zone_index)
 		profile["difficulty"] = world.difficulty
 		profile["zone"] = zone_index
+		profile["id"] = String(boss.profile.get("id", profile["id"]))
 		_upgrade_existing_boss(boss, profile)
 
 func _upgrade_existing_boss(boss: EnemyAI, profile: Dictionary) -> void:
@@ -145,6 +146,8 @@ func _upgrade_existing_boss(boss: EnemyAI, profile: Dictionary) -> void:
 		label.text = String(profile["name"])
 		label.position.y = 4.0
 	Enemy25DVisual.apply(boss, profile)
+	if is_instance_valid(world):
+		world.call("_set_mission", "BOSS DE L’ÎLE : " + String(profile["name"]))
 	print("CHK_BOSS_25D_READY zone=%d name=%s" % [int(profile["zone"]), String(profile["name"])])
 
 func _update_ai_lod() -> void:
