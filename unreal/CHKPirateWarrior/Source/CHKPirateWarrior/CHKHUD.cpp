@@ -15,16 +15,35 @@ void ACHKHUD::DrawHUD()
         return;
     }
 
-    const ACHKPlayerController* Controller = Cast<ACHKPlayerController>(GetOwningPlayerController());
-    const ACHKCharacter* Character = Controller ? Controller->GetActiveCharacter() : nullptr;
-    if (!Controller || !Character)
-    {
-        return;
-    }
-
     const float Width = Canvas->SizeX;
     const float Height = Canvas->SizeY;
     const float UiScale = FMath::Clamp(Height / 1080.0f, 0.70f, 1.35f);
+
+    const ACHKPlayerController* Controller = Cast<ACHKPlayerController>(GetOwningPlayerController());
+    const ACHKCharacter* Character = Controller ? Controller->GetActiveCharacter() : nullptr;
+
+    // L'écran d'entrée d'Unreal peut rester visible plusieurs images sur Android.
+    // On couvre immédiatement tout le framebuffer pour éviter le flash blanc,
+    // puis on affiche un état de chargement jusqu'à ce que le héros soit possédé.
+    if (!Controller || !Character)
+    {
+        DrawFilledRect(FVector2D::ZeroVector, FVector2D(Width, Height), FLinearColor(0.002f, 0.006f, 0.014f, 1.0f));
+
+        const FVector2D PanelSize(FMath::Min(Width * 0.76f, 980.0f * UiScale), 230.0f * UiScale);
+        const FVector2D PanelPosition((Width - PanelSize.X) * 0.5f, (Height - PanelSize.Y) * 0.5f);
+        DrawFilledRect(PanelPosition, PanelSize, FLinearColor(0.018f, 0.045f, 0.075f, 0.98f));
+
+        DrawLabel(TEXT("CHK PIRATE WARRIOR"),
+            PanelPosition + FVector2D(58.0f * UiScale, 45.0f * UiScale),
+            FLinearColor(1.0f, 0.70f, 0.16f, 1.0f), 1.18f * UiScale, true);
+        DrawLabel(TEXT("CHARGEMENT DE L'ARCHIPEL..."),
+            PanelPosition + FVector2D(60.0f * UiScale, 128.0f * UiScale),
+            FLinearColor::White, 0.90f * UiScale);
+        DrawLabel(TEXT("Préparation des îles, du héros et du navire"),
+            PanelPosition + FVector2D(60.0f * UiScale, 170.0f * UiScale),
+            FLinearColor(0.58f, 0.74f, 0.88f, 1.0f), 0.72f * UiScale);
+        return;
+    }
 
     DrawFilledRect(FVector2D(24.0f * UiScale, 22.0f * UiScale), FVector2D(610.0f * UiScale, 152.0f * UiScale), FLinearColor(0.005f, 0.012f, 0.025f, 0.78f));
     DrawLabel(Character->GetHeroDisplayName(), FVector2D(46.0f * UiScale, 36.0f * UiScale), FLinearColor(1.0f, 0.76f, 0.18f, 1.0f), UiScale, true);
