@@ -18,14 +18,14 @@ SOURCE = ROOT / "Source" / "CHKPirateWarrior"
 REQUIRED_FILES = {
     "CHKCharacter.h": ["RequestAttack", "RequestSkill", "SwitchHero", "AddRewards"],
     "CHKCharacter.cpp": ["DamageEnemiesInArc", "ÉPÉE INFERNALE", "BOULE DU BIG BANG"],
-    "CHKBoatPawn.h": ["SetPilotCharacter", "GetExitLocation"],
-    "CHKBoatPawn.cpp": ["MaximumForwardSpeed", "UpdatePilotPresentation"],
+    "CHKBoatPawn.h": ["SetPilotCharacter", "FindSafeExitLocation", "GetSpeedKmh"],
+    "CHKBoatPawn.cpp": ["SmoothedSteeringInput", "OverlapBlockingTestByChannel", "UpdatePilotPresentation"],
     "CHKEnemyCharacter.h": ["ECHKEnemyArchetype", "ConfigureEnemy", "bBoss"],
     "CHKEnemyCharacter.cpp": ["UpdateBossPhase", "RewardExperience"],
-    "CHKPlayerController.h": ["Interact", "SaveProgress", "LoadProgress"],
-    "CHKPlayerController.cpp": ["BindTouch", "SaveGameToSlot", "Possess(Boat)"],
+    "CHKPlayerController.h": ["Interact", "SaveProgress", "GetBoatSpeedKmh", "IsTouchInsideButton"],
+    "CHKPlayerController.cpp": ["BindTouch", "ClampCameraPitch", "FindSafeExitLocation", "IsTouchInsideButton"],
     "CHKHUD.h": ["DrawHUD"],
-    "CHKHUD.cpp": ["ATTAQUE", "POUVOIR", "ACCOSTER"],
+    "CHKHUD.cpp": ["ATTAQUE", "POUVOIR", "ACCOSTER", "NAVIGATION"],
     "CHKWorldBootstrap.h": ["FCHKRuntimeZone", "BuildArchipelago"],
     "CHKWorldBootstrap.cpp": ["Port des Naufragés", "Forteresse de la Tempête", "SpawnBoss"],
     "CHKGameMode.cpp": ["ACHKWorldBootstrap", "ACHKHUD", "ACHKPlayerController"],
@@ -104,7 +104,7 @@ def main() -> int:
 
     print(f"CHK_TURNKEY_SOURCE_FILES={len(REQUIRED_FILES)}")
     print(f"CHK_TURNKEY_SOURCE_LINES={total_lines}")
-    print("CHK_TURNKEY_SYSTEMS=HEROES,COMBAT,POWERS,BOAT,ARCHIPELAGO,ENEMIES,BOSSES,HUD,TOUCH,SAVE")
+    print("CHK_TURNKEY_SYSTEMS=HEROES,COMBAT,POWERS,BOAT,SAFE_DOCKING,ARCHIPELAGO,ENEMIES,BOSSES,HUD,TOUCH,SAVE")
 
     if failures:
         print(f"CHK_TURNKEY_VALIDATION_FAILED={failures}", file=sys.stderr)
