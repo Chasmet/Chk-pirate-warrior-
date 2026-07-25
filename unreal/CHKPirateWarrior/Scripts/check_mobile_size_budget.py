@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Contrôle le budget disque de CHK Pirate Warrior sur Android.
 
-Le plafond utilisateur est fixé à 5 Gio pour l'ensemble livré sur le téléphone.
-Le script peut contrôler soit les sources du projet, soit un dossier de build Android.
+Le plafond utilisateur est fixé à 5 Go sur le téléphone. Pour garder une marge
+pour l'installation et les données natives, le dossier livré est limité à 4,5 Go.
 """
 
 from __future__ import annotations
@@ -11,11 +11,12 @@ import argparse
 import sys
 from pathlib import Path
 
-GIB = 1024 ** 3
-MIB = 1024 ** 2
-HARD_LIMIT_BYTES = 5 * GIB
-WARNING_LIMIT_BYTES = 4 * GIB
-SOURCE_ASSET_LIMIT_BYTES = 256 * MIB
+GB = 1_000_000_000
+MB = 1_000_000
+PHONE_LIMIT_BYTES = 5 * GB
+DELIVERY_LIMIT_BYTES = 4_500_000_000
+SOURCE_WARNING_BYTES = 4 * GB
+SOURCE_ASSET_LIMIT_BYTES = 256 * MB
 
 
 def iter_files(root: Path):
@@ -25,17 +26,17 @@ def iter_files(root: Path):
 
 
 def human_size(value: int) -> str:
-    if value >= GIB:
-        return f"{value / GIB:.2f} Gio"
-    if value >= MIB:
-        return f"{value / MIB:.1f} Mio"
-    return f"{value / 1024:.1f} Kio"
+    if value >= GB:
+        return f"{value / GB:.2f} Go"
+    if value >= MB:
+        return f"{value / MB:.1f} Mo"
+    return f"{value / 1000:.1f} Ko"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("path", type=Path, help="Dossier du projet ou dossier Android empaqueté")
-    parser.add_argument("--build", action="store_true", help="Applique le plafond final strict de 5 Gio")
+    parser.add_argument("--build", action="store_true", help="Applique la limite de livraison de 4,5 Go")
     args = parser.parse_args()
 
     root = args.path.resolve()
@@ -62,20 +63,21 @@ def main() -> int:
         ]
         for path in oversized_sources:
             print(
-                f"ERREUR: asset source supérieur à 256 Mio: "
+                f"ERREUR: asset source supérieur à 256 Mo: "
                 f"{path.relative_to(root)} ({human_size(path.stat().st_size)})",
                 file=sys.stderr,
             )
 
-    if total > HARD_LIMIT_BYTES:
+    limit = DELIVERY_LIMIT_BYTES if args.build else PHONE_LIMIT_BYTES
+    if total > limit:
         print(
-            f"ERREUR: budget dépassé: {human_size(total)} > 5.00 Gio.",
+            f"ERREUR: budget dépassé: {human_size(total)} > {human_size(limit)}.",
             file=sys.stderr,
         )
         return 1
 
-    if total > WARNING_LIMIT_BYTES:
-        print(f"AVERTISSEMENT: le projet approche du plafond: {human_size(total)}.")
+    if not args.build and total > SOURCE_WARNING_BYTES:
+        print(f"AVERTISSEMENT: les sources approchent du plafond: {human_size(total)}.")
 
     if oversized_sources:
         return 1
