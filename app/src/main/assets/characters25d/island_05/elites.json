@@ -1,0 +1,68 @@
+{
+  "island": 4,
+  "name": "Jungle brumeuse",
+  "commanders": [
+    {
+      "id": "liane",
+      "name": "Liane",
+      "silhouette": "combattante fine avec long fouet végétal et cape courte",
+      "face": "cheveux bruns attachés, peinture verte sur la joue droite",
+      "weapon": "fouet végétal vivant",
+      "combatRole": "root_controller",
+      "signature": "immobilise brièvement le héros puis frappe à distance",
+      "continuity": ["fouet main droite", "peinture joue droite", "cape vert sombre"]
+    },
+    {
+      "id": "totem",
+      "name": "Totem",
+      "silhouette": "chamane grand avec masque vertical et bâton sculpté",
+      "face": "visage caché derrière un masque de bois",
+      "weapon": "bâton rituel avec anneaux de graines",
+      "combatRole": "support_summoner",
+      "signature": "soigne les alliés et invoque de petites racines",
+      "continuity": ["masque jamais retiré", "bâton main gauche", "trois anneaux de graines"]
+    },
+    {
+      "id": "koba",
+      "name": "Koba",
+      "silhouette": "guerrier large et très mobile avec épaules nues",
+      "face": "crâne rasé, barbe courte, marques rouges sur le front",
+      "weapon": "hache double compacte",
+      "combatRole": "berserker",
+      "signature": "saute sur le héros puis entre en rage",
+      "continuity": ["hache tenue à deux mains", "marques frontales rouges", "ceinture de feuilles"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "ronce",
+      "name": "Ronce",
+      "linkedCommander": "liane",
+      "silhouette": "chasseur bas sur ses appuis avec griffes végétales",
+      "weapon": "griffes de ronce",
+      "combatRole": "bleeder",
+      "signature": "enchaînement court provoquant un saignement",
+      "continuity": ["griffes aux deux mains", "capuche brune", "corde verte à la taille"]
+    },
+    {
+      "id": "masque",
+      "name": "Masque",
+      "linkedCommander": "totem",
+      "silhouette": "petit tireur masqué avec tubes de poison",
+      "weapon": "sarbacane longue",
+      "combatRole": "poison_ranged",
+      "signature": "tire un projectile empoisonné puis se cache",
+      "continuity": ["masque blanc", "sarbacane main droite", "quatre tubes dans le dos"]
+    },
+    {
+      "id": "singe_rouge",
+      "name": "Singe Rouge",
+      "linkedCommander": "koba",
+      "silhouette": "combattant humain agile surnommé Singe Rouge, veste rouge et mouvements bondissants",
+      "weapon": "bâton court renforcé",
+      "combatRole": "jumping_skirmisher",
+      "signature": "enchaîne deux bonds et un coup tournoyant",
+      "continuity": ["veste rouge", "bâton main droite", "bandeau noir"]
+    }
+  ]
+}
