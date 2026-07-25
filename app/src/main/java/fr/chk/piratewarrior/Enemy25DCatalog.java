@@ -7,10 +7,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Catalogue officiel des personnages ennemis importants en 2.5D.
+ * Catalogue officiel des 42 personnages ennemis importants en 2.5D.
  *
- * Les trois héros historiques (Cheikh, Yvane et Nelvyn) ne sont pas déclarés ici :
- * ils restent gérés par Character25D et ne doivent jamais être remplacés par ce catalogue.
+ * Les noms et l'ordre des îles sont verrouillés à partir du dossier de références officiel
+ * « asset chk pirate ». Les trois héros Cheikh, Yvane et Nelvyn restent gérés séparément par
+ * Character25D et ne doivent jamais être remplacés par une entrée ennemie.
  */
 public final class Enemy25DCatalog {
     public enum Rank { BOSS, COMMANDER, SUBORDINATE }
@@ -20,6 +21,20 @@ public final class Enemy25DCatalog {
     public static final int EXPECTED_COMMANDERS = 18;
     public static final int EXPECTED_SUBORDINATES = 18;
     public static final int EXPECTED_TOTAL = 42;
+
+    public static final String[] ISLAND_NAMES = {
+            "Port des Naufragés",
+            "Jungle Sauvage",
+            "Royaume des Neiges",
+            "Désert des Corsaires",
+            "Île Volcanique",
+            "Forteresse de la Tempête"
+    };
+
+    private static final Set<String> FORBIDDEN_LEGACY_IDS = Set.of(
+            "capitaine_helios", "roi_boreal", "sultan_dune",
+            "seigneur_magma", "reine_mousson", "amiral_foudre"
+    );
 
     public static final class Entry {
         public final String id;
@@ -42,8 +57,7 @@ public final class Enemy25DCatalog {
                 String ability,
                 String primaryColor,
                 String secondaryColor,
-                String accentColor,
-                String sheetAssetPath
+                String accentColor
         ) {
             this.id = id;
             this.displayName = displayName;
@@ -54,7 +68,12 @@ public final class Enemy25DCatalog {
             this.primaryColor = primaryColor;
             this.secondaryColor = secondaryColor;
             this.accentColor = accentColor;
-            this.sheetAssetPath = sheetAssetPath;
+            this.sheetAssetPath = String.format(
+                    java.util.Locale.ROOT,
+                    "characters25d/island_%02d/%s/sheet.webp",
+                    islandIndex + 1,
+                    id
+            );
         }
 
         public boolean isBoss() {
@@ -62,60 +81,159 @@ public final class Enemy25DCatalog {
         }
     }
 
+    private static Entry entry(
+            String id,
+            String displayName,
+            int islandIndex,
+            Rank rank,
+            String weapon,
+            String ability,
+            String primaryColor,
+            String secondaryColor,
+            String accentColor
+    ) {
+        return new Entry(id, displayName, islandIndex, rank, weapon, ability,
+                primaryColor, secondaryColor, accentColor);
+    }
+
     private static final List<Entry> ENTRIES = List.of(
-            // Île 1 — Port des Naufragés : références visuelles officielles reçues.
-            new Entry("brakor", "Brakor, Gardien du Port", 0, Rank.BOSS, "grande ancre-chaîne", "traction par chaîne, choc d'ancre, contrôle de zone, phase de rage", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/brakor/sheet.webp"),
-            new Entry("tireur_quais", "Tireur des Quais", 0, Rank.COMMANDER, "fusil long", "tirs de précision, recul tactique et couverture", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/tireur_quais/sheet.webp"),
-            new Entry("voleur_agile", "Voleur Agile", 0, Rank.SUBORDINATE, "double lame", "esquive et attaque dans le dos", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/voleur_agile/sheet.webp"),
-            new Entry("maitre_croc", "Maître Croc", 0, Rank.COMMANDER, "sabre courbe et crochet", "duel agressif, attraction et contre-attaque", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/maitre_croc/sheet.webp"),
-            new Entry("porte_chaine", "Porte-Chaîne", 0, Rank.SUBORDINATE, "masse-chaîne", "attaque circulaire, interruption et renversement", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/porte_chaine/sheet.webp"),
-            new Entry("ingenieur_amarres", "Ingénieur des Amarres", 0, Rank.COMMANDER, "outils, chaînes et masse mécanique", "pièges, immobilisation et dispositifs du quai", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/ingenieur_amarres/sheet.webp"),
-            new Entry("guetteur_phare", "Guetteur du Phare", 0, Rank.SUBORDINATE, "longue-vue, pistolet et lame courte", "repérage, marquage de cible et tir à distance", "#2B211D", "#7B2F26", "#B88952", "characters25d/island_01/guetteur_phare/sheet.webp"),
+            // Île 1 — Port des Naufragés.
+            entry("brakor", "Brakor, Gardien du Port", 0, Rank.BOSS,
+                    "énorme ancre-chaîne", "choc d'ancre, traction par chaîne, contrôle de zone et rage",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("tireur_quais", "Tireur des Quais", 0, Rank.COMMANDER,
+                    "fusil long", "tirs de précision, recul tactique et couverture",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("maitre_croc", "Maître Croc", 0, Rank.COMMANDER,
+                    "sabre courbe et crochet", "duel agressif, attraction et contre-attaque",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("ingenieur_amarres", "Ingénieur des Amarres", 0, Rank.COMMANDER,
+                    "outils, chaînes et masse mécanique", "pièges, immobilisation et dispositifs du quai",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("voleur_agile", "Voleur Agile", 0, Rank.SUBORDINATE,
+                    "double lame", "esquive, attaque dans le dos et vol rapide",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("porte_chaine", "Porte-Chaîne", 0, Rank.SUBORDINATE,
+                    "masse-chaîne", "attaque circulaire, interruption et renversement",
+                    "#2B211D", "#7B2F26", "#B88952"),
+            entry("guetteur_phare", "Guetteur du Phare", 0, Rank.SUBORDINATE,
+                    "pistolet et lame courte", "repérage, marquage de cible et tir à distance",
+                    "#2B211D", "#7B2F26", "#B88952"),
 
-            // Île 2 — Jungle Sauvage : noms provisoires jusqu'à réception de la planche officielle.
-            new Entry("reine_mousson", "Reine Mousson", 1, Rank.BOSS, "lame végétale", "brume, racines et poison", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/reine_mousson/sheet.webp"),
-            new Entry("liane", "Liane", 1, Rank.COMMANDER, "fouet végétal", "immobilisation", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/liane/sheet.webp"),
-            new Entry("ronce", "Ronce", 1, Rank.SUBORDINATE, "griffes", "saignement", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/ronce/sheet.webp"),
-            new Entry("totem", "Totem", 1, Rank.COMMANDER, "bâton rituel", "invocations et soins", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/totem/sheet.webp"),
-            new Entry("masque", "Masque", 1, Rank.SUBORDINATE, "sarbacane", "poison à distance", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/masque/sheet.webp"),
-            new Entry("koba", "Koba", 1, Rank.COMMANDER, "hache double", "rage et saut", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/koba/sheet.webp"),
-            new Entry("singe_rouge", "Singe Rouge", 1, Rank.SUBORDINATE, "bâton court", "attaques bondissantes", "#7CCB78", "#315E3F", "#D0E4BC", "characters25d/island_02/singe_rouge/sheet.webp"),
+            // Île 2 — Jungle Sauvage.
+            entry("malkor", "Malkor", 1, Rank.BOSS,
+                    "lame lourde végétale", "racines, poison, charge et contrôle de terrain",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("zaya", "Zaya", 1, Rank.COMMANDER,
+                    "deux lames courtes", "mobilité, esquive et attaques rapides",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("kongo", "Kongo", 1, Rank.COMMANDER,
+                    "massue lourde", "charge, brise-garde et projection",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("silex", "Silex", 1, Rank.COMMANDER,
+                    "arc de jungle", "tirs empoisonnés et pièges",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("ronce", "Ronce", 1, Rank.SUBORDINATE,
+                    "fouet épineux", "immobilisation et saignement",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("tika", "Tika", 1, Rank.SUBORDINATE,
+                    "griffes courtes", "bond, harcèlement et repli",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
+            entry("mamba", "Mamba", 1, Rank.SUBORDINATE,
+                    "lames venimeuses", "poison progressif et attaque furtive",
+                    "#223D2A", "#5D7E3A", "#C2A35A"),
 
-            // Île 3 — Royaume des Neiges : noms provisoires jusqu'à réception de la planche officielle.
-            new Entry("roi_boreal", "Roi Boréal", 2, Rank.BOSS, "grande épée de glace", "gel, murs de glace et tempête blanche", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/roi_boreal/sheet.webp"),
-            new Entry("hastel", "Hastel", 2, Rank.COMMANDER, "lance givrée", "charges perforantes", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/hastel/sheet.webp"),
-            new Entry("givre", "Givre", 2, Rank.SUBORDINATE, "javelots", "ralentissement à distance", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/givre/sheet.webp"),
-            new Entry("sylka", "Sylka", 2, Rank.COMMANDER, "arc polaire", "tirs gelants et pièges", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/sylka/sheet.webp"),
-            new Entry("flocon", "Flocon", 2, Rank.SUBORDINATE, "arbalète", "salves rapides", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/flocon/sheet.webp"),
-            new Entry("brakka", "Brakka", 2, Rank.COMMANDER, "gantelets blindés", "coups lourds et garde", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/brakka/sheet.webp"),
-            new Entry("stal", "Stal", 2, Rank.SUBORDINATE, "masse courte", "brise-garde", "#DFF4FF", "#6AAED6", "#263B59", "characters25d/island_03/stal/sheet.webp"),
+            // Île 3 — Royaume des Neiges.
+            entry("skarn", "Skarn, Roi des Glaces", 2, Rank.BOSS,
+                    "grande épée de glace", "gel, murs de glace, tempête blanche et phase royale",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("eira", "Eira, Dame du Blizzard", 2, Rank.COMMANDER,
+                    "lame de blizzard", "rafales gelantes et zones de froid",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("volkr", "Volkr, Bouclier du Froid", 2, Rank.COMMANDER,
+                    "bouclier et masse", "garde renforcée, charge et contre",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("nivor", "Nivor, Arbalétrier des Glaces", 2, Rank.COMMANDER,
+                    "arbalète de glace", "salves, ralentissement et tir perforant",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("brume", "Brume, l'Ombre Glacée", 2, Rank.SUBORDINATE,
+                    "doubles dagues", "furtivité, esquive et frappe arrière",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("harka", "Harka, Berserker des Glaces", 2, Rank.SUBORDINATE,
+                    "hache lourde", "rage, enchaînement et brise-garde",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
+            entry("flint", "Flint, Ingénieur du Froid", 2, Rank.SUBORDINATE,
+                    "outils cryogéniques", "mines de glace et tourelle de ralentissement",
+                    "#DFF4FF", "#6AAED6", "#263B59"),
 
-            // Île 4 — Désert des Corsaires : noms provisoires jusqu'à réception de la planche officielle.
-            new Entry("sultan_dune", "Sultan des Dunes", 3, Rank.BOSS, "cimeterre royal", "mirages, tempête de sable et attaque souterraine", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/sultan_dune/sheet.webp"),
-            new Entry("zahir", "Zahir", 3, Rank.COMMANDER, "lames courbes", "téléportations courtes", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/zahir/sheet.webp"),
-            new Entry("kef", "Kef", 3, Rank.SUBORDINATE, "poignards", "attaques dans le dos", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/kef/sheet.webp"),
-            new Entry("noura", "Noura", 3, Rank.COMMANDER, "fusil long", "tir embusqué", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/noura/sheet.webp"),
-            new Entry("mira", "Mira", 3, Rank.SUBORDINATE, "pistolet de précision", "marquage de cible", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/mira/sheet.webp"),
-            new Entry("grom", "Grom", 3, Rank.COMMANDER, "masse désertique", "frappes au sol", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/grom/sheet.webp"),
-            new Entry("roc", "Roc", 3, Rank.SUBORDINATE, "massue", "charge frontale", "#E6B85C", "#A85D2A", "#3F2B23", "characters25d/island_04/roc/sheet.webp"),
+            // Île 4 — Désert des Corsaires. Les noms textuels du dossier officiel sont prioritaires.
+            entry("zahrek", "Zahrek", 3, Rank.BOSS,
+                    "cimeterre royal", "mirages, tempête de sable et attaque circulaire",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("qamar", "Qamar", 3, Rank.COMMANDER,
+                    "sabre du désert", "duel rapide et pas de côté",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("sirok", "Sirok", 3, Rank.COMMANDER,
+                    "lance de sable", "charge et bourrasque aveuglante",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("dune", "Dune", 3, Rank.COMMANDER,
+                    "arme lourde", "frappe au sol et mur de sable",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("khepri", "Khepri", 3, Rank.SUBORDINATE,
+                    "lames courbes", "attaque bondissante et recul",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("safra", "Safra", 3, Rank.SUBORDINATE,
+                    "arc court", "tir mobile et marquage de cible",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
+            entry("rakh", "Rakh", 3, Rank.SUBORDINATE,
+                    "masse courte", "charge frontale et interruption",
+                    "#E6B85C", "#A85D2A", "#3F2B23"),
 
-            // Île 5 — Île Volcanique : noms provisoires jusqu'à réception de la planche officielle.
-            new Entry("seigneur_magma", "Seigneur Magma", 4, Rank.BOSS, "hallebarde volcanique", "lave, explosion et armure en fusion", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/seigneur_magma/sheet.webp"),
-            new Entry("ignara", "Ignara", 4, Rank.COMMANDER, "fouets de lave", "zones brûlantes", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/ignara/sheet.webp"),
-            new Entry("cendre", "Cendre", 4, Rank.SUBORDINATE, "lame courte", "projection de braises", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/cendre/sheet.webp"),
-            new Entry("bombax", "Bombax", 4, Rank.COMMANDER, "bombes artisanales", "mines et explosions", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/bombax/sheet.webp"),
-            new Entry("meche", "Mèche", 4, Rank.SUBORDINATE, "grenades", "harcèlement explosif", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/meche/sheet.webp"),
-            new Entry("chainor", "Chainor", 4, Rank.COMMANDER, "chaînes brûlantes", "capture et attraction", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/chainor/sheet.webp"),
-            new Entry("crochet", "Crochet", 4, Rank.SUBORDINATE, "chaîne courte", "interruption", "#FF7A3D", "#7A1F22", "#2B2020", "characters25d/island_05/crochet/sheet.webp"),
+            // Île 5 — Île Volcanique.
+            entry("vulkar", "Vulkar", 4, Rank.BOSS,
+                    "grande lame volcanique", "lave, explosion, armure en fusion et phase ardente",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("cendre", "Cendre", 4, Rank.COMMANDER,
+                    "lame des braises", "projection de braises et dash brûlant",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("magma", "Magma", 4, Rank.COMMANDER,
+                    "bouclier de lave", "garde, charge et zone brûlante",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("pyros", "Pyros", 4, Rank.COMMANDER,
+                    "artifices incendiaires", "mines, salves et explosions",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("basalte", "Basalte", 4, Rank.SUBORDINATE,
+                    "épée de roche", "garde lourde et brise-garde",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("scorie", "Scorie", 4, Rank.SUBORDINATE,
+                    "faux de feu", "attaque circulaire et brûlure",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
+            entry("fumar", "Fumar", 4, Rank.SUBORDINATE,
+                    "bombes de fumée", "aveuglement, poison et repli",
+                    "#FF7A3D", "#7A1F22", "#2B2020"),
 
-            // Île 6 — Forteresse de la Tempête : noms provisoires jusqu'à réception de la planche officielle.
-            new Entry("amiral_foudre", "Amiral Foudre", 5, Rank.BOSS, "trident électrique", "éclairs, vagues et phase orage", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/amiral_foudre/sheet.webp"),
-            new Entry("volt", "Volt", 5, Rank.COMMANDER, "épée électrique", "dash et étourdissement", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/volt/sheet.webp"),
-            new Entry("etincelle", "Étincelle", 5, Rank.SUBORDINATE, "deux dagues", "enchaînements rapides", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/etincelle/sheet.webp"),
-            new Entry("zephira", "Zéphira", 5, Rank.COMMANDER, "éventails de vent", "bourrasques et esquive", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/zephira/sheet.webp"),
-            new Entry("rafale", "Rafale", 5, Rank.SUBORDINATE, "lames légères", "tourbillons", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/rafale/sheet.webp"),
-            new Entry("tonnerre", "Tonnerre", 5, Rank.COMMANDER, "canon portatif", "tir de zone", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/tonnerre/sheet.webp"),
-            new Entry("mousse_noir", "Mousse Noir", 5, Rank.SUBORDINATE, "mousquet", "tirs suppressifs", "#87C8FF", "#42507A", "#E9F1FF", "characters25d/island_06/mousse_noir/sheet.webp")
+            // Île 6 — Forteresse de la Tempête.
+            entry("tempyr", "Tempyr", 5, Rank.BOSS,
+                    "lame de la tempête", "éclairs, vagues, téléportation courte et phase orage",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("orage", "Orage", 5, Rank.COMMANDER,
+                    "lame du tonnerre", "dash électrique et étourdissement",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("volt", "Volt", 5, Rank.COMMANDER,
+                    "outils électriques", "pièges, arc électrique et surcharge",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("cyclone", "Cyclone", 5, Rank.COMMANDER,
+                    "lance des vents", "bourrasque, projection et attaque tournoyante",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("brisk", "Brisk", 5, Rank.SUBORDINATE,
+                    "lames légères", "course rapide et attaques en chaîne",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("tonnerre", "Tonnerre", 5, Rank.SUBORDINATE,
+                    "marteau du ciel", "frappe verticale et onde électrique",
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+            entry("fulgur", "Fulgur", 5, Rank.SUBORDINATE,
+                    "arc des éclairs", "salves électriques et zone de foudre",
+                    "#87C8FF", "#42507A", "#E9F1FF")
     );
 
     static {
@@ -131,9 +249,7 @@ public final class Enemy25DCatalog {
 
     public static Entry bossForIsland(int islandIndex) {
         for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) {
-                return entry;
-            }
+            if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) return entry;
         }
         throw new IllegalArgumentException("Aucun boss 2.5D pour l'île " + islandIndex);
     }
@@ -157,9 +273,7 @@ public final class Enemy25DCatalog {
     private static List<Entry> filterByIslandAndRank(int islandIndex, Rank rank) {
         List<Entry> result = new ArrayList<>();
         for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex && entry.rank == rank) {
-                result.add(entry);
-            }
+            if (entry.islandIndex == islandIndex && entry.rank == rank) result.add(entry);
         }
         return Collections.unmodifiableList(result);
     }
@@ -175,13 +289,14 @@ public final class Enemy25DCatalog {
         int subordinates = 0;
 
         for (Entry entry : ENTRIES) {
-            if (!ids.add(entry.id)) {
-                throw new IllegalStateException("Identifiant 2.5D dupliqué : " + entry.id);
+            if (!ids.add(entry.id)) throw new IllegalStateException("Identifiant 2.5D dupliqué : " + entry.id);
+            if (FORBIDDEN_LEGACY_IDS.contains(entry.id)) {
+                throw new IllegalStateException("Identifiant provisoire interdit : " + entry.id);
             }
             if (entry.islandIndex < 0 || entry.islandIndex >= ISLAND_COUNT) {
                 throw new IllegalStateException("Île invalide pour " + entry.id);
             }
-            if (entry.sheetAssetPath == null || !entry.sheetAssetPath.endsWith("/sheet.webp")) {
+            if (!entry.sheetAssetPath.endsWith("/sheet.webp")) {
                 throw new IllegalStateException("Chemin de planche invalide pour " + entry.id);
             }
             switch (entry.rank) {
@@ -191,20 +306,16 @@ public final class Enemy25DCatalog {
             }
         }
 
-        if (bosses != EXPECTED_BOSSES
-                || commanders != EXPECTED_COMMANDERS
+        if (bosses != EXPECTED_BOSSES || commanders != EXPECTED_COMMANDERS
                 || subordinates != EXPECTED_SUBORDINATES) {
-            throw new IllegalStateException(
-                    "Répartition invalide : boss=" + bosses
-                            + ", commandants=" + commanders
-                            + ", subordonnés=" + subordinates
-            );
+            throw new IllegalStateException("Répartition invalide : boss=" + bosses
+                    + ", commandants=" + commanders + ", subordonnés=" + subordinates);
         }
 
         for (int island = 0; island < ISLAND_COUNT; island++) {
-            if (commandersForIsland(island).size() != 3
-                    || subordinatesForIsland(island).size() != 3) {
-                throw new IllegalStateException("L'île " + island + " doit avoir 1 boss, 3 commandants et 3 subordonnés.");
+            if (commandersForIsland(island).size() != 3 || subordinatesForIsland(island).size() != 3) {
+                throw new IllegalStateException("L'île " + island
+                        + " doit avoir 1 boss, 3 commandants et 3 subordonnés.");
             }
             bossForIsland(island);
         }
