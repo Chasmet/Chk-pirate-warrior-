@@ -1,0 +1,36 @@
+# CHK Pirate Warrior original materials
+
+newmtl M_Wood_Dark
+Ka 0.070 0.035 0.015
+Kd 0.250 0.105 0.035
+Ks 0.080 0.080 0.080
+Ns 24.0
+illum 2
+
+newmtl M_Wood_Light
+Ka 0.100 0.060 0.025
+Kd 0.480 0.245 0.080
+Ks 0.070 0.070 0.070
+Ns 18.0
+illum 2
+
+newmtl M_Metal_Iron
+Ka 0.030 0.035 0.040
+Kd 0.150 0.180 0.210
+Ks 0.520 0.560 0.620
+Ns 96.0
+illum 2
+
+newmtl M_Metal_Gold
+Ka 0.100 0.065 0.010
+Kd 0.650 0.360 0.040
+Ks 0.780 0.580 0.180
+Ns 110.0
+illum 2
+
+newmtl M_Stone
+Ka 0.050 0.050 0.045
+Kd 0.260 0.270 0.250
+Ks 0.030 0.030 0.030
+Ns 8.0
+illum 2
