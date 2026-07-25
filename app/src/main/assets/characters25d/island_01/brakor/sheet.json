@@ -1,0 +1,69 @@
+{
+  "id": "brakor",
+  "name": "Brakor, Gardien du Port",
+  "rank": "BOSS",
+  "island": 0,
+  "source": "asset chk pirate.pdf - page 2",
+  "assetStatus": "REFERENCE_LOCKED_ANIMATION_STRIPS_MISSING",
+  "visualIdentity": {
+    "silhouette": "pirate extrêmement massif mais à échelle crédible, épaules très larges et armure lourde",
+    "face": "visage sévère encadré par une grande barbe sombre",
+    "hair": "cheveux sombres sous un chapeau pirate blindé",
+    "clothing": "armure métallique lourde, épaulettes à pointes, chaînes, tissus noirs, bruns et rouges",
+    "weapon": "énorme ancre reliée à une chaîne",
+    "accessories": ["chapeau pirate blindé", "chaînes lourdes", "boucles métalliques", "épaulettes à pointes"],
+    "palette": ["#171514", "#2B211D", "#7B2F26", "#B88952"]
+  },
+  "scale": {
+    "heightMeters": 2.15,
+    "collisionRadiusMeters": 0.72,
+    "pivot": "feet_center",
+    "rule": "imposant sans devenir géant ni dépasser de façon incohérente les bâtiments"
+  },
+  "referencePoses": [
+    "front_neutral",
+    "back_neutral",
+    "left_profile",
+    "right_profile",
+    "combat_guard",
+    "anchor_slam",
+    "chain_pull",
+    "phase2_rage",
+    "defeat"
+  ],
+  "gameplay": {
+    "phase1": ["anchor_combo", "chain_pull", "ground_slam", "short_guard"],
+    "phase2": ["rage_armor", "wide_anchor_spin", "chain_area_pull", "ultimate_harbor_breaker"],
+    "weakness": "temps de récupération après le choc d'ancre ou une traction esquivée"
+  },
+  "runtime": {
+    "cellWidth": 256,
+    "cellHeight": 256,
+    "directions": ["front", "back", "left", "right"],
+    "animations": {
+      "idle": 4,
+      "walk": 6,
+      "run": 6,
+      "attack": 6,
+      "power": 8,
+      "special": 8,
+      "dodge": 5,
+      "hurt": 4,
+      "knockback": 5,
+      "defeat": 8,
+      "intro": 8,
+      "rage": 8,
+      "phase2": 8,
+      "area_attack": 8,
+      "ultimate": 12
+    }
+  },
+  "continuityRules": [
+    "barbe sombre identique dans toutes les frames",
+    "chapeau blindé toujours présent hors animation de défaite validée",
+    "ancre et chaîne conservent les mêmes proportions",
+    "épaulettes à pointes et palette noire-brune-rouge constantes",
+    "aucune variation de zoom entre les frames",
+    "aucun membre, arme ou ombre coupé"
+  ]
+}
