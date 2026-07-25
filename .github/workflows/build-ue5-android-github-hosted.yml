@@ -7,6 +7,12 @@ on:
     paths:
       - "unreal/**"
       - ".github/workflows/build-ue5-android-github-hosted.yml"
+  pull_request:
+    branches:
+      - ue5-migration
+    paths:
+      - "unreal/**"
+      - ".github/workflows/build-ue5-android-github-hosted.yml"
   workflow_dispatch:
 
 permissions:
