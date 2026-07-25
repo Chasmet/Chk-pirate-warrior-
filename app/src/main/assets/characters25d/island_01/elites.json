@@ -1,68 +1,69 @@
 {
   "island": 0,
-  "name": "Baie solaire",
+  "name": "Port des Naufragés",
+  "source": "asset chk pirate.pdf - page 2",
   "commanders": [
     {
-      "id": "sirocco",
-      "name": "Sirocco",
-      "silhouette": "sabreur mince et nerveux, manteau court fendu",
-      "face": "visage étroit, bandeau rouge, sourire provocateur",
-      "weapon": "deux sabres courts asymétriques",
-      "combatRole": "melee_dodger",
-      "signature": "dash croisé suivi d'un retour instantané",
-      "continuity": ["sabre long main droite", "sabre court main gauche", "bandeau toujours rouge"]
+      "id": "tireur_quais",
+      "name": "Tireur des Quais",
+      "silhouette": "tireur longiligne en manteau bleu sombre, chapeau et lunettes",
+      "face": "visage partiellement masqué, lunettes rondes, expression concentrée",
+      "weapon": "fusil long avec baïonnette",
+      "combatRole": "precision_ranged",
+      "signature": "salve de couverture puis tir puissant à longue distance",
+      "continuity": ["fusil tenu à deux mains", "manteau bleu sombre", "lunettes toujours présentes"]
     },
     {
-      "id": "marea",
-      "name": "Maréa",
-      "silhouette": "tireuse athlétique, veste bleue courte, holsters visibles",
-      "face": "cheveux noirs bouclés, œil droit maquillé bleu",
-      "weapon": "deux pistolets de marine différents",
-      "combatRole": "ranged_mobile",
-      "signature": "ricochets entre plusieurs cibles",
-      "continuity": ["pistolet argent main droite", "pistolet noir main gauche", "holsters toujours visibles"]
+      "id": "maitre_croc",
+      "name": "Maître Croc",
+      "silhouette": "duelliste compact, armure à pointes et masque métallique",
+      "face": "masque en forme de mâchoire, cheveux attachés",
+      "weapon": "deux sabres courbes",
+      "combatRole": "aggressive_duelist",
+      "signature": "enchaînement croisé et crochet d'attraction",
+      "continuity": ["deux sabres visibles", "masque métallique", "épaulettes à pointes"]
     },
     {
-      "id": "baron_tambour",
-      "name": "Baron Tambour",
-      "silhouette": "combattant massif, ventre blindé et épaules rondes",
-      "face": "barbe rousse épaisse, nez cassé",
-      "weapon": "marteau naval à tête cylindrique",
-      "combatRole": "heavy_breaker",
-      "signature": "onde de choc circulaire après une frappe lente",
-      "continuity": ["marteau porté épaule droite", "bracelet doré bras gauche", "barbe rousse inchangée"]
+      "id": "ingenieur_amarres",
+      "name": "Ingénieur des Amarres",
+      "silhouette": "technicien robuste avec bras mécanique, outils et chaînes",
+      "face": "barbe courte, lunettes sombres, expression sévère",
+      "weapon": "masse mécanique et lance-chaîne",
+      "combatRole": "technical_controller",
+      "signature": "pose un piège d'amarre puis immobilise la cible",
+      "continuity": ["bras mécanique côté gauche", "lunettes sombres", "chaînes visibles à la ceinture"]
     }
   ],
   "subordinates": [
     {
-      "id": "braise",
-      "name": "Braise",
-      "linkedCommander": "sirocco",
-      "silhouette": "petit assassin rapide avec cape fumée",
-      "weapon": "dague courbe",
+      "id": "voleur_agile",
+      "name": "Voleur Agile",
+      "linkedCommander": "tireur_quais",
+      "silhouette": "assassin mince à capuche bleu-vert",
+      "weapon": "deux lames courtes",
       "combatRole": "flanker",
-      "signature": "fumée aveuglante puis attaque latérale",
-      "continuity": ["dague main gauche", "cape gris sombre", "lunettes jaunes"]
+      "signature": "esquive latérale puis attaque dans le dos",
+      "continuity": ["capuche fermée", "deux lames", "tenue bleu-vert"]
     },
     {
-      "id": "cliquet",
-      "name": "Cliquet",
-      "linkedCommander": "marea",
-      "silhouette": "tireur compact avec sac de munitions",
-      "weapon": "carabine courte à mécanisme apparent",
-      "combatRole": "cover_shooter",
-      "signature": "tir de couverture pendant les déplacements de Maréa",
-      "continuity": ["carabine tenue à deux mains", "sac côté droit", "casquette bleue"]
+      "id": "porte_chaine",
+      "name": "Porte-Chaîne",
+      "linkedCommander": "maitre_croc",
+      "silhouette": "combattant massif, épaules blindées et chaînes lourdes",
+      "weapon": "crochet et masse-chaîne",
+      "combatRole": "heavy_interrupter",
+      "signature": "attaque circulaire qui repousse les cibles proches",
+      "continuity": ["crâne rasé", "chaînes aux deux bras", "armure noire et brune"]
     },
     {
-      "id": "pave",
-      "name": "Pavé",
-      "linkedCommander": "baron_tambour",
-      "silhouette": "gardien trapu presque entièrement caché par son bouclier",
-      "weapon": "bouclier rectangulaire et matraque",
-      "combatRole": "tank_guard",
-      "signature": "protège le commandant et repousse le héros",
-      "continuity": ["bouclier main gauche", "matraque main droite", "casque fermé"]
+      "id": "guetteur_phare",
+      "name": "Guetteur du Phare",
+      "linkedCommander": "ingenieur_amarres",
+      "silhouette": "guetteur encapuchonné en manteau jaune usé",
+      "weapon": "pistolet, lance courte et lanterne",
+      "combatRole": "scout_marker",
+      "signature": "marque le héros puis guide les tirs ennemis",
+      "continuity": ["manteau jaune", "lanterne main gauche", "capuche toujours portée"]
     }
   ]
 }
