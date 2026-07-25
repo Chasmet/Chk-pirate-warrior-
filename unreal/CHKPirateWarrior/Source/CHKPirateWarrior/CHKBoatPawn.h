@@ -71,11 +71,17 @@ public:
     UFUNCTION(BlueprintPure, Category="Boat")
     FVector GetExitLocation() const;
 
+    UFUNCTION(BlueprintCallable, Category="Boat")
+    bool FindSafeExitLocation(FVector& OutLocation) const;
+
     UFUNCTION(BlueprintPure, Category="Boat")
     FTransform GetHelmTransform() const;
 
     UFUNCTION(BlueprintPure, Category="Boat")
     bool HasPilot() const { return PilotCharacter.IsValid(); }
+
+    UFUNCTION(BlueprintPure, Category="Boat")
+    float GetSpeedKmh() const { return FMath::Abs(CurrentSpeed) * 0.036f; }
 
 protected:
     virtual void BeginPlay() override;
@@ -90,6 +96,8 @@ private:
 
     float ThrottleInput = 0.0f;
     float SteeringInput = 0.0f;
+    float SmoothedThrottleInput = 0.0f;
+    float SmoothedSteeringInput = 0.0f;
     float WaveTime = 0.0f;
     TWeakObjectPtr<ACHKCharacter> PilotCharacter;
 };
