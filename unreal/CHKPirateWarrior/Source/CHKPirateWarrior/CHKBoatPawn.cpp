@@ -4,6 +4,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
@@ -89,6 +90,8 @@ ACHKBoatPawn::ACHKBoatPawn()
     CameraBoom->bEnableCameraLag = true;
     CameraBoom->CameraLagSpeed = 9.5f;
     CameraBoom->CameraLagMaxDistance = 220.0f;
+    CameraBoom->bEnableCameraRotationLag = true;
+    CameraBoom->CameraRotationLagSpeed = 7.5f;
 
     BoatCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("BoatCamera"));
     BoatCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -107,25 +110,33 @@ void ACHKBoatPawn::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
 
     WaveTime += DeltaSeconds;
+    SmoothedThrottleInput = FMath::FInterpTo(SmoothedThrottleInput, ThrottleInput, DeltaSeconds, 4.8f);
+    SmoothedSteeringInput = FMath::FInterpTo(SmoothedSteeringInput, SteeringInput, DeltaSeconds, 7.2f);
 
-    const float TargetSpeed = ThrottleInput >= 0.0f
-        ? ThrottleInput * MaximumForwardSpeed
-        : ThrottleInput * MaximumReverseSpeed;
+    const float TargetSpeed = SmoothedThrottleInput >= 0.0f
+        ? SmoothedThrottleInput * MaximumForwardSpeed
+        : SmoothedThrottleInput * MaximumReverseSpeed;
 
-    const float Response = FMath::IsNearlyZero(ThrottleInput) ? Acceleration * 0.42f : Acceleration;
+    const float Response = FMath::IsNearlyZero(SmoothedThrottleInput, 0.02f) ? Acceleration * 0.42f : Acceleration;
     CurrentSpeed = FMath::FInterpConstantTo(CurrentSpeed, TargetSpeed, DeltaSeconds, Response);
 
-    const float SpeedRatio = FMath::Clamp(FMath::Abs(CurrentSpeed) / MaximumForwardSpeed, 0.0f, 1.0f);
-    const float SteeringGrip = FMath::Lerp(0.35f, 1.0f, SpeedRatio);
+    const float SpeedRatio = FMath::Clamp(FMath::Abs(CurrentSpeed) / FMath::Max(MaximumForwardSpeed, 1.0f), 0.0f, 1.0f);
+    const float SteeringGrip = FMath::Lerp(0.06f, 1.0f, FMath::Sqrt(SpeedRatio));
     const float ReverseDirection = CurrentSpeed < -10.0f ? -1.0f : 1.0f;
-    const float YawDelta = SteeringInput * TurnSpeedDegrees * SteeringGrip * ReverseDirection * DeltaSeconds;
+    const float YawDelta = SmoothedSteeringInput * TurnSpeedDegrees * SteeringGrip * ReverseDirection * DeltaSeconds;
 
     AddActorLocalRotation(FRotator(0.0f, YawDelta, 0.0f));
 
+    const FVector MovementDelta = GetActorForwardVector() * CurrentSpeed * DeltaSeconds;
     FHitResult Hit;
-    AddActorWorldOffset(GetActorForwardVector() * CurrentSpeed * DeltaSeconds, true, &Hit);
+    AddActorWorldOffset(MovementDelta, true, &Hit);
     if (Hit.bBlockingHit)
     {
+        const FVector SlideDelta = FVector::VectorPlaneProject(MovementDelta, Hit.ImpactNormal) * 0.28f;
+        if (!SlideDelta.IsNearlyZero())
+        {
+            AddActorWorldOffset(SlideDelta, true);
+        }
         CurrentSpeed *= 0.22f;
     }
 
@@ -135,16 +146,23 @@ void ACHKBoatPawn::Tick(float DeltaSeconds)
     Position.Z = FMath::FInterpTo(Position.Z, WaterLevel + WaveHeight, DeltaSeconds, 4.8f);
     SetActorLocation(Position, false);
 
-    const float TargetRoll = -SteeringInput * 5.2f * SpeedRatio + FMath::Sin(WaveTime * 1.4f) * 1.8f;
+    const float TargetRoll = -SmoothedSteeringInput * 5.2f * SpeedRatio + FMath::Sin(WaveTime * 1.4f) * 1.8f;
     const float TargetPitch = FMath::Sin(WaveTime * 1.1f + Position.X * 0.0006f) * 1.5f;
     FRotator Rotation = GetActorRotation();
     Rotation.Roll = FMath::FInterpTo(Rotation.Roll, TargetRoll, DeltaSeconds, 3.2f);
     Rotation.Pitch = FMath::FInterpTo(Rotation.Pitch, TargetPitch, DeltaSeconds, 2.8f);
     SetActorRotation(Rotation);
 
-    Rudder->SetRelativeRotation(FRotator(0.0f, SteeringInput * 32.0f, 0.0f));
-    Helm->SetRelativeRotation(FRotator(90.0f, 0.0f, SteeringInput * -48.0f));
-    Sail->SetRelativeRotation(FRotator(90.0f, FMath::Sin(WaveTime * 0.72f) * 4.0f + SteeringInput * 5.0f, 90.0f));
+    Rudder->SetRelativeRotation(FRotator(0.0f, SmoothedSteeringInput * 32.0f, 0.0f));
+    Helm->SetRelativeRotation(FRotator(90.0f, 0.0f, SmoothedSteeringInput * -48.0f));
+    Sail->SetRelativeRotation(FRotator(90.0f, FMath::Sin(WaveTime * 0.72f) * 4.0f + SmoothedSteeringInput * 5.0f, 90.0f));
+
+    if (BoatCamera)
+    {
+        const float TargetFov = 61.0f + SpeedRatio * 8.0f;
+        BoatCamera->SetFieldOfView(FMath::FInterpTo(BoatCamera->FieldOfView, TargetFov, DeltaSeconds, 3.5f));
+    }
+
     UpdatePilotPresentation(DeltaSeconds);
 }
 
@@ -174,6 +192,11 @@ void ACHKBoatPawn::SetPilotCharacter(ACHKCharacter* NewPilot)
 
 void ACHKBoatPawn::ClearPilotCharacter()
 {
+    ThrottleInput = 0.0f;
+    SteeringInput = 0.0f;
+    SmoothedThrottleInput = 0.0f;
+    SmoothedSteeringInput = 0.0f;
+
     if (PilotCharacter.IsValid())
     {
         PilotCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -184,7 +207,71 @@ void ACHKBoatPawn::ClearPilotCharacter()
 
 FVector ACHKBoatPawn::GetExitLocation() const
 {
+    FVector SafeLocation;
+    if (FindSafeExitLocation(SafeLocation))
+    {
+        return SafeLocation;
+    }
+
     return GetActorLocation() + GetActorRightVector() * 540.0f + FVector(0.0f, 0.0f, 210.0f);
+}
+
+bool ACHKBoatPawn::FindSafeExitLocation(FVector& OutLocation) const
+{
+    if (!GetWorld())
+    {
+        return false;
+    }
+
+    const FVector Forward = GetActorForwardVector();
+    const FVector Right = GetActorRightVector();
+    const FVector CandidateOffsets[] = {
+        Right * 620.0f,
+        Right * -620.0f,
+        Forward * 660.0f,
+        Forward * -660.0f
+    };
+
+    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CHKBoatDisembark), false, this);
+    if (PilotCharacter.IsValid())
+    {
+        QueryParams.AddIgnoredActor(PilotCharacter.Get());
+    }
+
+    for (const FVector& Offset : CandidateOffsets)
+    {
+        const FVector Candidate = GetActorLocation() + Offset;
+        const FVector TraceStart = Candidate + FVector(0.0f, 0.0f, 900.0f);
+        const FVector TraceEnd = Candidate - FVector(0.0f, 0.0f, 1900.0f);
+
+        FHitResult GroundHit;
+        if (!GetWorld()->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+        {
+            continue;
+        }
+
+        if (GroundHit.ImpactPoint.Z <= WaterLevel + 45.0f)
+        {
+            continue;
+        }
+
+        const FVector CandidateExit = GroundHit.ImpactPoint + FVector(0.0f, 0.0f, 112.0f);
+        const FCollisionShape CharacterCapsule = FCollisionShape::MakeCapsule(44.0f, 96.0f);
+        const bool bBlocked = GetWorld()->OverlapBlockingTestByChannel(
+            CandidateExit,
+            FQuat::Identity,
+            ECC_Pawn,
+            CharacterCapsule,
+            QueryParams);
+
+        if (!bBlocked)
+        {
+            OutLocation = CandidateExit;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 FTransform ACHKBoatPawn::GetHelmTransform() const
