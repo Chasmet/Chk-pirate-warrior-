@@ -7,6 +7,10 @@ on:
     paths:
       - "unreal/**"
       - ".github/workflows/package-ue5-turnkey-source.yml"
+  pull_request:
+    paths:
+      - "unreal/**"
+      - ".github/workflows/package-ue5-turnkey-source.yml"
   workflow_dispatch:
 
 jobs:
