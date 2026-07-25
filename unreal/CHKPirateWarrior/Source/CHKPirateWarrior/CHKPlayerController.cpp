@@ -42,6 +42,8 @@ void ACHKPlayerController::Tick(float DeltaSeconds)
         }
     }
 
+    ClampCameraPitch();
+
     AutoSaveTimer -= DeltaSeconds;
     if (AutoSaveTimer <= 0.0f)
     {
@@ -91,20 +93,26 @@ void ACHKPlayerController::EnterNearestBoat()
     Character->GetCharacterMovement()->StopMovementImmediately();
     Boat->SetPilotCharacter(Character);
     Possess(Boat);
-    MissionText = TEXT("EN MER • Pilote le navire jusqu'à l'île suivante. INTERACTION pour accoster.");
+    MissionText = TEXT("EN MER • Joystick gauche pour naviguer, joystick droit pour la caméra. Approche un quai pour accoster.");
     SaveProgress();
 }
 
 void ACHKPlayerController::ExitCurrentBoat()
 {
-    ACHKBoatPawn* Boat = ActiveBoat.IsValid() ? ActiveBoat.Get() : Cast<ACHKBoatPawn>(GetPawn());
+    ACHKBoatPawn* Boat = GetActiveBoat();
     if (!Boat || !LandCharacter.IsValid())
     {
         return;
     }
 
+    FVector ExitLocation;
+    if (!Boat->FindSafeExitLocation(ExitLocation))
+    {
+        MissionText = TEXT("ACCOSTAGE IMPOSSIBLE • Ralentis et rapproche le navire d'un quai ou d'une rive.");
+        return;
+    }
+
     ACHKCharacter* Character = LandCharacter.Get();
-    const FVector ExitLocation = Boat->GetExitLocation();
     Boat->ClearPilotCharacter();
     Character->SetActorHiddenInGame(false);
     Character->SetActorLocation(ExitLocation, false, nullptr, ETeleportType::TeleportPhysics);
@@ -218,9 +226,24 @@ ACHKCharacter* ACHKPlayerController::GetActiveCharacter() const
     return Cast<ACHKCharacter>(GetPawn());
 }
 
+ACHKBoatPawn* ACHKPlayerController::GetActiveBoat() const
+{
+    if (ActiveBoat.IsValid())
+    {
+        return ActiveBoat.Get();
+    }
+    return Cast<ACHKBoatPawn>(GetPawn());
+}
+
 bool ACHKPlayerController::IsSailing() const
 {
-    return ActiveBoat.IsValid() || Cast<ACHKBoatPawn>(GetPawn()) != nullptr;
+    return GetActiveBoat() != nullptr;
+}
+
+float ACHKPlayerController::GetBoatSpeedKmh() const
+{
+    const ACHKBoatPawn* Boat = GetActiveBoat();
+    return Boat ? Boat->GetSpeedKmh() : 0.0f;
 }
 
 void ACHKPlayerController::SetWorldStatus(const FString& NewIslandName, const FString& NewMission, int32 NewIslandIndex)
@@ -238,11 +261,24 @@ void ACHKPlayerController::TogglePause()
 
 void ACHKPlayerController::TouchPressed(ETouchIndex::Type FingerIndex, FVector Location)
 {
+    (void)FingerIndex;
+
     int32 Width = 1;
     int32 Height = 1;
     GetViewportSize(Width, Height);
-    const float X = Location.X / FMath::Max(1.0f, static_cast<float>(Width));
-    const float Y = Location.Y / FMath::Max(1.0f, static_cast<float>(Height));
+
+    const float UiScale = FMath::Clamp(static_cast<float>(Height) / 1080.0f, 0.70f, 1.35f);
+    const FVector2D TouchPosition(Location.X, Location.Y);
+
+    if (IsSailing())
+    {
+        const FVector2D DockButton(static_cast<float>(Width) - 115.0f * UiScale, static_cast<float>(Height) * 0.48f);
+        if (IsTouchInsideButton(TouchPosition, DockButton, 78.0f * UiScale))
+        {
+            Interact();
+        }
+        return;
+    }
 
     ACHKCharacter* Character = GetActiveCharacter();
     if (!Character)
@@ -250,24 +286,52 @@ void ACHKPlayerController::TouchPressed(ETouchIndex::Type FingerIndex, FVector L
         return;
     }
 
-    if (X > 0.84f && Y > 0.68f)
+    const float Radius = 68.0f * UiScale;
+    const FVector2D AttackButton(static_cast<float>(Width) - 105.0f * UiScale, static_cast<float>(Height) * 0.44f);
+    const FVector2D SkillButton(static_cast<float>(Width) - 285.0f * UiScale, static_cast<float>(Height) * 0.44f);
+    const FVector2D DodgeButton(static_cast<float>(Width) - 105.0f * UiScale, static_cast<float>(Height) * 0.63f);
+    const FVector2D BoatButton(static_cast<float>(Width) - 285.0f * UiScale, static_cast<float>(Height) * 0.63f);
+    const FVector2D HeroButton(static_cast<float>(Width) - 105.0f * UiScale, static_cast<float>(Height) * 0.20f);
+
+    if (IsTouchInsideButton(TouchPosition, AttackButton, Radius))
     {
         Character->RequestAttack();
     }
-    else if (X > 0.70f && Y > 0.69f)
+    else if (IsTouchInsideButton(TouchPosition, SkillButton, Radius))
     {
         Character->RequestSkill();
     }
-    else if (X > 0.84f && Y > 0.43f)
+    else if (IsTouchInsideButton(TouchPosition, DodgeButton, Radius))
     {
         Character->RequestDodge();
     }
-    else if (X > 0.68f && Y > 0.43f)
+    else if (IsTouchInsideButton(TouchPosition, BoatButton, Radius))
     {
         Interact();
     }
-    else if (X > 0.84f && Y < 0.26f && !IsSailing())
+    else if (IsTouchInsideButton(TouchPosition, HeroButton, 54.0f * UiScale))
     {
         Character->SwitchHero();
     }
+}
+
+void ACHKPlayerController::ClampCameraPitch()
+{
+    FRotator ControlRotation = GetControlRotation();
+    const float NormalizedPitch = FMath::UnwindDegrees(ControlRotation.Pitch);
+    const float MinimumPitch = IsSailing() ? -52.0f : -68.0f;
+    const float MaximumPitch = IsSailing() ? 20.0f : 34.0f;
+    const float ClampedPitch = FMath::Clamp(NormalizedPitch, MinimumPitch, MaximumPitch);
+
+    if (!FMath::IsNearlyEqual(ControlRotation.Pitch, ClampedPitch, 0.01f) || !FMath::IsNearlyZero(ControlRotation.Roll, 0.01f))
+    {
+        ControlRotation.Pitch = ClampedPitch;
+        ControlRotation.Roll = 0.0f;
+        SetControlRotation(ControlRotation);
+    }
+}
+
+bool ACHKPlayerController::IsTouchInsideButton(const FVector2D& TouchPosition, const FVector2D& ButtonCenter, float Radius) const
+{
+    return FVector2D::Distance(TouchPosition, ButtonCenter) <= Radius;
 }
