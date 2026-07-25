@@ -41,7 +41,7 @@ public final class MainActivity extends Activity implements PirateGameView.Voice
 
     @Override
     public void speak(String text) {
-        if (voiceReady && text != null && !text.isBlank()) {
+        if (voiceReady && text != null && !text.trim().isEmpty()) {
             textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "chk-pirate-voice");
         }
     }
