@@ -12,12 +12,12 @@ var previous_health := 0.0
 var previous_aura_time := 0.0
 var tracked_visual_id := 0
 var displayed_frame := -1
-var camera_rest_position := Vector3.ZERO
 var smoothed_movement := 0.0
 var smoothed_turn := 0.0
 var previous_controller_yaw := 0.0
 var landing_recovery := 0.0
 var was_on_floor := true
+var navigation_visual_active := false
 
 func bind(player: PlayerController) -> void:
 	controller = player
@@ -25,8 +25,6 @@ func bind(player: PlayerController) -> void:
 	previous_aura_time = player.aura_time
 	previous_controller_yaw = player.rotation.y
 	was_on_floor = player.is_on_floor()
-	if is_instance_valid(player.camera):
-		camera_rest_position = player.camera.position
 	set_process(true)
 
 func _process(delta: float) -> void:
@@ -41,17 +39,24 @@ func _process(delta: float) -> void:
 		smoothed_movement = 0.0
 		smoothed_turn = 0.0
 		previous_controller_yaw = controller.rotation.y
+		navigation_visual_active = false
+		HeroFactory.set_navigation_visual(visual, controller.boat_mode)
 
 	animation_time += delta
 	if controller.boat_mode:
+		if not navigation_visual_active:
+			navigation_visual_active = true
+			HeroFactory.set_navigation_visual(visual, true)
 		_update_boat_pose(visual, delta)
-		_update_camera_feedback()
 		return
+	elif navigation_visual_active:
+		navigation_visual_active = false
+		HeroFactory.set_navigation_visual(visual, false)
+		displayed_frame = -1
 
 	_detect_actions()
 	_update_timers(delta)
 	_update_land_pose(visual, delta)
-	_update_camera_feedback()
 
 func _detect_actions() -> void:
 	if controller.attack_cooldown > previous_attack_cooldown + 0.06:
@@ -111,6 +116,7 @@ func _update_land_pose(visual: CharacterBody3D, delta: float) -> void:
 		var landing_drop := sin(clampf(landing_recovery / 0.18, 0.0, 1.0) * PI) * -0.045
 		sprite.position.y = float(HeroFactory.HEROES[controller.hero_id]["sprite_y"]) + breathing + running_bob + landing_drop
 		sprite.position.x = lerpf(sprite.position.x, -smoothed_turn * 0.035, 1.0 - exp(-12.0 * delta))
+		sprite.flip_h = smoothed_turn > 0.18
 		sprite.modulate = Color.WHITE.lerp(Color(HeroFactory.HEROES[controller.hero_id]["aura"]), 0.10 if controller.aura_time > 0.0 else 0.0)
 
 	var run_wave := sin(animation_time * lerpf(7.2, 12.6, clampf(smoothed_movement, 0.0, 1.0)))
@@ -137,16 +143,4 @@ func _update_boat_pose(visual: CharacterBody3D, delta: float) -> void:
 	var pilot_sprite := visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	if pilot_sprite != null:
 		pilot_sprite.position.y = float(HeroFactory.HEROES[controller.hero_id]["sprite_y"]) + sin(animation_time * 2.6) * 0.008
-
-func _update_camera_feedback() -> void:
-	if not is_instance_valid(controller.camera):
-		return
-	if controller.boat_mode:
-		controller.camera.position = camera_rest_position
-		return
-	var shake := Vector3(
-		sin(animation_time * 47.0),
-		cos(animation_time * 41.0),
-		sin(animation_time * 31.0)
-	) * shake_strength * 0.045
-	controller.camera.position = camera_rest_position + shake
+		pilot_sprite.flip_h = turn_ratio > 0.10
