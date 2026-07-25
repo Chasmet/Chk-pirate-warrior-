@@ -1,0 +1,27 @@
+{
+  "id": "capitaine_helios",
+  "name": "Capitaine Hélios",
+  "rank": "BOSS",
+  "island": 0,
+  "visualIdentity": {
+    "silhouette": "capitaine athlétique, épaules larges, taille humaine légèrement supérieure au héros",
+    "face": "visage dur, barbe courte, cicatrice verticale sur la joue gauche",
+    "hair": "cheveux noirs attachés en arrière",
+    "clothing": "long manteau rouge solaire, gilet bleu nuit, ceinture dorée, bottes de capitaine",
+    "weapon": "sabre solaire large avec garde circulaire dorée",
+    "accessories": ["boussole solaire", "épaulette droite dorée", "cape courte brûlée"],
+    "palette": ["#F5C451", "#D94A3A", "#2A526B", "#1D1820"]
+  },
+  "scale": {"heightMeters": 2.05, "collisionRadiusMeters": 0.58, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "combat_guard", "solar_charge", "phase2_rage", "defeat"],
+  "gameplay": {
+    "phase1": ["three_hit_saber_combo", "solar_dash", "sun_disc_projectile"],
+    "phase2": ["burning_coat", "solar_area_blast", "five_hit_combo", "ultimate_sunfall"],
+    "weakness": "attaque après la charge solaire ratée"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["cicatrice toujours à gauche", "épaulette uniquement à droite", "sabre toujours dans la main droite", "cape plus sombre en phase 2"]
+}
