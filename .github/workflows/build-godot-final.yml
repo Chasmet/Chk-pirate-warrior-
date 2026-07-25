@@ -34,17 +34,42 @@ jobs:
       - name: Récupérer les six atlas 2.5D validés
         shell: bash
         run: |
-          set -euxo pipefail
+          set -uo pipefail
           mkdir -p godot/assets/roster25d
-          ASSET_BASE='https://chk-pirate-warrior-assets-2ggx225me-chasmets-projects.vercel.app/roster25d'
+          : > roster25d-download.log
+          bases=(
+            'https://chk-pirate-warrior-assets-2ggx225me-chasmets-projects.vercel.app/roster25d'
+            'https://chk-pirate-warrior-assets-chasmets-projects.vercel.app/roster25d'
+            'https://chk-pirate-warrior-assets-chasmet-chasmets-projects.vercel.app/roster25d'
+          )
+          failed=0
           for zone in 0 1 2 3 4 5; do
             target="godot/assets/roster25d/island_${zone}_atlas.png"
-            curl -L --fail --retry 5 --retry-all-errors \
-              -o "$target" \
-              "$ASSET_BASE/island_${zone}_atlas_320q48.png"
-            test "$(stat -c%s "$target")" -gt 9000
-            test "$(xxd -p -l 8 "$target")" = '89504e470d0a1a0a'
+            rm -f "$target"
+            downloaded=0
+            for base in "${bases[@]}"; do
+              url="$base/island_${zone}_atlas_320q48.png"
+              echo "GET $url" | tee -a roster25d-download.log
+              code="$(curl -sS -L --retry 2 --retry-all-errors --connect-timeout 15 --max-time 90 \
+                -w '%{http_code}' -o "$target" "$url" 2>>roster25d-download.log || true)"
+              size="$(stat -c%s "$target" 2>/dev/null || echo 0)"
+              header="$(xxd -p -l 8 "$target" 2>/dev/null || true)"
+              echo "HTTP=$code SIZE=$size HEADER=$header" | tee -a roster25d-download.log
+              if [ "$code" = '200' ] && [ "$size" -gt 9000 ] && [ "$header" = '89504e470d0a1a0a' ]; then
+                downloaded=1
+                break
+              fi
+              rm -f "$target"
+            done
+            if [ "$downloaded" -ne 1 ]; then
+              echo "ÉCHEC ATLAS ÎLE $zone" | tee -a roster25d-download.log
+              failed=1
+            fi
           done
+          cat roster25d-download.log
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
           sha256sum godot/assets/roster25d/*.png | tee roster25d-assets-sha256.log
 
       - name: Installer Java 17
@@ -152,6 +177,7 @@ jobs:
           path: |
             build/CHK-Pirate-Warrior-Final-debug.apk
             build/SHA256.txt
+            roster25d-download.log
             roster25d-assets-sha256.log
             godot-camera-test.log
             godot-final-test.log
@@ -165,6 +191,7 @@ jobs:
         with:
           name: CHK-Pirate-Warrior-Test-diagnostics
           path: |
+            roster25d-download.log
             roster25d-assets-sha256.log
             godot-import.log
             godot-runtime.log
