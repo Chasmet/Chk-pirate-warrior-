@@ -39,6 +39,9 @@ public:
     UFUNCTION(BlueprintPure, Category="HUD")
     FString GetCurrentIslandName() const { return CurrentIslandName; }
 
+    UFUNCTION(BlueprintPure, Category="World")
+    int32 GetCurrentIslandIndex() const { return CurrentIslandIndex; }
+
     UFUNCTION(BlueprintCallable, Category="World")
     void SetWorldStatus(const FString& NewIslandName, const FString& NewMission, int32 NewIslandIndex);
 
