@@ -2,6 +2,7 @@ package fr.chk.piratewarrior;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -46,8 +47,33 @@ public final class Enemy25DCatalogTest {
 
     @Test
     public void protectedHeroesAreNotEnemyEntries() {
-        assertEquals(null, Enemy25DCatalog.byId("cheikh"));
-        assertEquals(null, Enemy25DCatalog.byId("yvane"));
-        assertEquals(null, Enemy25DCatalog.byId("nelvyn"));
+        assertNull(Enemy25DCatalog.byId("cheikh"));
+        assertNull(Enemy25DCatalog.byId("yvane"));
+        assertNull(Enemy25DCatalog.byId("nelvyn"));
+    }
+
+    @Test
+    public void portDesNaufragesReferencesAreLocked() {
+        Enemy25DCatalog.Entry boss = Enemy25DCatalog.bossForIsland(0);
+        assertEquals("brakor", boss.id);
+        assertEquals("Brakor, Gardien du Port", boss.displayName);
+        assertEquals("characters25d/island_01/brakor/sheet.webp", boss.sheetAssetPath);
+
+        Set<String> commanders = new HashSet<>();
+        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.commandersForIsland(0)) {
+            commanders.add(entry.id);
+        }
+        assertTrue(commanders.contains("tireur_quais"));
+        assertTrue(commanders.contains("maitre_croc"));
+        assertTrue(commanders.contains("ingenieur_amarres"));
+
+        Set<String> nakamas = new HashSet<>();
+        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.subordinatesForIsland(0)) {
+            nakamas.add(entry.id);
+        }
+        assertTrue(nakamas.contains("voleur_agile"));
+        assertTrue(nakamas.contains("porte_chaine"));
+        assertTrue(nakamas.contains("guetteur_phare"));
+        assertNull(Enemy25DCatalog.byId("capitaine_helios"));
     }
 }
