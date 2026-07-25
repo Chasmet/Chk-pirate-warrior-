@@ -22,9 +22,6 @@ void ACHKHUD::DrawHUD()
     const ACHKPlayerController* Controller = Cast<ACHKPlayerController>(GetOwningPlayerController());
     const ACHKCharacter* Character = Controller ? Controller->GetActiveCharacter() : nullptr;
 
-    // L'écran d'entrée d'Unreal peut rester visible plusieurs images sur Android.
-    // On couvre immédiatement tout le framebuffer pour éviter le flash blanc,
-    // puis on affiche un état de chargement jusqu'à ce que le héros soit possédé.
     if (!Controller || !Character)
     {
         DrawFilledRect(FVector2D::ZeroVector, FVector2D(Width, Height), FLinearColor(0.002f, 0.006f, 0.014f, 1.0f));
@@ -61,16 +58,24 @@ void ACHKHUD::DrawHUD()
     DrawLabel(Controller->GetCurrentIslandName(), FVector2D(Width * 0.235f, 36.0f * UiScale), FLinearColor(0.92f, 0.72f, 0.20f, 1.0f), 0.95f * UiScale, true);
     DrawLabel(Controller->GetMissionText(), FVector2D(Width * 0.235f, 74.0f * UiScale), FLinearColor::White, 0.72f * UiScale);
 
-    const float Radius = 68.0f * UiScale;
-    DrawActionButton(TEXT("ATTAQUE"), FVector2D(Width - 105.0f * UiScale, Height - 115.0f * UiScale), Radius, FLinearColor(0.62f, 0.04f, 0.025f, 0.74f));
-    DrawActionButton(TEXT("POUVOIR"), FVector2D(Width - 285.0f * UiScale, Height - 115.0f * UiScale), Radius, FLinearColor(0.08f, 0.25f, 0.78f, 0.74f));
-    DrawActionButton(TEXT("ESQUIVE"), FVector2D(Width - 105.0f * UiScale, Height - 320.0f * UiScale), Radius, FLinearColor(0.10f, 0.58f, 0.40f, 0.72f));
-    DrawActionButton(Controller->IsSailing() ? TEXT("ACCOSTER") : TEXT("BATEAU"), FVector2D(Width - 285.0f * UiScale, Height - 320.0f * UiScale), Radius, FLinearColor(0.68f, 0.42f, 0.08f, 0.72f));
-
-    if (!Controller->IsSailing())
+    if (Controller->IsSailing())
     {
-        DrawActionButton(TEXT("HÉROS"), FVector2D(Width - 105.0f * UiScale, 165.0f * UiScale), 54.0f * UiScale, FLinearColor(0.45f, 0.10f, 0.65f, 0.72f));
+        const FVector2D DockCenter(Width - 115.0f * UiScale, Height * 0.48f);
+        DrawActionButton(TEXT("ACCOSTER"), DockCenter, 78.0f * UiScale, FLinearColor(0.68f, 0.42f, 0.08f, 0.78f));
+
+        const FVector2D NavigationPanel(Width * 0.34f, Height - 118.0f * UiScale);
+        DrawFilledRect(NavigationPanel, FVector2D(Width * 0.32f, 78.0f * UiScale), FLinearColor(0.005f, 0.012f, 0.025f, 0.78f));
+        DrawLabel(FString::Printf(TEXT("NAVIGATION  •  %.0f KM/H"), Controller->GetBoatSpeedKmh()), NavigationPanel + FVector2D(28.0f * UiScale, 14.0f * UiScale), FLinearColor(1.0f, 0.78f, 0.22f, 1.0f), 0.86f * UiScale, true);
+        DrawLabel(TEXT("GAUCHE : NAVIRE   •   DROITE : CAMÉRA"), NavigationPanel + FVector2D(28.0f * UiScale, 50.0f * UiScale), FLinearColor::White, 0.66f * UiScale);
+        return;
     }
+
+    const float Radius = 68.0f * UiScale;
+    DrawActionButton(TEXT("ATTAQUE"), FVector2D(Width - 105.0f * UiScale, Height * 0.44f), Radius, FLinearColor(0.62f, 0.04f, 0.025f, 0.78f));
+    DrawActionButton(TEXT("POUVOIR"), FVector2D(Width - 285.0f * UiScale, Height * 0.44f), Radius, FLinearColor(0.08f, 0.25f, 0.78f, 0.78f));
+    DrawActionButton(TEXT("ESQUIVE"), FVector2D(Width - 105.0f * UiScale, Height * 0.63f), Radius, FLinearColor(0.10f, 0.58f, 0.40f, 0.76f));
+    DrawActionButton(TEXT("BATEAU"), FVector2D(Width - 285.0f * UiScale, Height * 0.63f), Radius, FLinearColor(0.68f, 0.42f, 0.08f, 0.76f));
+    DrawActionButton(TEXT("HÉROS"), FVector2D(Width - 105.0f * UiScale, Height * 0.20f), 54.0f * UiScale, FLinearColor(0.45f, 0.10f, 0.65f, 0.76f));
 
     DrawFilledRect(FVector2D(Width * 0.33f, Height - 68.0f * UiScale), FVector2D(Width * 0.34f, 44.0f * UiScale), FLinearColor(0.005f, 0.012f, 0.025f, 0.72f));
     DrawLabel(Character->GetSkillDisplayName(), FVector2D(Width * 0.355f, Height - 58.0f * UiScale), FLinearColor(1.0f, 0.78f, 0.22f, 1.0f), 0.78f * UiScale);
