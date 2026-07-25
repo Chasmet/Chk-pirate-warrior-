@@ -1,0 +1,89 @@
+name: Valider migration Unreal Engine 5.8
+
+on:
+  push:
+    branches:
+      - ue5-migration
+  pull_request:
+    paths:
+      - "unreal/**"
+      - ".github/workflows/validate-ue5-migration.yml"
+  workflow_dispatch:
+
+jobs:
+  validation-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vérifier le fichier uproject
+        run: |
+          python -m json.tool unreal/CHKPirateWarrior/CHKPirateWarrior.uproject > /dev/null
+          grep -q '"EngineAssociation": "5.8"' unreal/CHKPirateWarrior/CHKPirateWarrior.uproject
+
+      - name: Vérifier la structure C++ complète
+        run: |
+          for file in \
+            CHKCharacter.cpp CHKCharacter.h \
+            CHKBoatPawn.cpp CHKBoatPawn.h \
+            CHKEnemyCharacter.cpp CHKEnemyCharacter.h \
+            CHKPlayerController.cpp CHKPlayerController.h \
+            CHKHUD.cpp CHKHUD.h \
+            CHKWorldBootstrap.cpp CHKWorldBootstrap.h \
+            CHKGameMode.cpp CHKGameMode.h \
+            CHKSaveGame.h; do
+            test -s "unreal/CHKPirateWarrior/Source/CHKPirateWarrior/$file"
+          done
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior.Target.cs
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarriorEditor.Target.cs
+          test -f unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKPirateWarrior.Build.cs
+          grep -q 'IMPLEMENT_PRIMARY_GAME_MODULE' unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKPirateWarrior.cpp
+
+      - name: Vérifier les systèmes clé en main
+        run: |
+          python -m py_compile unreal/CHKPirateWarrior/Scripts/validate_turnkey_source.py
+          python unreal/CHKPirateWarrior/Scripts/validate_turnkey_source.py
+
+      - name: Vérifier la configuration Android
+        run: |
+          grep -q 'TargetSDKVersion=35' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'MinSDKVersion=26' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bBuildForArm64=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bSupportsVulkan=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bCookMapsOnly=True' unreal/CHKPirateWarrior/Config/DefaultGame.ini
+          grep -q 'bCompressed=True' unreal/CHKPirateWarrior/Config/DefaultGame.ini
+          grep -q 'bAlwaysShowTouchInterface=True' unreal/CHKPirateWarrior/Config/DefaultInput.ini
+          test -f unreal/CHKPirateWarrior/Config/DefaultDeviceProfiles.ini
+
+      - name: Vérifier les scripts Python
+        run: |
+          python -m py_compile unreal/CHKPirateWarrior/Scripts/import_original_assets.py
+          python -m py_compile unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py
+
+      - name: Contrôler le budget mobile de 5 Go
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
+
+      - name: Vérifier les assets originaux
+        run: |
+          for file in \
+            SM_CHK_Crate.obj \
+            SM_CHK_Rock_A.obj \
+            SM_CHK_Anchor.obj \
+            SM_CHK_DockModule.obj \
+            CHK_Original.mtl; do
+            test -s "unreal/CHKPirateWarrior/ContentSource/Original/$file"
+          done
+
+      - name: Résumé
+        run: |
+          echo "CHK Pirate Warrior UE5 : source autonome validée."
+          echo "Systèmes : héros, combat, pouvoirs, bateau, six îles, ennemis, boss, HUD, tactile et sauvegarde."
+          echo "Budget Android verrouillé : 4,5 Go livrés et 5 Go installés maximum."
+          echo "La génération finale de l'APK exige toujours l'exécution d'Unreal Engine 5.8."

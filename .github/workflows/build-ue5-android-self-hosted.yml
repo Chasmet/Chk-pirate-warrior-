@@ -1,0 +1,78 @@
+name: Construire APK Unreal Engine 5.8
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: [self-hosted, Windows, UE5.8, Android]
+    timeout-minutes: 180
+    env:
+      PROJECT: ${{ github.workspace }}\unreal\CHKPirateWarrior\CHKPirateWarrior.uproject
+      OUTPUT: ${{ github.workspace }}\unreal-build\Android
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Installer Python pour les contrôles
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vérifier Unreal Engine
+        shell: pwsh
+        run: |
+          if (-not $env:UE_ROOT) { throw "La variable UE_ROOT doit pointer vers Unreal Engine 5.8." }
+          $uat = Join-Path $env:UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
+          if (-not (Test-Path $uat)) { throw "RunUAT.bat introuvable dans UE_ROOT." }
+
+      - name: Contrôler le budget des sources
+        shell: pwsh
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Construire et empaqueter Android
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:OUTPUT | Out-Null
+          $uat = Join-Path $env:UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
+          & $uat BuildCookRun `
+            -project="$env:PROJECT" `
+            -noP4 `
+            -platform=Android `
+            -clientconfig=Shipping `
+            -build `
+            -cook `
+            -stage `
+            -pak `
+            -iostore `
+            -compressed `
+            -nodebuginfo `
+            -archive `
+            -archivedirectory="$env:OUTPUT" `
+            -utf8output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Refuser tout dossier Android supérieur à 4,5 Go
+        shell: pwsh
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py "$env:OUTPUT" --build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Calculer les empreintes
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path $env:OUTPUT -Recurse -Include *.apk,*.aab | ForEach-Object {
+            Get-FileHash $_.FullName -Algorithm SHA256 | Format-List | Out-File -Append "$env:OUTPUT\SHA256.txt"
+          }
+
+      - name: Publier APK Unreal
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-UE5-Android
+          path: unreal-build/Android
+          if-no-files-found: error
+          retention-days: 30
