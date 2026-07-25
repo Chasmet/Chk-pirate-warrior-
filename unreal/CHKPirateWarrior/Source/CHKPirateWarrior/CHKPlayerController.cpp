@@ -5,6 +5,7 @@
 #include "CHKSaveGame.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 namespace
@@ -158,9 +159,9 @@ void ACHKPlayerController::SaveProgress()
     Save->Level = Character->Level;
     Save->Experience = Character->Experience;
     Save->Coins = Character->Coins;
-    if (!Save->UnlockedZones.Contains(CurrentIslandIndex))
+    for (int32 Index = 0; Index <= CurrentIslandIndex; ++Index)
     {
-        Save->UnlockedZones.Add(CurrentIslandIndex);
+        Save->UnlockedZones.AddUnique(Index);
     }
 
     UGameplayStatics::SaveGameToSlot(Save, SaveSlotName, 0);
