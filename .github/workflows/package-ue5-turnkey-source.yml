@@ -1,0 +1,50 @@
+name: Publier projet UE5 clé en main
+
+on:
+  push:
+    branches:
+      - ue5-migration
+    paths:
+      - "unreal/**"
+      - ".github/workflows/package-ue5-turnkey-source.yml"
+  workflow_dispatch:
+
+jobs:
+  package-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Valider le jeu autonome
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/validate_turnkey_source.py
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
+
+      - name: Préparer le paquet
+        run: |
+          mkdir -p release
+          cat > release/MANIFESTE.txt <<EOF
+          CHK Pirate Warrior — Unreal Engine 5.8 Android
+          Branche: ue5-migration
+          Commit: $GITHUB_SHA
+          Contenu: projet C++ autonome, six îles, trois héros, bateau, ennemis, boss, HUD tactile et sauvegarde.
+          Limite Android: 4,5 Go livré, 5 Go installé maximum.
+          EOF
+          cp -R unreal/CHKPirateWarrior release/CHKPirateWarrior
+          find release/CHKPirateWarrior -type d \( -name Binaries -o -name DerivedDataCache -o -name Intermediate -o -name Saved \) -prune -exec rm -rf {} + || true
+          cd release
+          zip -9 -r CHK-Pirate-Warrior-UE5-Turnkey-Source.zip CHKPirateWarrior MANIFESTE.txt
+
+      - name: Publier le projet complet
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-UE5-Turnkey-Source
+          path: release/CHK-Pirate-Warrior-UE5-Turnkey-Source.zip
+          if-no-files-found: error
+          retention-days: 30
