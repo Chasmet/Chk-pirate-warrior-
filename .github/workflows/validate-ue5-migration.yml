@@ -43,10 +43,18 @@ jobs:
           grep -q 'MinSDKVersion=26' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
           grep -q 'bBuildForArm64=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
           grep -q 'bSupportsVulkan=True' unreal/CHKPirateWarrior/Config/DefaultEngine.ini
+          grep -q 'bCookMapsOnly=True' unreal/CHKPirateWarrior/Config/DefaultGame.ini
+          grep -q 'bCompressed=True' unreal/CHKPirateWarrior/Config/DefaultGame.ini
+          test -f unreal/CHKPirateWarrior/Config/DefaultDeviceProfiles.ini
 
       - name: Vérifier les scripts Python
         run: |
           python -m py_compile unreal/CHKPirateWarrior/Scripts/import_original_assets.py
+          python -m py_compile unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py
+
+      - name: Contrôler le budget mobile de 5 Gio
+        run: |
+          python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
 
       - name: Vérifier les assets originaux
         run: |
@@ -62,4 +70,5 @@ jobs:
       - name: Résumé
         run: |
           echo "Migration Unreal Engine 5.8 : structure source valide."
+          echo "Budget Android verrouillé à 5 Gio maximum."
           echo "La compilation complète exige une installation Unreal Engine sur un runner Windows auto-hébergé."
