@@ -15,46 +15,66 @@ Chaque île contient exactement :
 
 Total : **42 personnages ennemis importants en 2.5D**.
 
-## Format des planches
+## Deux types de fichiers
 
-Chaque planche finale doit respecter :
+### 1. Planche de référence artistique
 
-- format `WEBP` avec transparence ;
-- taille de planche : `2048 x 2048 px` ;
-- grille : `8 x 8` ;
-- taille d'une cellule : `256 x 256 px` ;
-- pivot de chaque frame : centre des pieds ;
+Le fichier `sheet.webp` est la fiche visuelle officielle du personnage. Il sert à contrôler la continuité du visage, des vêtements, des armes, des proportions et de la palette.
+
+Format :
+
+- `2048 x 2048 px` ;
+- fond transparent ;
+- vues face, dos, profil gauche et profil droit ;
+- portrait rapproché ;
+- pose neutre ;
+- pose de combat ;
+- arme et accessoires séparés ;
+- trois couleurs principales clairement visibles.
+
+Cette planche n'est pas chargée pendant le gameplay.
+
+### 2. Bandes d'animation utilisées par Android
+
+Les animations sont séparées en bandes horizontales afin d'éviter de charger une immense texture en mémoire.
+
+Format :
+
+- `WEBP` transparent ;
+- hauteur fixe : `256 px` ;
+- largeur : nombre de frames multiplié par `256 px` ;
+- une cellule : `256 x 256 px` ;
+- pivot : centre des pieds ;
 - marge anti-débordement : 4 px minimum ;
-- aucune ombre coupée ;
 - aucune partie du corps hors cellule ;
 - même échelle et même silhouette pendant toute l'animation.
 
+Exemple pour une marche de 6 frames : `1536 x 256 px`.
+
 ## Directions
 
-Les planches doivent prévoir quatre directions :
+Chaque animation doit prévoir quatre directions :
 
-1. face caméra ;
-2. dos caméra ;
-3. profil gauche ;
-4. profil droit.
+1. `front` : face caméra ;
+2. `back` : dos caméra ;
+3. `left` : profil gauche ;
+4. `right` : profil droit.
 
-Le moteur peut retourner horizontalement certaines poses, mais les boss asymétriques doivent posséder leurs propres profils gauche et droit.
+Le moteur peut retourner horizontalement certains ennemis simples, mais les boss asymétriques doivent posséder leurs propres profils gauche et droit.
 
 ## Animations standard
 
-Ordre logique à respecter dans les métadonnées :
-
-1. `idle` ;
-2. `walk` ;
-3. `run` ;
-4. `attack` ;
-5. `power` ;
-6. `special` ;
-7. `dodge` ;
-8. `hurt` ;
-9. `knockback` ;
-10. `defeat` ;
-11. `intro`.
+- `idle` ;
+- `walk` ;
+- `run` ;
+- `attack` ;
+- `power` ;
+- `special` ;
+- `dodge` ;
+- `hurt` ;
+- `knockback` ;
+- `defeat` ;
+- `intro`.
 
 Les boss ajoutent :
 
@@ -63,21 +83,22 @@ Les boss ajoutent :
 - `area_attack` ;
 - `ultimate`.
 
-## Nommage
-
-Chaque personnage possède ce dossier :
+## Arborescence
 
 ```text
 characters25d/island_XX/<character_id>/
-```
-
-Fichiers attendus :
-
-```text
-sheet.webp
-sheet.json
-portrait.webp
-thumbnail.webp
+├── sheet.webp
+├── sheet.json
+├── portrait.webp
+├── thumbnail.webp
+└── animations/
+    ├── front/
+    │   ├── idle.webp
+    │   ├── walk.webp
+    │   └── ...
+    ├── back/
+    ├── left/
+    └── right/
 ```
 
 ## Règles artistiques
@@ -93,12 +114,14 @@ thumbnail.webp
 
 ## Validation avant intégration
 
-Une planche n'est considérée comme terminée que si :
+Un personnage n'est considéré comme terminé que si :
 
+- la planche de référence est validée ;
 - toutes les animations obligatoires existent ;
 - le personnage reste identique d'une frame à l'autre ;
 - le fond est transparent ;
 - la collision des pieds correspond au pivot ;
 - aucune frame ne dépasse sa cellule ;
+- la mémoire est libérée au changement d'île ;
 - la planche est testée sur un appareil Android ;
 - GitHub Actions valide les tests, le lint et `assembleDebug`.
