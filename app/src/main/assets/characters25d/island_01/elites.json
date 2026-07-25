@@ -1,0 +1,68 @@
+{
+  "island": 0,
+  "name": "Baie solaire",
+  "commanders": [
+    {
+      "id": "sirocco",
+      "name": "Sirocco",
+      "silhouette": "sabreur mince et nerveux, manteau court fendu",
+      "face": "visage étroit, bandeau rouge, sourire provocateur",
+      "weapon": "deux sabres courts asymétriques",
+      "combatRole": "melee_dodger",
+      "signature": "dash croisé suivi d'un retour instantané",
+      "continuity": ["sabre long main droite", "sabre court main gauche", "bandeau toujours rouge"]
+    },
+    {
+      "id": "marea",
+      "name": "Maréa",
+      "silhouette": "tireuse athlétique, veste bleue courte, holsters visibles",
+      "face": "cheveux noirs bouclés, œil droit maquillé bleu",
+      "weapon": "deux pistolets de marine différents",
+      "combatRole": "ranged_mobile",
+      "signature": "ricochets entre plusieurs cibles",
+      "continuity": ["pistolet argent main droite", "pistolet noir main gauche", "holsters toujours visibles"]
+    },
+    {
+      "id": "baron_tambour",
+      "name": "Baron Tambour",
+      "silhouette": "combattant massif, ventre blindé et épaules rondes",
+      "face": "barbe rousse épaisse, nez cassé",
+      "weapon": "marteau naval à tête cylindrique",
+      "combatRole": "heavy_breaker",
+      "signature": "onde de choc circulaire après une frappe lente",
+      "continuity": ["marteau porté épaule droite", "bracelet doré bras gauche", "barbe rousse inchangée"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "braise",
+      "name": "Braise",
+      "linkedCommander": "sirocco",
+      "silhouette": "petit assassin rapide avec cape fumée",
+      "weapon": "dague courbe",
+      "combatRole": "flanker",
+      "signature": "fumée aveuglante puis attaque latérale",
+      "continuity": ["dague main gauche", "cape gris sombre", "lunettes jaunes"]
+    },
+    {
+      "id": "cliquet",
+      "name": "Cliquet",
+      "linkedCommander": "marea",
+      "silhouette": "tireur compact avec sac de munitions",
+      "weapon": "carabine courte à mécanisme apparent",
+      "combatRole": "cover_shooter",
+      "signature": "tir de couverture pendant les déplacements de Maréa",
+      "continuity": ["carabine tenue à deux mains", "sac côté droit", "casquette bleue"]
+    },
+    {
+      "id": "pave",
+      "name": "Pavé",
+      "linkedCommander": "baron_tambour",
+      "silhouette": "gardien trapu presque entièrement caché par son bouclier",
+      "weapon": "bouclier rectangulaire et matraque",
+      "combatRole": "tank_guard",
+      "signature": "protège le commandant et repousse le héros",
+      "continuity": ["bouclier main gauche", "matraque main droite", "casque fermé"]
+    }
+  ]
+}
