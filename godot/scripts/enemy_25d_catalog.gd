@@ -1,23 +1,23 @@
 class_name Enemy25DCatalog
 extends RefCounted
 
-const SHEET_SIZE := Vector2i(1024, 725)
-const BOSS_REGION := Rect2(35, 108, 330, 414)
+const SHEET_SIZE := Vector2i(320, 240)
+const BOSS_REGION := Rect2(0, 0, 113, 163)
 const COMMANDANT_REGIONS := [
-	Rect2(382, 104, 202, 260),
-	Rect2(574, 104, 202, 260),
-	Rect2(766, 104, 242, 260)
+	Rect2(113, 0, 69, 82),
+	Rect2(182, 0, 69, 82),
+	Rect2(251, 0, 69, 82)
 ]
 const NAKAMA_REGIONS := [
-	Rect2(382, 346, 202, 195),
-	Rect2(574, 346, 202, 195),
-	Rect2(766, 346, 242, 195)
+	Rect2(113, 81, 69, 82),
+	Rect2(182, 81, 69, 82),
+	Rect2(251, 81, 69, 82)
 ]
 const ANIMAL_REGIONS := [
-	Rect2(12, 535, 250, 184),
-	Rect2(252, 535, 250, 184),
-	Rect2(492, 535, 250, 184),
-	Rect2(732, 535, 280, 184)
+	Rect2(0, 162, 80, 78),
+	Rect2(80, 162, 80, 78),
+	Rect2(160, 162, 80, 78),
+	Rect2(240, 162, 80, 78)
 ]
 
 const ISLANDS := [
@@ -105,20 +105,21 @@ static func animals_for_zone(zone: int) -> Array[Dictionary]:
 		result.append(animal_for_zone(zone, index))
 	return result
 
+static func sheet_path(zone: int) -> String:
+	return "res://assets/roster25d/island_%d_atlas.png" % clampi(zone, 0, ISLANDS.size() - 1)
+
 static func sheet_texture(zone: int) -> Texture2D:
 	var z := clampi(zone, 0, ISLANDS.size() - 1)
 	if _sheet_cache.has(z):
 		return _sheet_cache[z] as Texture2D
-	var encoded := _base64_for_zone(z)
-	if encoded.is_empty():
-		push_error("Planche 2.5D absente pour l'île %d" % z)
+	var path := sheet_path(z)
+	if not ResourceLoader.exists(path):
+		push_error("Atlas 2.5D absent : " + path)
 		return null
-	var image := Image.new()
-	var error := image.load_webp_from_buffer(Marshalls.base64_to_raw(encoded))
-	if error != OK or image.is_empty():
-		push_error("Décodage WebP 2.5D impossible pour l'île %d (erreur %d)" % [z, error])
+	var texture := load(path) as Texture2D
+	if texture == null:
+		push_error("Atlas 2.5D illisible : " + path)
 		return null
-	var texture := ImageTexture.create_from_image(image)
 	_sheet_cache[z] = texture
 	return texture
 
@@ -145,7 +146,7 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 	var xp := 38 + zone * 9
 	var coins := 18 + zone * 5
 	var collision_scale := 1.0
-	var pixel_size := 0.0080
+	var pixel_size := 0.026
 	var sprite_y := 1.02
 	var visual_layers := 2
 	var boss := false
@@ -158,7 +159,7 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 			xp = 480 + zone * 155
 			coins = 250 + zone * 95
 			collision_scale = 1.62
-			pixel_size = 0.0071
+			pixel_size = 0.023
 			sprite_y = 1.48
 			visual_layers = 3
 			boss = true
@@ -170,7 +171,7 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 			xp = 105 + zone * 25 + index * 12
 			coins = 52 + zone * 11 + index * 6
 			collision_scale = 1.16
-			pixel_size = 0.0082
+			pixel_size = 0.027
 			sprite_y = 1.10
 		"nakama":
 			health = (150.0 + float(index) * 24.0) * zone_factor
@@ -180,7 +181,7 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 			xp = 64 + zone * 16 + index * 8
 			coins = 30 + zone * 8 + index * 4
 			collision_scale = 0.96
-			pixel_size = 0.0080
+			pixel_size = 0.026
 			sprite_y = 0.94
 		"animal":
 			health = (105.0 + float(index) * 16.0) * zone_factor
@@ -190,7 +191,7 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 			xp = 42 + zone * 11 + index * 5
 			coins = 18 + zone * 5 + index * 2
 			collision_scale = 0.78
-			pixel_size = 0.0071
+			pixel_size = 0.024
 			sprite_y = 0.58
 	var safe_id := display_name.to_lower().replace(" ", "_").replace("'", "").replace("’", "").replace("-", "_")
 	return {
@@ -216,13 +217,3 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 		"scale":collision_scale,
 		"weapon":"25d_%s" % rank
 	}
-
-static func _base64_for_zone(zone: int) -> String:
-	match zone:
-		0: return Island0PortData.WEBP_BASE64
-		1: return Island1JungleData.WEBP_BASE64
-		2: return Island2SnowData.WEBP_BASE64
-		3: return Island3DesertData.WEBP_BASE64
-		4: return Island4VolcanoData.WEBP_BASE64
-		5: return Island5StormData.WEBP_BASE64
-	return ""
