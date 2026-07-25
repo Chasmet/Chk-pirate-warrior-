@@ -48,8 +48,8 @@ public final class PdfAssetCatalogTest {
     }
 
     @Test
-    public void officialBossesMatchThePdf() {
-        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zarok", "Vulkar", "Tempyr"};
+    public void officialBossesMatchThePdfTextHierarchy() {
+        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zahrek", "Vulkar", "Tempyr"};
         for (int island = 0; island < bosses.length; island++) {
             assertTrue(PdfAssetCatalog.bossForIsland(island).displayName.contains(bosses[island]));
         }
