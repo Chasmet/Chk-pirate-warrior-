@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,10 +17,12 @@ import java.util.Map;
 /**
  * Chargeur léger des bandes d'animation 2.5D placées dans app/src/main/assets.
  *
- * La planche sheet.webp reste la fiche de référence artistique. Le moteur charge des bandes
- * séparées afin de ne conserver en mémoire que les animations réellement utilisées.
+ * Chaque bande est validée avant d'entrer dans le cache. Un fichier absent ou invalide ne fait
+ * jamais planter le jeu : l'erreur est journalisée et le moteur peut conserver son fallback.
  */
 public final class SpriteStrip25D {
+    private static final String TAG = "SpriteStrip25D";
+
     public enum Direction {
         FRONT("front"), BACK("back"), LEFT("left"), RIGHT("right");
 
@@ -58,12 +61,13 @@ public final class SpriteStrip25D {
         }
     }
 
-    private static final int CELL_SIZE = 256;
+    public static final int CELL_SIZE = 256;
 
     private final String characterFolder;
     private final Map<Direction, Map<Animation, Bitmap>> strips = new EnumMap<>(Direction.class);
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private boolean released;
+    private int loadedAnimationCount;
 
     public SpriteStrip25D(String characterFolder) {
         this.characterFolder = characterFolder;
@@ -80,14 +84,36 @@ public final class SpriteStrip25D {
         String path = assetPath(characterFolder, direction, animation);
         try (InputStream input = assets.open(path)) {
             Bitmap bitmap = BitmapFactory.decodeStream(input);
-            if (bitmap == null || bitmap.getHeight() < CELL_SIZE || bitmap.getWidth() < CELL_SIZE) {
+            if (!isValidStrip(bitmap, animation)) {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                Log.w(TAG, "Bande 2.5D invalide : " + path
+                        + " (cellule attendue 256x256, frames=" + animation.expectedFrames + ")");
                 return false;
             }
             directionStrips.put(animation, bitmap);
+            loadedAnimationCount++;
             return true;
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            Log.w(TAG, "Asset 2.5D manquant : " + path);
+            return false;
+        } catch (RuntimeException exception) {
+            Log.e(TAG, "Échec du décodage 2.5D : " + path, exception);
             return false;
         }
+    }
+
+    public boolean isLoaded(Direction direction, Animation animation) {
+        if (released || direction == null || animation == null) return false;
+        Bitmap bitmap = strips.get(direction).get(animation);
+        return bitmap != null && !bitmap.isRecycled();
+    }
+
+    public int loadedAnimationCount() {
+        return loadedAnimationCount;
+    }
+
+    public boolean hasAnyAnimation() {
+        return loadedAnimationCount > 0;
     }
 
     public boolean draw(
@@ -102,14 +128,15 @@ public final class SpriteStrip25D {
     ) {
         if (released || canvas == null || direction == null || animation == null) return false;
         Bitmap strip = strips.get(direction).get(animation);
-        if (strip == null) return false;
+        if (strip == null || strip.isRecycled()) return false;
 
         int availableFrames = Math.max(1, strip.getWidth() / CELL_SIZE);
         int frameCount = Math.min(animation.expectedFrames, availableFrames);
         int frame = Math.max(0, (int) (animationSeconds * animation.framesPerSecond)) % frameCount;
         Rect source = new Rect(frame * CELL_SIZE, 0, (frame + 1) * CELL_SIZE, CELL_SIZE);
         float width = height;
-        RectF destination = new RectF(centerX - width * 0.5f, feetY - height, centerX + width * 0.5f, feetY);
+        RectF destination = new RectF(centerX - width * 0.5f, feetY - height,
+                centerX + width * 0.5f, feetY);
         paint.setAlpha((int) (GameMath.clamp(alpha, 0f, 1f) * 255f));
         canvas.drawBitmap(strip, source, destination, paint);
         paint.setAlpha(255);
@@ -125,9 +152,19 @@ public final class SpriteStrip25D {
             }
             directionStrips.clear();
         }
+        loadedAnimationCount = 0;
+    }
+
+    private static boolean isValidStrip(Bitmap bitmap, Animation animation) {
+        if (bitmap == null || bitmap.isRecycled()) return false;
+        if (bitmap.getHeight() != CELL_SIZE) return false;
+        if (bitmap.getWidth() < CELL_SIZE || bitmap.getWidth() % CELL_SIZE != 0) return false;
+        int frames = bitmap.getWidth() / CELL_SIZE;
+        return frames >= Math.min(1, animation.expectedFrames);
     }
 
     static String assetPath(String characterFolder, Direction direction, Animation animation) {
-        return characterFolder + "/animations/" + direction.folder + "/" + animation.fileName + ".webp";
+        return characterFolder + "/animations/" + direction.folder + "/"
+                + animation.fileName + ".webp";
     }
 }
