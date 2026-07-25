@@ -1,6 +1,7 @@
 package fr.chk.piratewarrior;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -53,27 +54,68 @@ public final class Enemy25DCatalogTest {
     }
 
     @Test
+    public void officialIslandOrderIsLocked() {
+        assertEquals("Port des Naufragés", Enemy25DCatalog.ISLAND_NAMES[0]);
+        assertEquals("Jungle Sauvage", Enemy25DCatalog.ISLAND_NAMES[1]);
+        assertEquals("Royaume des Neiges", Enemy25DCatalog.ISLAND_NAMES[2]);
+        assertEquals("Désert des Corsaires", Enemy25DCatalog.ISLAND_NAMES[3]);
+        assertEquals("Île Volcanique", Enemy25DCatalog.ISLAND_NAMES[4]);
+        assertEquals("Forteresse de la Tempête", Enemy25DCatalog.ISLAND_NAMES[5]);
+    }
+
+    @Test
     public void portDesNaufragesReferencesAreLocked() {
-        Enemy25DCatalog.Entry boss = Enemy25DCatalog.bossForIsland(0);
-        assertEquals("brakor", boss.id);
-        assertEquals("Brakor, Gardien du Port", boss.displayName);
-        assertEquals("characters25d/island_01/brakor/sheet.webp", boss.sheetAssetPath);
+        assertRoster(0,
+                "brakor",
+                Set.of("tireur_quais", "maitre_croc", "ingenieur_amarres"),
+                Set.of("voleur_agile", "porte_chaine", "guetteur_phare"));
+        assertEquals("Brakor, Gardien du Port", Enemy25DCatalog.bossForIsland(0).displayName);
+        assertEquals("characters25d/island_01/brakor/sheet.webp",
+                Enemy25DCatalog.bossForIsland(0).sheetAssetPath);
+    }
 
-        Set<String> commanders = new HashSet<>();
-        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.commandersForIsland(0)) {
-            commanders.add(entry.id);
-        }
-        assertTrue(commanders.contains("tireur_quais"));
-        assertTrue(commanders.contains("maitre_croc"));
-        assertTrue(commanders.contains("ingenieur_amarres"));
+    @Test
+    public void allOfficialRostersAreLocked() {
+        assertRoster(1, "malkor", Set.of("zaya", "kongo", "silex"),
+                Set.of("ronce", "tika", "mamba"));
+        assertRoster(2, "skarn", Set.of("eira", "volkr", "nivor"),
+                Set.of("brume", "harka", "flint"));
+        assertRoster(3, "zahrek", Set.of("qamar", "sirok", "dune"),
+                Set.of("khepri", "safra", "rakh"));
+        assertRoster(4, "vulkar", Set.of("cendre", "magma", "pyros"),
+                Set.of("basalte", "scorie", "fumar"));
+        assertRoster(5, "tempyr", Set.of("orage", "volt", "cyclone"),
+                Set.of("brisk", "tonnerre", "fulgur"));
+    }
 
-        Set<String> nakamas = new HashSet<>();
-        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.subordinatesForIsland(0)) {
-            nakamas.add(entry.id);
+    @Test
+    public void incompatibleLegacyBossesAreRemoved() {
+        Set<String> forbidden = Set.of(
+                "capitaine_helios", "roi_boreal", "sultan_dune",
+                "seigneur_magma", "reine_mousson", "amiral_foudre"
+        );
+        for (String id : forbidden) assertNull(Enemy25DCatalog.byId(id));
+        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.all()) {
+            assertFalse("Ancien identifiant encore présent : " + entry.id,
+                    forbidden.contains(entry.id));
         }
-        assertTrue(nakamas.contains("voleur_agile"));
-        assertTrue(nakamas.contains("porte_chaine"));
-        assertTrue(nakamas.contains("guetteur_phare"));
-        assertNull(Enemy25DCatalog.byId("capitaine_helios"));
+    }
+
+    private static void assertRoster(int island, String bossId,
+                                     Set<String> commanderIds,
+                                     Set<String> subordinateIds) {
+        assertEquals(bossId, Enemy25DCatalog.bossForIsland(island).id);
+
+        Set<String> actualCommanders = new HashSet<>();
+        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.commandersForIsland(island)) {
+            actualCommanders.add(entry.id);
+        }
+        assertEquals(commanderIds, actualCommanders);
+
+        Set<String> actualSubordinates = new HashSet<>();
+        for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.subordinatesForIsland(island)) {
+            actualSubordinates.add(entry.id);
+        }
+        assertEquals(subordinateIds, actualSubordinates);
     }
 }
