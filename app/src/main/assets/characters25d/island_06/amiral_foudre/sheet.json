@@ -1,0 +1,27 @@
+{
+  "id": "amiral_foudre",
+  "name": "Amiral Foudre",
+  "rank": "BOSS",
+  "island": 5,
+  "visualIdentity": {
+    "silhouette": "amiral grand et sec, manteau long battu par le vent, posture dominante",
+    "face": "visage marqué, barbe grise pointue, œil gauche électrique",
+    "hair": "cheveux gris courts dressés par l'électricité",
+    "clothing": "manteau bleu nuit, armure argentée, ceinture noire, bottes hautes",
+    "weapon": "trident électrique à trois pointes inégales",
+    "accessories": ["épaulette gauche métallique", "cape fendue", "bobine électrique à la ceinture"],
+    "palette": ["#87C8FF", "#42507A", "#E9F1FF", "#1A2030"]
+  },
+  "scale": {"heightMeters": 2.08, "collisionRadiusMeters": 0.60, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "trident_guard", "lightning_cast", "storm_phase", "defeat"],
+  "gameplay": {
+    "phase1": ["trident_combo", "lightning_dash", "wave_projectile"],
+    "phase2": ["permanent_storm", "chain_lightning", "high_waves", "ultimate_eye_of_storm"],
+    "weakness": "bobine exposée après la chaîne d'éclairs"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["œil électrique toujours à gauche", "épaulette uniquement à gauche", "trident tenu main droite", "bobine visible à la ceinture dans toutes les directions"]
+}
