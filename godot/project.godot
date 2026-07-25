@@ -1,12 +1,12 @@
 ; CHK Pirate Warrior — Godot 4.6.3 stable
 ; Monde ouvert 3D mobile en français.
-; Passe finale : stabilité Android, personnages Cheikh/Yvane/Nelvyn et navigation.
+; V3.4 : boss, commandants, nakama et animaux originaux en 2.5D.
 
 config_version=5
 
 [application]
 
-config/name="CHK Pirate Warrior V3.3"
+config/name="CHK Pirate Warrior V3.4"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
@@ -25,6 +25,7 @@ StudioGameplayUpgrade="*res://scripts/studio_gameplay_upgrade.gd"
 ArchipelagoMinimap="*res://scripts/archipelago_minimap.gd"
 TargetHealthHud="*res://scripts/target_health_hud.gd"
 AAAPresentationDirector="*res://scripts/aaa_presentation_director.gd"
+Roster25DDirector="*res://scripts/roster_25d_director.gd"
 
 [display]
 
