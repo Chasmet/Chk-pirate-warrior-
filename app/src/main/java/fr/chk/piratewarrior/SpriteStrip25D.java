@@ -130,8 +130,7 @@ public final class SpriteStrip25D {
         Bitmap strip = strips.get(direction).get(animation);
         if (strip == null || strip.isRecycled()) return false;
 
-        int availableFrames = Math.max(1, strip.getWidth() / CELL_SIZE);
-        int frameCount = Math.min(animation.expectedFrames, availableFrames);
+        int frameCount = animation.expectedFrames;
         int frame = Math.max(0, (int) (animationSeconds * animation.framesPerSecond)) % frameCount;
         Rect source = new Rect(frame * CELL_SIZE, 0, (frame + 1) * CELL_SIZE, CELL_SIZE);
         float width = height;
@@ -158,9 +157,9 @@ public final class SpriteStrip25D {
     private static boolean isValidStrip(Bitmap bitmap, Animation animation) {
         if (bitmap == null || bitmap.isRecycled()) return false;
         if (bitmap.getHeight() != CELL_SIZE) return false;
-        if (bitmap.getWidth() < CELL_SIZE || bitmap.getWidth() % CELL_SIZE != 0) return false;
+        if (bitmap.getWidth() % CELL_SIZE != 0) return false;
         int frames = bitmap.getWidth() / CELL_SIZE;
-        return frames >= Math.min(1, animation.expectedFrames);
+        return frames == animation.expectedFrames;
     }
 
     static String assetPath(String characterFolder, Direction direction, Animation animation) {
