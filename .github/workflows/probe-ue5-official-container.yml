@@ -1,0 +1,49 @@
+name: Vérifier accès Unreal Engine officiel
+
+on:
+  push:
+    branches:
+      - ue5-migration
+    paths:
+      - ".github/workflows/probe-ue5-official-container.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  probe-unreal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Afficher l'espace disponible
+        run: |
+          df -h /
+          docker system df || true
+
+      - name: Authentifier GitHub Container Registry
+        shell: bash
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Vérifier le manifeste Unreal Engine 5.8
+        run: |
+          docker manifest inspect ghcr.io/epicgames/unreal-engine:dev-5.8 > unreal-manifest.json
+          test -s unreal-manifest.json
+          echo "CHK_UE58_CONTAINER_ACCESS_OK=1"
+
+      - name: Publier le diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-acces-unreal-5-8
+          path: unreal-manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
