@@ -1,0 +1,27 @@
+{
+  "id": "reine_mousson",
+  "name": "Reine Mousson",
+  "rank": "BOSS",
+  "island": 4,
+  "visualIdentity": {
+    "silhouette": "guerrière élancée, cape végétale large, mouvement souple et royal",
+    "face": "visage calme, marques vertes symétriques, œil gauche couvert par une feuille rigide",
+    "hair": "longues tresses noires mêlées de lianes fines",
+    "clothing": "armure légère vert sombre, tissu ivoire, cape de feuilles épaisses",
+    "weapon": "lame végétale courbe capable de s'allonger",
+    "accessories": ["couronne de lianes", "bracelet de graines", "petites fioles de poison"],
+    "palette": ["#7CCB78", "#315E3F", "#D0E4BC", "#6A3F2D"]
+  },
+  "scale": {"heightMeters": 1.92, "collisionRadiusMeters": 0.52, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "vine_blade_guard", "root_cast", "mousson_phase", "defeat"],
+  "gameplay": {
+    "phase1": ["vine_slash", "root_trap", "poison_fog"],
+    "phase2": ["dense_mist", "moving_roots", "healing_bloom", "ultimate_jungle_crown"],
+    "weakness": "couronne vulnérable pendant le soin"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["œil gauche toujours couvert", "tresses et lianes gardent le même nombre", "lame végétale tenue main droite", "cape plus dense en phase 2"]
+}
