@@ -1,46 +1,125 @@
-# CHK Pirate Warrior — migration Unreal Engine 5.8
+# CHK Pirate Warrior — Unreal Engine 5.8 Android
 
-Cette branche contient une migration parallèle du jeu Godot vers Unreal Engine 5.8. Le projet Godot reste intact tant que la version Unreal n’a pas atteint la parité fonctionnelle.
+Cette branche contient la migration parallèle du jeu vers Unreal Engine 5.8. La version Godot fonctionnelle reste intacte sur `v2-godot-3d`.
 
-## Objectifs de la première phase
+## Version autonome actuelle
 
-- recréer la caméra troisième personne et la jouabilité tactile ;
-- porter Cheikh, Yvane et Nelvyn ;
-- porter le bateau, les quais et la navigation entre les six îles ;
-- conserver la progression, les boss vaincus, les pièces, l’expérience et les îles débloquées ;
-- préparer une chaîne de production de vrais assets 3D riggés ;
-- viser Android 64 bits avec Vulkan, SDK cible 35 et niveau d’installation minimum 26 ;
-- garder une version mobile optimisée plutôt qu’un rendu PC impossible à tenir sur téléphone.
+Le projet Unreal génère le niveau jouable directement en C++. Il ne dépend pas d'une carte Blueprint préparée manuellement pour démarrer.
 
-## État de cette base
+Au lancement, le jeu construit automatiquement :
 
-Le dossier `CHKPirateWarrior` contient un projet C++ Unreal Engine 5.8 ouvrable dans l’éditeur. Il fournit :
+- l'océan et l'atmosphère ;
+- les six grandes îles ;
+- les quais, bâtiments, rochers et végétations de base ;
+- Cheikh, Yvane et Nelvyn ;
+- le bateau pilotable et son poste de gouvernail ;
+- huit ennemis différents par île ;
+- un boss en trois phases par île ;
+- le HUD mobile et les commandes tactiles ;
+- la progression et la sauvegarde automatique.
 
-- un personnage troisième personne ;
-- une caméra orbitale avec collision ;
-- un pawn de bateau pilotable ;
-- une structure de sauvegarde équivalente à la sauvegarde Godot ;
-- les six îles et leurs coordonnées de référence ;
-- les réglages Android de base ;
-- une liste d’assets gratuits à acquérir légalement via Fab ;
-- des assets originaux au format OBJ importables dans Unreal ;
-- un script d’import Unreal Python ;
-- un workflow de validation de la structure du projet.
+## Gameplay disponible
 
-## Important sur les assets Fab
+### Héros
 
-Les assets gratuits de Fab ne sont pas copiés directement dans ce dépôt public. Leur licence est liée au compte Epic qui les acquiert et ne permet pas toujours de redistribuer les fichiers sources séparément. Le dépôt contient donc un manifeste, des chemins cibles et un script d’intégration. Les assets originaux créés spécialement pour CHK Pirate Warrior sont, eux, inclus dans `ContentSource/Original`.
+- **Cheikh** : Épée infernale du Cerbère, attaque lourde et onde de choc.
+- **Yvane** : Éclair Serpentine, grande portée et impacts en chaîne.
+- **Nelvyn** : Boule du Big Bang, explosion circulaire et forte projection.
 
-## Ouverture
+Le joueur peut changer de héros en cours d'exploration.
 
-1. Installer Unreal Engine 5.8.
-2. Installer Android Studio Koala 2024.1.2 Patch 1, SDK 35, NDK r27c et OpenJDK 21.
-3. Ouvrir `unreal/CHKPirateWarrior/CHKPirateWarrior.uproject`.
-4. Générer les fichiers de projet C++ si Unreal le demande.
-5. Compiler la cible `CHKPirateWarriorEditor`.
-6. Dans Unreal, activer Python, puis exécuter `Scripts/import_original_assets.py`.
-7. Créer les niveaux à partir du plan décrit dans `Docs/ARCHIPEL_UE5.md`.
+### Combat
 
-## Règle de migration
+- attaques normales distinctes ;
+- pouvoirs consommant de l'énergie ;
+- esquive avec courte invulnérabilité ;
+- ennemis mêlée, tireurs, brutes, soigneurs et assassins ;
+- boss avec accélération, montée des dégâts et attaque spéciale par phases ;
+- expérience, niveaux et pièces.
 
-Aucune fonctionnalité Godot n’est supprimée avant d’avoir été reconstruite et testée dans Unreal. La migration se fait système par système, avec validation Android à chaque étape.
+### Navigation
+
+- embarquement par interaction près du navire ;
+- pilotage manuel avec accélération et inertie ;
+- caméra extérieure avec collision ;
+- roulis, tangage, voile, gouvernail et pilote visibles ;
+- voyage physique entre les six îles ;
+- accostage et reprise du contrôle du héros.
+
+## Commandes
+
+### Android
+
+- joystick gauche : déplacement ou direction du bateau ;
+- joystick droit : caméra ;
+- boutons à droite : attaque, pouvoir, esquive et bateau/accostage ;
+- bouton héros en haut à droite : changement de personnage.
+
+### Clavier/manette
+
+- `WASD` / stick gauche : déplacement ;
+- souris / stick droit : caméra ;
+- clic gauche / bouton bas : attaque ;
+- `E` / bouton droit : pouvoir ;
+- espace / bouton gauche : esquive ;
+- `F` / bouton haut : interaction ;
+- `Tab` / gâchette gauche : héros.
+
+## Sauvegarde
+
+La sauvegarde automatique conserve :
+
+- héros actif ;
+- niveau ;
+- expérience ;
+- pièces ;
+- zone actuelle ;
+- îles débloquées ;
+- entraînement ;
+- boss vaincus ;
+- qualité graphique.
+
+## Budget téléphone
+
+- plafond installé : **5 Go maximum** ;
+- plafond de livraison : **4,5 Go maximum** ;
+- build Shipping compressé ;
+- arm64 uniquement ;
+- textures Android ASTC ;
+- contenu d'éditeur, test et debug exclu.
+
+Le pipeline refuse automatiquement un paquet dépassant le budget.
+
+## Assets
+
+Le jeu peut fonctionner avec les formes et assets originaux inclus dans le dépôt. Les ressources gratuites Fab/Megascans sont prévues comme remplacements visuels progressifs, mais ne sont pas obligatoires pour lancer la base jouable.
+
+Les assets gratuits liés à un compte Epic ne sont pas redistribués illégalement dans le dépôt public.
+
+## Fichiers principaux
+
+```text
+unreal/CHKPirateWarrior/CHKPirateWarrior.uproject
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKGameMode.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKWorldBootstrap.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKCharacter.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKEnemyCharacter.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKBoatPawn.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKPlayerController.cpp
+unreal/CHKPirateWarrior/Source/CHKPirateWarrior/CHKHUD.cpp
+```
+
+## Validation
+
+```bash
+python unreal/CHKPirateWarrior/Scripts/validate_turnkey_source.py
+python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py unreal/CHKPirateWarrior
+```
+
+GitHub Actions valide automatiquement la structure complète et publie une archive du projet source.
+
+## Compilation Android
+
+Le workflow `Construire APK Unreal Engine 5.8` exécute Unreal Automation Tool en mode Shipping, cuisine les ressources, crée le paquet Android, vérifie sa taille et publie l'APK comme artefact.
+
+La génération d'une APK Unreal nécessite obligatoirement qu'Unreal Engine 5.8 s'exécute sur une machine ou un runner compatible. Les sources du jeu sont préparées automatiquement sur GitHub ; l'APK ne doit être annoncée comme disponible qu'après réussite réelle de ce workflow.
