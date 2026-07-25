@@ -1,46 +1,57 @@
 class_name HeroFactory
 extends RefCounted
 
+# Les trois héros principaux restent volontairement en 2D réaliste.
+# Le monde, les collisions, la caméra et le bateau restent en 3D.
 const HEROES := {
 	"cheikh": {
 		"display_name": "CHEIKH",
+		"crew_role": "CAPITAINE",
 		"height": 1.86,
-		"skin": Color("70462f"),
-		"coat": Color("17232d"),
-		"cloth": Color("6e2d28"),
-		"hair": Color("11100f"),
 		"accent": Color("d4a640"),
 		"aura": Color("ef4b32"),
-		"role": "Capitaine",
-		"weapon": "Épée infernale du Cerbère"
+		"role": "Capitaine puissant",
+		"weapon": "Épée infernale du Cerbère",
+		"sprite": "res://assets/heroes/cheikh_poses.png",
+		"third_person_sprite": "res://assets/heroes/cheikh_third_person.png",
+		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.png",
+		"pixel_size": 0.00330,
+		"sprite_y": 0.99,
+		"shadow_radius": 0.50
 	},
 	"yvane": {
 		"display_name": "YVANE",
-		"height": 1.55,
-		"skin": Color("75492f"),
-		"coat": Color("20292d"),
-		"cloth": Color("667044"),
-		"hair": Color("11100f"),
+		"crew_role": "MATELOT",
+		"height": 1.58,
 		"accent": Color("67bcf2"),
 		"aura": Color("31a9f3"),
-		"role": "Matelot",
-		"weapon": "Éclair Serpentine"
+		"role": "Matelot éclaireur",
+		"weapon": "Éclair Serpentine",
+		"sprite": "res://assets/heroes/yvane_poses.png",
+		"third_person_sprite": "res://assets/heroes/yvane_third_person.png",
+		"steering_sprite": "res://assets/heroes/yvane_steering_v24.png",
+		"pixel_size": 0.00292,
+		"sprite_y": 0.86,
+		"shadow_radius": 0.42
 	},
 	"nelvyn": {
 		"display_name": "NELVYN",
-		"height": 1.30,
-		"skin": Color("805238"),
-		"coat": Color("273238"),
-		"cloth": Color("8b6a35"),
-		"hair": Color("11100f"),
+		"crew_role": "JUNIOR MATELOT",
+		"height": 1.32,
 		"accent": Color("e5ba55"),
-		"aura": Color("7659ef"),
-		"role": "Junior matelot",
-		"weapon": "Boule du Big Bang"
+		"aura": Color("835dff"),
+		"role": "Junior matelot tactique",
+		"weapon": "Boule du Big Bang",
+		"sprite": "res://assets/heroes/nelvyn_poses.png",
+		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.png",
+		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.png",
+		"pixel_size": 0.00258,
+		"sprite_y": 0.74,
+		"shadow_radius": 0.38
 	}
 }
 
-static func create_hero(hero_id: StringName, _third_person: bool = true) -> CharacterBody3D:
+static func create_hero(hero_id: StringName, third_person: bool = true) -> CharacterBody3D:
 	var resolved_id := String(hero_id)
 	if not HEROES.has(resolved_id):
 		resolved_id = "cheikh"
@@ -49,136 +60,98 @@ static func create_hero(hero_id: StringName, _third_person: bool = true) -> Char
 	hero.name = String(profile["display_name"])
 	hero.set_meta("hero_id", resolved_id)
 	hero.set_meta("profile", profile)
+	hero.set_meta("visual_pipeline", "2d_realistic_in_3d")
 
 	var rig := Node3D.new()
 	rig.name = "RigVisuel"
 	hero.add_child(rig)
-	_build_character(rig, profile, resolved_id)
+	_build_character_art(rig, profile, third_person)
 	_build_ground_shadow(rig, profile)
 	_build_aura(rig, profile)
 	return hero
 
-static func _material(color: Color, roughness: float = 0.78, metallic: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	material.metallic = metallic
-	return material
+static func _build_character_art(root: Node3D, profile: Dictionary, third_person: bool) -> void:
+	var sprite := Sprite3D.new()
+	sprite.name = "CharacterArt"
+	var texture_path := String(profile["third_person_sprite"]) if third_person else String(profile["sprite"])
+	sprite.texture = load(texture_path) as Texture2D
+	sprite.hframes = 4
+	sprite.vframes = 1
+	sprite.frame = 0
+	sprite.pixel_size = float(profile["pixel_size"])
+	sprite.position.y = float(profile["sprite_y"])
+	# Le héros reste vertical dans le monde 3D et se présente correctement
+	# lorsque la caméra tourne autour de lui.
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.double_sided = true
+	sprite.shaded = false
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.no_depth_test = false
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	sprite.alpha_scissor_threshold = 0.035
+	sprite.render_priority = 8
+	sprite.modulate = Color.WHITE
+	sprite.visible = true
+	root.add_child(sprite)
 
-static func _mesh_part(name_value: String, mesh: PrimitiveMesh, color: Color, parent: Node3D, position: Vector3, scale_value: Vector3 = Vector3.ONE, roughness: float = 0.78, metallic: float = 0.0) -> MeshInstance3D:
-	var part := MeshInstance3D.new()
-	part.name = name_value
-	part.mesh = mesh
-	part.position = position
-	part.scale = scale_value
-	part.material_override = _material(color, roughness, metallic)
-	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	parent.add_child(part)
-	return part
-
-static func _build_character(root: Node3D, profile: Dictionary, hero_id: String) -> void:
-	var height := float(profile["height"])
-	var ratio := height / 1.86
-	var skin := Color(profile["skin"])
-	var coat := Color(profile["coat"])
-	var cloth := Color(profile["cloth"])
-	var accent := Color(profile["accent"])
-
-	var model := Node3D.new()
-	model.name = "CharacterModel"
-	model.scale = Vector3.ONE * ratio
-	root.add_child(model)
-
-	var hips := Node3D.new()
-	hips.name = "Hips"
-	hips.position = Vector3(0, 0.92, 0)
-	model.add_child(hips)
-
-	_mesh_part("Torso", CapsuleMesh.new(), coat, hips, Vector3(0, 0.48, 0), Vector3(0.48, 0.72, 0.30))
-	_mesh_part("Shirt", BoxMesh.new(), Color("d4c6ad"), hips, Vector3(0, 0.49, -0.24), Vector3(0.30, 0.46, 0.06))
-	_mesh_part("Sash", BoxMesh.new(), cloth, hips, Vector3(0.08, 0.07, -0.27), Vector3(0.42, 0.10, 0.07))
-	_mesh_part("Belt", BoxMesh.new(), Color("3d2418"), hips, Vector3(0, 0.18, -0.30), Vector3(0.44, 0.07, 0.06))
-	_mesh_part("Buckle", BoxMesh.new(), accent, hips, Vector3(0, 0.18, -0.37), Vector3(0.09, 0.08, 0.025), 0.35, 0.65)
-
-	var head_root := Node3D.new()
-	head_root.name = "HeadRoot"
-	head_root.position = Vector3(0, 1.30, 0)
-	hips.add_child(head_root)
-	_mesh_part("Head", SphereMesh.new(), skin, head_root, Vector3.ZERO, Vector3(0.30, 0.36, 0.28))
-	_mesh_part("Hair", SphereMesh.new(), Color(profile["hair"]), head_root, Vector3(0, 0.25, 0.02), Vector3(0.31, 0.16 if hero_id == "cheikh" else 0.25, 0.29))
-	if hero_id == "cheikh":
-		_mesh_part("Beard", SphereMesh.new(), Color("201813"), head_root, Vector3(0, -0.13, -0.23), Vector3(0.25, 0.15, 0.08))
-	else:
-		for i in range(7):
-			var angle := TAU * float(i) / 7.0
-			_mesh_part("HairCurl%d" % i, SphereMesh.new(), Color(profile["hair"]), head_root, Vector3(cos(angle) * 0.20, 0.34 + sin(angle * 2.0) * 0.04, sin(angle) * 0.15), Vector3(0.09, 0.13, 0.09))
-
-	for side in [-1.0, 1.0]:
-		var arm := Node3D.new()
-		arm.name = "ArmL" if side < 0 else "ArmR"
-		arm.position = Vector3(side * 0.43, 0.92, 0)
-		hips.add_child(arm)
-		_mesh_part("Upper", CapsuleMesh.new(), coat, arm, Vector3(0, -0.23, 0), Vector3(0.16, 0.36, 0.16))
-		_mesh_part("Hand", SphereMesh.new(), skin, arm, Vector3(0, -0.63, 0), Vector3(0.13, 0.16, 0.13))
-
-		var leg := Node3D.new()
-		leg.name = "LegL" if side < 0 else "LegR"
-		leg.position = Vector3(side * 0.20, 0.08, 0)
-		hips.add_child(leg)
-		_mesh_part("Thigh", CapsuleMesh.new(), Color("3a3028"), leg, Vector3(0, -0.31, 0), Vector3(0.19, 0.43, 0.20))
-		_mesh_part("Boot", CapsuleMesh.new(), Color("291b15"), leg, Vector3(0, -0.76, -0.03), Vector3(0.20, 0.34, 0.22))
-
-	_build_accessories(hips, profile, hero_id)
-
-static func _build_accessories(hips: Node3D, profile: Dictionary, hero_id: String) -> void:
-	var accent := Color(profile["accent"])
-	if hero_id == "cheikh":
-		var sword_root := Node3D.new()
-		sword_root.name = "WeaponRoot"
-		sword_root.position = Vector3(0.48, 0.42, 0)
-		sword_root.rotation_degrees.z = -18.0
-		hips.add_child(sword_root)
-		_mesh_part("Blade", BoxMesh.new(), Color("aeb7b8"), sword_root, Vector3(0, -0.40, -0.18), Vector3(0.055, 0.55, 0.025), 0.18, 0.85)
-		_mesh_part("Guard", BoxMesh.new(), accent, sword_root, Vector3(0, 0.08, -0.18), Vector3(0.20, 0.04, 0.05), 0.25, 0.70)
-	else:
-		_mesh_part("Satchel", BoxMesh.new(), Color("51321f"), hips, Vector3(0.42, 0.38, 0.05), Vector3(0.20, 0.25, 0.12))
+static func set_navigation_visual(hero: CharacterBody3D, enabled: bool) -> void:
+	if not is_instance_valid(hero):
+		return
+	var hero_id := String(hero.get_meta("hero_id", "cheikh"))
+	var profile: Dictionary = HEROES.get(hero_id, HEROES["cheikh"])
+	var sprite := hero.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
+	if sprite == null:
+		return
+	var path := String(profile["steering_sprite"]) if enabled else String(profile["third_person_sprite"])
+	var texture := load(path) as Texture2D
+	if texture != null:
+		sprite.texture = texture
+		sprite.hframes = 1 if enabled else 4
+		sprite.vframes = 1
+		sprite.frame = 0
 
 static func _build_ground_shadow(root: Node3D, profile: Dictionary) -> void:
 	var shadow := MeshInstance3D.new()
 	shadow.name = "OmbreAuSol"
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.50 if String(profile["display_name"]) == "CHEIKH" else 0.38
+	mesh.top_radius = float(profile["shadow_radius"])
 	mesh.bottom_radius = mesh.top_radius
 	mesh.height = 0.018
 	mesh.radial_segments = 32
 	shadow.mesh = mesh
 	shadow.position.y = 0.025
-	shadow.material_override = _material(Color(0.005, 0.008, 0.012, 0.45))
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.005, 0.008, 0.012, 0.45)
+	shadow.material_override = material
 	root.add_child(shadow)
 
 static func _build_aura(root: Node3D, profile: Dictionary) -> void:
 	var aura := GPUParticles3D.new()
 	aura.name = "Aura"
-	aura.amount = 90
-	aura.lifetime = 0.72
+	aura.amount = 120
+	aura.lifetime = 0.68
 	aura.emitting = false
-	aura.visibility_aabb = AABB(Vector3(-2.5, -0.3, -2.5), Vector3(5, 4.5, 5))
+	aura.visibility_aabb = AABB(Vector3(-2.0, -0.3, -2.0), Vector3(4.0, 4.0, 4.0))
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	process.emission_sphere_radius = 0.62
+	process.emission_sphere_radius = 0.56
 	process.direction = Vector3(0, 1, 0)
-	process.spread = 44.0
-	process.initial_velocity_min = 1.8
-	process.initial_velocity_max = 4.6
-	process.gravity = Vector3(0, 2.2, 0)
-	process.scale_min = 0.035
-	process.scale_max = 0.12
+	process.spread = 42.0
+	process.initial_velocity_min = 1.5
+	process.initial_velocity_max = 3.8
+	process.gravity = Vector3(0, 1.8, 0)
+	process.scale_min = 0.03
+	process.scale_max = 0.10
 	process.color = Color(profile["aura"])
 	aura.process_material = process
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.12, 0.36)
-	var glow := _material(Color(Color(profile["aura"]), 0.82), 0.25)
+	quad.size = Vector2(0.10, 0.30)
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glow.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow.albedo_color = Color(Color(profile["aura"]), 0.78)
 	glow.emission_enabled = true
 	glow.emission = Color(profile["aura"])
 	glow.emission_energy_multiplier = 4.0
