@@ -12,10 +12,7 @@ run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.012, 0.026, 0.052, 1)
-boot_splash/show_image=true
-boot_splash/image="res://assets/ui/icon_512.png"
-boot_splash/fullsize=false
-boot_splash/use_filter=true
+boot_splash/show_image=false
 
 [autoload]
 
