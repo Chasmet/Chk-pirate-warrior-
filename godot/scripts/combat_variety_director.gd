@@ -177,7 +177,7 @@ func _trigger_boss_special(enemy: EnemyAI, distance: float) -> void:
 	enemy.attack_cooldown = maxf(enemy.attack_cooldown, 1.0)
 
 func _queue_area_hit(enemy: EnemyAI, radius: float, damage_multiplier: float, delay: float) -> void:
-	var enemy_ref := weakref(enemy)
+	var enemy_ref: WeakRef = weakref(enemy)
 	get_tree().create_timer(delay).timeout.connect(func():
 		var active := enemy_ref.get_ref() as EnemyAI
 		if not is_instance_valid(active):
