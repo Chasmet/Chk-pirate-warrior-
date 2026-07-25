@@ -15,8 +15,9 @@ const HEROES := {
 		"sprite": "res://assets/heroes/cheikh_poses.png",
 		"third_person_sprite": "res://assets/heroes/cheikh_third_person.png",
 		"steering_sprite": "res://assets/heroes/cheikh_steering_v24.png",
-		"pixel_size": 0.00330,
-		"sprite_y": 0.99,
+		# La planche mesure 444 px de haut : le sprite occupe environ 1,86 m.
+		"pixel_size": 0.00419,
+		"sprite_y": 0.93,
 		"shadow_radius": 0.50
 	},
 	"yvane": {
@@ -30,8 +31,8 @@ const HEROES := {
 		"sprite": "res://assets/heroes/yvane_poses.png",
 		"third_person_sprite": "res://assets/heroes/yvane_third_person.png",
 		"steering_sprite": "res://assets/heroes/yvane_steering_v24.png",
-		"pixel_size": 0.00292,
-		"sprite_y": 0.86,
+		"pixel_size": 0.00356,
+		"sprite_y": 0.79,
 		"shadow_radius": 0.42
 	},
 	"nelvyn": {
@@ -45,8 +46,8 @@ const HEROES := {
 		"sprite": "res://assets/heroes/nelvyn_poses.png",
 		"third_person_sprite": "res://assets/heroes/nelvyn_third_person.png",
 		"steering_sprite": "res://assets/heroes/nelvyn_steering_v24.png",
-		"pixel_size": 0.00258,
-		"sprite_y": 0.74,
+		"pixel_size": 0.00297,
+		"sprite_y": 0.66,
 		"shadow_radius": 0.38
 	}
 }
@@ -88,7 +89,7 @@ static func _build_character_art(root: Node3D, profile: Dictionary, third_person
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sprite.no_depth_test = false
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	sprite.alpha_scissor_threshold = 0.035
+	sprite.alpha_scissor_threshold = 0.055
 	sprite.render_priority = 8
 	sprite.modulate = Color.WHITE
 	sprite.visible = true
