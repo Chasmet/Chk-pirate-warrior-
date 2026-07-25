@@ -56,7 +56,7 @@ jobs:
             -utf8output
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Refuser tout build supérieur à 5 Gio
+      - name: Refuser tout dossier Android supérieur à 4,5 Go
         shell: pwsh
         run: |
           python unreal/CHKPirateWarrior/Scripts/check_mobile_size_budget.py "$env:OUTPUT" --build
