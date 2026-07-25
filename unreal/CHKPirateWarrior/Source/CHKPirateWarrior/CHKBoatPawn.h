@@ -7,6 +7,7 @@
 class UStaticMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
+class ACHKCharacter;
 
 UCLASS()
 class CHKPIRATEWARRIOR_API ACHKBoatPawn : public APawn
@@ -21,6 +22,21 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
     TObjectPtr<UStaticMeshComponent> Hull;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
+    TObjectPtr<UStaticMeshComponent> Deck;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
+    TObjectPtr<UStaticMeshComponent> Mast;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
+    TObjectPtr<UStaticMeshComponent> Sail;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
+    TObjectPtr<UStaticMeshComponent> Rudder;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boat")
+    TObjectPtr<UStaticMeshComponent> Helm;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
     TObjectPtr<USpringArmComponent> CameraBoom;
@@ -46,6 +62,21 @@ public:
     UPROPERTY(BlueprintReadOnly, Category="Boat")
     float CurrentSpeed = 0.0f;
 
+    UFUNCTION(BlueprintCallable, Category="Boat")
+    void SetPilotCharacter(ACHKCharacter* NewPilot);
+
+    UFUNCTION(BlueprintCallable, Category="Boat")
+    void ClearPilotCharacter();
+
+    UFUNCTION(BlueprintPure, Category="Boat")
+    FVector GetExitLocation() const;
+
+    UFUNCTION(BlueprintPure, Category="Boat")
+    FTransform GetHelmTransform() const;
+
+    UFUNCTION(BlueprintPure, Category="Boat")
+    bool HasPilot() const { return PilotCharacter.IsValid(); }
+
 protected:
     virtual void BeginPlay() override;
 
@@ -54,8 +85,11 @@ private:
     void Steering(float Value);
     void TurnCamera(float Value);
     void LookCamera(float Value);
+    void UpdatePilotPresentation(float DeltaSeconds);
+    void ApplyBoatMaterials();
 
     float ThrottleInput = 0.0f;
     float SteeringInput = 0.0f;
     float WaveTime = 0.0f;
+    TWeakObjectPtr<ACHKCharacter> PilotCharacter;
 };
