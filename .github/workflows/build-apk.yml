@@ -30,11 +30,11 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Installer le SDK Android 36
+      - name: Installer le SDK Android 34
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" >/dev/null
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" >/dev/null
 
       - name: Tests et compilation
         shell: bash
@@ -64,12 +64,12 @@ jobs:
         run: exit 1
 
       - name: Renommer l'APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V2.apk
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-APK
-          path: CHK-Pirate-Warrior-V1.apk
+          name: CHK-Pirate-Warrior-V2-APK
+          path: CHK-Pirate-Warrior-V2.apk
           if-no-files-found: error
           retention-days: 30
