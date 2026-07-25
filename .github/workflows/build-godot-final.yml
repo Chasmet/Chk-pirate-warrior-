@@ -1,8 +1,13 @@
-name: Construire CHK Pirate Warrior Godot final
+name: Construire CHK Pirate Warrior final
 
 on:
   push:
     branches: [ godot-final-polish ]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/build-godot-final.yml'
+  pull_request:
+    branches: [ v2-godot-3d, main ]
     paths:
       - 'godot/**'
       - '.github/workflows/build-godot-final.yml'
@@ -36,10 +41,7 @@ jobs:
         run: |
           set -euxo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            'platform-tools' \
-            'platforms;android-35' \
-            'build-tools;35.0.1'
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.1'
           mkdir -p "$HOME/.android"
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
             keytool -genkeypair \
@@ -90,34 +92,35 @@ jobs:
           timeout 300s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Tester le démarrage et le gameplay
+      - name: Tester les étapes 1, 2 et 3
         shell: bash
         run: |
           set -o pipefail
           timeout 240s "$GODOT_BIN" --headless --path godot --quit-after 180 2>&1 | tee godot-runtime.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|ERROR:' godot-runtime.log
-          "$GODOT_BIN" --headless --path godot --script res://tests/smoke_test.gd 2>&1 | tee godot-smoke.log
-          grep -q 'SMOKE TEST RÉUSSI' godot-smoke.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
+          grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
-      - name: Construire l'APK Android
+      - name: Construire l'APK Android finale
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-Godot-V3.3-debug.apk" 2>&1 | tee godot-export.log
-          test -s build/CHK-Pirate-Warrior-Godot-V3.3-debug.apk
-          unzip -t build/CHK-Pirate-Warrior-Godot-V3.3-debug.apk >/dev/null
-          sha256sum build/CHK-Pirate-Warrior-Godot-V3.3-debug.apk | tee build/SHA256.txt
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-Final-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-Final-debug.apk
+          unzip -t build/CHK-Pirate-Warrior-Final-debug.apk >/dev/null
+          sha256sum build/CHK-Pirate-Warrior-Final-debug.apk | tee build/SHA256.txt
 
       - name: Publier l'APK réelle
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-Godot-V3.3-APK
+          name: CHK-Pirate-Warrior-Final-APK
           path: |
-            build/CHK-Pirate-Warrior-Godot-V3.3-debug.apk
+            build/CHK-Pirate-Warrior-Final-debug.apk
             build/SHA256.txt
+            godot-final-test.log
             godot-export.log
           if-no-files-found: error
           retention-days: 30
@@ -126,11 +129,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Godot-V3.3-diagnostics
+          name: CHK-Pirate-Warrior-Final-diagnostics
           path: |
             godot-import.log
             godot-runtime.log
-            godot-smoke.log
+            godot-final-test.log
             godot-export.log
           if-no-files-found: ignore
           retention-days: 14
