@@ -3,16 +3,21 @@ package fr.chk.piratewarrior;
 import android.content.Context;
 import android.widget.FrameLayout;
 
-/** Conserve le moteur V2 et ajoute par-dessus les assets officiels extraits du PDF. */
+/**
+ * Conserve le moteur V2, les assets officiels et ajoute la navigation pilotable sans repartir de zéro.
+ */
 public final class PirateGameContainer extends FrameLayout {
     private final PirateGameViewV2 gameView;
 
     public PirateGameContainer(Context context, PirateGameView.VoiceNarrator narrator) {
         super(context);
         gameView = new PirateGameViewV2(context, narrator);
-        PirateGameAssetOverlay overlay = new PirateGameAssetOverlay(context, gameView);
+        PirateGameAssetOverlay assetOverlay = new PirateGameAssetOverlay(context, gameView);
+        BoatTravelOverlay boatOverlay = new BoatTravelOverlay(context, gameView);
+
         addView(gameView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        addView(overlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        addView(assetOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        addView(boatOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
     public void onVoiceReady() {
