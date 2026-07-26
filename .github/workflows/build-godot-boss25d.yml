@@ -1,4 +1,4 @@
-name: Construire Godot avec boss 2.5D
+name: Construire Godot avec personnages 2.5D
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: chk-godot-boss25d-${{ github.ref }}
+  group: chk-godot-characters25d-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -26,49 +26,18 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Récupérer le projet Godot
+      - name: Récupérer le projet Godot et les assets embarqués
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Récupérer les six atlas de boss
+      - name: Vérifier la présence de Brakor officiel
         shell: bash
         run: |
-          set -uo pipefail
-          mkdir -p godot/assets/roster25d
-          : > boss25d-download.log
-          bases=(
-            'https://chk-pirate-warrior-assets-2ggx225me-chasmets-projects.vercel.app/roster25d'
-            'https://chk-pirate-warrior-assets-chasmets-projects.vercel.app/roster25d'
-            'https://chk-pirate-warrior-assets-chasmet-chasmets-projects.vercel.app/roster25d'
-          )
-          failed=0
-          for zone in 0 1 2 3 4 5; do
-            target="godot/assets/roster25d/island_${zone}_atlas.png"
-            rm -f "$target"
-            downloaded=0
-            for base in "${bases[@]}"; do
-              url="$base/island_${zone}_atlas_320q48.png"
-              echo "GET $url" | tee -a boss25d-download.log
-              code="$(curl -sS -L --retry 2 --retry-all-errors --connect-timeout 15 --max-time 90 \
-                -w '%{http_code}' -o "$target" "$url" 2>>boss25d-download.log || true)"
-              size="$(stat -c%s "$target" 2>/dev/null || echo 0)"
-              header="$(xxd -p -l 8 "$target" 2>/dev/null || true)"
-              echo "HTTP=$code SIZE=$size HEADER=$header" | tee -a boss25d-download.log
-              if [ "$code" = '200' ] && [ "$size" -gt 9000 ] && [ "$header" = '89504e470d0a1a0a' ]; then
-                downloaded=1
-                break
-              fi
-              rm -f "$target"
-            done
-            if [ "$downloaded" -ne 1 ]; then
-              echo "ÉCHEC ATLAS BOSS ÎLE $zone" | tee -a boss25d-download.log
-              failed=1
-            fi
-          done
-          cat boss25d-download.log
-          test "$failed" -eq 0
-          sha256sum godot/assets/roster25d/*.png | tee boss25d-assets-sha256.log
+          set -euxo pipefail
+          test -s godot/assets/boss25d/data/island_0_boss_data.gd
+          test -s godot/scripts/boss_25d_embedded_assets.gd
+          grep -q 'BRAKOR_DATA' godot/scripts/boss_25d_embedded_assets.gd
 
       - name: Installer Java 17
         uses: actions/setup-java@v4
@@ -135,14 +104,14 @@ jobs:
           timeout 300s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Vérifier les boss dans le monde 3D
+      - name: Vérifier Brakor dans le monde 3D
         shell: bash
         run: |
           set -o pipefail
           "$GODOT_BIN" --headless --path godot --script res://tests/boss_25d_visual_test.gd 2>&1 | tee godot-boss25d-test.log
-          grep -q 'BOSS 2.5D DANS MONDE 3D RÉUSSI' godot-boss25d-test.log
+          grep -q 'BRAKOR 2.5D DANS MONDE 3D RÉUSSI' godot-boss25d-test.log
 
-      - name: Tester caméra et gameplay existants
+      - name: Tester héros, caméra et bateau pilotable
         shell: bash
         run: |
           set -o pipefail
@@ -158,20 +127,18 @@ jobs:
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-Boss25D-debug.apk" 2>&1 | tee godot-export.log
-          test -s build/CHK-Pirate-Warrior-Boss25D-debug.apk
-          unzip -t build/CHK-Pirate-Warrior-Boss25D-debug.apk >/dev/null
-          sha256sum build/CHK-Pirate-Warrior-Boss25D-debug.apk | tee build/SHA256.txt
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-Brakor25D-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-Brakor25D-debug.apk
+          unzip -t build/CHK-Pirate-Warrior-Brakor25D-debug.apk >/dev/null
+          sha256sum build/CHK-Pirate-Warrior-Brakor25D-debug.apk | tee build/SHA256.txt
 
       - name: Publier l’APK testée
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-Godot-Boss25D-APK
+          name: CHK-Pirate-Warrior-Godot-Brakor25D-APK
           path: |
-            build/CHK-Pirate-Warrior-Boss25D-debug.apk
+            build/CHK-Pirate-Warrior-Brakor25D-debug.apk
             build/SHA256.txt
-            boss25d-download.log
-            boss25d-assets-sha256.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
@@ -183,10 +150,8 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-Godot-Boss25D-diagnostics
+          name: CHK-Pirate-Warrior-Godot-Brakor25D-diagnostics
           path: |
-            boss25d-download.log
-            boss25d-assets-sha256.log
             godot-import.log
             godot-boss25d-test.log
             godot-camera-test.log
