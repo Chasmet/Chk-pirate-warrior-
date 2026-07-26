@@ -18,7 +18,7 @@ static func default_data() -> Dictionary:
 		"bosses": [],
 		"voice": true,
 		"quality": "élevée",
-		"crew_relations": {"aurore":"neutral", "ecarlate":"neutral"},
+		"crew_relations": {"strawhat":"neutral", "redhair":"neutral"},
 		"has_exact_position": false,
 		"exact_position": [0.0, 8.0, 0.0],
 		"exact_rotation_y": 0.0,
@@ -39,9 +39,20 @@ static func load_data() -> Dictionary:
 		var merged := default_data()
 		for key in parsed.keys():
 			merged[key] = parsed[key]
-		# Migration transparente des anciennes sauvegardes V2 à V4.
 		if not (merged.get("crew_relations") is Dictionary):
-			merged["crew_relations"] = {"aurore":"neutral", "ecarlate":"neutral"}
+			merged["crew_relations"] = {"strawhat":"neutral", "redhair":"neutral"}
+		else:
+			var relations := merged["crew_relations"] as Dictionary
+			if relations.has("aurore") and not relations.has("strawhat"):
+				relations["strawhat"] = relations["aurore"]
+			if relations.has("ecarlate") and not relations.has("redhair"):
+				relations["redhair"] = relations["ecarlate"]
+			relations.erase("aurore")
+			relations.erase("ecarlate")
+			if not relations.has("strawhat"):
+				relations["strawhat"] = "neutral"
+			if not relations.has("redhair"):
+				relations["redhair"] = "neutral"
 		return merged
 	return default_data()
 
