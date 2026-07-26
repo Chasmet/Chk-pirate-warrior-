@@ -48,11 +48,22 @@ public final class PdfAssetCatalogTest {
     }
 
     @Test
-    public void officialBossesMatchThePdfTextHierarchy() {
-        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zahrek", "Vulkar", "Tempyr"};
+    public void officialBossesMatchTheValidatedRosterBoards() {
+        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zarok", "Vulkar", "Tempyr"};
         for (int island = 0; island < bosses.length; island++) {
             assertTrue(PdfAssetCatalog.bossForIsland(island).displayName.contains(bosses[island]));
         }
+    }
+
+    @Test
+    public void desertAtlasUsesTheFinalValidatedIdentifiers() {
+        assertNotNull(PdfAssetCatalog.byId("zarok"));
+        assertNotNull(PdfAssetCatalog.byId("sabir"));
+        assertNotNull(PdfAssetCatalog.byId("razka"));
+        assertNotNull(PdfAssetCatalog.byId("al_varis"));
+        assertNotNull(PdfAssetCatalog.byId("chaal"));
+        assertNotNull(PdfAssetCatalog.byId("machoire_desert"));
+        assertNotNull(PdfAssetCatalog.byId("veilleuse_dunes"));
     }
 
     @Test
