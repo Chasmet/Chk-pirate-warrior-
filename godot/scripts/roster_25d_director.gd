@@ -12,6 +12,7 @@ var player: PlayerController
 var bound_world_id := 0
 var population_token := 0
 var lod_timer := 0.0
+var last_boat_mode := false
 
 func _ready() -> void:
 	process_priority = 1250
@@ -23,6 +24,12 @@ func _process(delta: float) -> void:
 		return
 	if not is_instance_valid(player):
 		player = world.get_player()
+	if is_instance_valid(player) and player.boat_mode != last_boat_mode:
+		last_boat_mode = player.boat_mode
+		if last_boat_mode:
+			Enemy25DAssetBank.clear_active_zone()
+		else:
+			Enemy25DAssetBank.activate_zone(world.current_zone)
 	_apply_pending_boss_visual()
 	lod_timer -= delta
 	if lod_timer <= 0.0:
@@ -54,6 +61,7 @@ func _populate_after_delay(zone_index: int, token: int) -> void:
 		return
 	if not is_instance_valid(player) or player.boat_mode:
 		return
+	Enemy25DAssetBank.activate_zone(zone_index)
 	if _zone_roster_exists(zone_index):
 		return
 	_spawn_commandant_pairs(zone_index)
@@ -96,7 +104,9 @@ func _spawn_profile(base_profile: Dictionary, world_position: Vector3) -> EnemyA
 	enemy.set_meta("roster_zone", world.current_zone)
 	enemy.set_meta("spawn_msec", Time.get_ticks_msec())
 	world.add_child(enemy)
-	Enemy25DVisual.apply(enemy, profile)
+	var visual_applied := Enemy25DVisual.apply(enemy, profile)
+	if String(profile.get("rank", "")) in ["boss", "commandant", "nakama"] and not visual_applied:
+		push_warning("Visuel 2.5D indisponible, fallback 3D : " + String(profile.get("name", "ennemi")))
 	var animator := QuinetEnemyAnimator.new()
 	animator.name = "AnimationEnnemi"
 	enemy.add_child(animator)
@@ -122,33 +132,19 @@ func _apply_pending_boss_visual() -> void:
 		_upgrade_existing_boss(boss, profile)
 
 func _upgrade_existing_boss(boss: EnemyAI, profile: Dictionary) -> void:
-	var health_factor := 1.0
-	var damage_factor := 1.0
-	match String(profile.get("difficulty", "intermediaire")):
-		"decouverte":
-			health_factor = 0.82
-			damage_factor = 0.78
-		"difficile":
-			health_factor = 1.30
-			damage_factor = 1.40
-	boss.profile = profile
-	boss.name = String(profile["name"])
-	boss.max_health = float(profile["health"]) * health_factor
-	boss.health = boss.max_health
-	boss.speed = float(profile["speed"])
-	boss.damage = float(profile["damage"]) * damage_factor
-	boss.attack_range = float(profile["range"])
-	boss.xp_reward = int(profile["xp"])
-	boss.coin_reward = int(profile["coins"])
-	boss.boss = true
+	# Le gameplay du boss existant reste intact. Le catalogue officiel fournit
+	# uniquement son identité et son rendu 2.5D.
+	var official_name := String(profile["name"])
+	boss.name = official_name
 	var label := boss.get_node_or_null("NomEnnemi") as Label3D
 	if label != null:
-		label.text = String(profile["name"])
+		label.text = official_name
 		label.position.y = 4.0
-	Enemy25DVisual.apply(boss, profile)
-	if is_instance_valid(world):
-		world.call("_set_mission", "BOSS DE L’ÎLE : " + String(profile["name"]))
-	print("CHK_BOSS_25D_READY zone=%d name=%s" % [int(profile["zone"]), String(profile["name"])])
+	if Enemy25DVisual.apply(boss, profile):
+		boss.set_meta("official_25d_name", official_name)
+		if is_instance_valid(world):
+			world.call("_set_mission", "BOSS DE L’ÎLE : " + official_name)
+		print("CHK_BOSS_25D_READY zone=%d name=%s" % [int(profile["zone"]), official_name])
 
 func _update_ai_lod() -> void:
 	if not is_instance_valid(player):
