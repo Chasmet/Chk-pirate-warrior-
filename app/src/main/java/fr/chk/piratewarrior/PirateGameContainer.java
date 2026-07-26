@@ -13,19 +13,21 @@ public final class PirateGameContainer extends FrameLayout {
     public PirateGameContainer(Context context, PirateGameView.VoiceNarrator narrator) {
         super(context);
         gameView = new PirateGameViewV2(context, narrator);
+        ExtendedIslandOverlay extendedIslandOverlay = new ExtendedIslandOverlay(context, gameView);
         OfficialHeroOverlay heroOverlay = new OfficialHeroOverlay(context, gameView);
         PirateGameAssetOverlay assetOverlay = new PirateGameAssetOverlay(context, gameView);
         HeroPowerOverlay powerOverlay = new HeroPowerOverlay(context, gameView);
         WorldMapOverlay mapOverlay = new WorldMapOverlay(context, gameView);
-        BoatTravelOverlay boatOverlay = new BoatTravelOverlay(context, gameView);
+        OceanTravelOverlay oceanOverlay = new OceanTravelOverlay(context, gameView);
 
         addView(gameView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        // Recouvre uniquement les îles 7 et 8, puis laisse les héros et ennemis officiels au-dessus.
+        addView(extendedIslandOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(heroOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(assetOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(powerOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        // La carte reste sous la couche bateau : elle est disponible à terre et ne bloque pas le pilotage.
         addView(mapOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        addView(boatOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        addView(oceanOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
     public void onVoiceReady() {
