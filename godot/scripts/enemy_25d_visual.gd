@@ -1,8 +1,9 @@
 class_name Enemy25DVisual
 extends RefCounted
 
-# Affichage volontairement limité aux boss existants.
-# Leur IA, leurs collisions, leur vie et leurs attaques restent celles du monde 3D.
+# Le boss reste un CharacterBody3D : IA, collisions, vie et attaques sont
+# conservées. Seule sa représentation visible est remplacée par le véritable
+# personnage 2.5D fourni pour le jeu.
 static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
 	if not is_instance_valid(enemy) or not enemy.boss:
 		return false
@@ -11,7 +12,11 @@ static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
 	if enemy.get_node_or_null("Visual25D") != null:
 		return true
 
-	var texture := Enemy25DCatalog.atlas_texture(profile)
+	var zone := int(profile.get("atlas_zone", 0))
+	var texture: Texture2D = Boss25DEmbeddedAssets.texture_for_zone(zone)
+	var embedded_asset := texture != null
+	if texture == null:
+		texture = Enemy25DCatalog.atlas_texture(profile)
 	if texture == null:
 		push_error("Texture du boss 2.5D absente pour " + String(profile.get("name", "boss")))
 		return false
@@ -25,8 +30,9 @@ static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
 	var sprite := Sprite3D.new()
 	sprite.name = "Character25D"
 	sprite.texture = texture
-	# Le boss reste massif mais ne devient pas un géant disproportionné.
-	var pixel_size := minf(float(profile.get("pixel_size", 0.0185)), 0.0185)
+	# Une hauteur stable évite les boss géants tout en gardant Brakor massif.
+	var target_height := clampf(float(profile.get("visual_height", 3.20)), 2.60, 3.50)
+	var pixel_size := target_height / maxf(1.0, float(texture.get_height()))
 	sprite.pixel_size = pixel_size
 	sprite.centered = true
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
@@ -40,9 +46,8 @@ static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
 	sprite.modulate = Color.WHITE
 	root.add_child(sprite)
 
-	# Même principe que les héros : le pivot visuel est placé aux pieds.
-	var region: Rect2 = profile.get("atlas_region", Enemy25DCatalog.BOSS_REGION)
-	root.position.y = maxf(0.80, region.size.y * pixel_size * 0.5)
+	# Pivot placé aux pieds, comme les héros jouables.
+	root.position.y = target_height * 0.5 + 0.04
 
 	_add_ground_shadow(enemy, profile)
 	var animator := Enemy25DAnimator.new()
@@ -51,13 +56,15 @@ static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
 	animator.bind(enemy, root)
 
 	enemy.set_meta("visual_pipeline", "boss_2d_realistic_in_3d")
-	enemy.set_meta("atlas_zone", int(profile.get("atlas_zone", 0)))
+	enemy.set_meta("atlas_zone", zone)
+	enemy.set_meta("visual_asset_source", "embedded_official" if embedded_asset else "atlas_fallback")
 	return true
 
-static func _hide_procedural_model(enemy: EnemyAI) -> void:
-	for child in enemy.get_children():
+static func _hide_procedural_model(node: Node) -> void:
+	for child in node.get_children():
 		if child is MeshInstance3D and String(child.name) != "AlerteAttaque":
 			(child as MeshInstance3D).visible = false
+		_hide_procedural_model(child)
 
 static func _add_ground_shadow(enemy: EnemyAI, profile: Dictionary) -> void:
 	var shadow := MeshInstance3D.new()
