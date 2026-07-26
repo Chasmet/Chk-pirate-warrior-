@@ -22,7 +22,7 @@ Chaque île possède 1 Boss, 3 Commandants et 3 Nakamas. Les 63 personnages impo
 
 ## Validation GitHub Actions
 
-Workflow V4.0, run 150 : réussi sur le commit `d6892ca8cd14d24c20cb29e7c615464647368f92`.
+Workflow V4.0, run 151 : réussi sur le commit `8beced950fe3af4560b78fd289c2fc1caa42d5aa`.
 
 - audit des neuf rosters : réussi ;
 - import Godot 4.6.3 : réussi ;
@@ -35,7 +35,7 @@ Workflow V4.0, run 150 : réussi sur le commit `d6892ca8cd14d24c20cb29e7c6154646
 APK : `CHK-Pirate-Warrior-V4.0-debug.apk`
 
 - taille : 47 201 211 octets ;
-- SHA-256 : `7deede8abf62162f4441023c18da8d9dddb4994e5db1b85b3cd6b5acf2fde195`.
+- SHA-256 : `e2cdb694236e29993436d7ea9f40b920e39eb182cd34834b0b7f6d97acd59466`.
 
 ## Limite actuelle
 
