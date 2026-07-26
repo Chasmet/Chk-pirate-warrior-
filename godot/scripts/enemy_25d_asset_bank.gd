@@ -8,6 +8,9 @@ const COMPACT_ROOT := "res://assets/roster25d/compact"
 const CHUNK_ROOT := "res://assets/roster25d/chunks"
 const SOURCE_SHEET_SIZE := Vector2(320.0, 240.0)
 const CHARACTER_OUTPUT_SIZE := 384
+const FACTION_ROOT := "res://assets/faction25d"
+const FACTION_COLUMNS := 5
+const FACTION_CELL_SIZE := 192
 
 static var _active_zone := -1
 static var _texture_cache: Dictionary = {}
@@ -40,6 +43,18 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 	if not ["boss", "commandant", "nakama"].has(rank):
 		return {}
 
+	var faction_asset := String(profile.get("faction_asset", ""))
+	if not faction_asset.is_empty():
+		var faction_texture := _faction_character_texture(faction_asset, int(profile.get("faction_index", 0)))
+		if faction_texture != null:
+			return {
+				"texture": faction_texture,
+				"animated": false,
+				"hframes": 1,
+				"vframes": 1,
+				"source": "hq_isolated_faction_asset"
+			}
+
 	if zone == 0 and rank == "boss":
 		var brakor := Boss25DEmbeddedAssets.texture_for_zone(0)
 		if brakor != null:
@@ -66,6 +81,53 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 		"Asset 2.5D manquant zone=%d personnage=%s" % [zone, String(profile.get("name", "personnage"))]
 	)
 	return {}
+
+static func _faction_character_texture(asset_name: String, character_index: int) -> Texture2D:
+	var resolved_index := maxi(0, character_index)
+	var cache_key := "faction_region:%s:%d" % [asset_name, resolved_index]
+	if _texture_cache.has(cache_key):
+		return _texture_cache[cache_key] as Texture2D
+	var sheet := _faction_atlas_texture(asset_name)
+	if sheet == null:
+		return null
+	var image := sheet.get_image()
+	if image == null or image.is_empty():
+		_log_missing_once(cache_key, "Atlas de faction illisible : " + asset_name)
+		return null
+	var column := resolved_index % FACTION_COLUMNS
+	var row := int(resolved_index / FACTION_COLUMNS)
+	var region := Rect2i(
+		column * FACTION_CELL_SIZE,
+		row * FACTION_CELL_SIZE,
+		FACTION_CELL_SIZE,
+		FACTION_CELL_SIZE
+	)
+	var sheet_rect := Rect2i(Vector2i.ZERO, image.get_size())
+	region = region.intersection(sheet_rect)
+	if region.size.x <= 1 or region.size.y <= 1:
+		_log_missing_once(cache_key, "Personnage de faction hors atlas : " + cache_key)
+		return null
+	var source := image.get_region(region)
+	var cleaned := CharacterCutout25D.texture_from_region(source, CHARACTER_OUTPUT_SIZE)
+	if cleaned == null:
+		return null
+	_texture_cache[cache_key] = cleaned
+	return cleaned
+
+static func _faction_atlas_texture(asset_name: String) -> Texture2D:
+	var key := "faction_sheet:" + asset_name
+	if _texture_cache.has(key):
+		return _texture_cache[key] as Texture2D
+	var path := "%s/%s_atlas.webp.b64" % [FACTION_ROOT, asset_name]
+	if not FileAccess.file_exists(path):
+		_log_missing_once(key, "Atlas haute qualité absent : " + path)
+		return null
+	var encoded := FileAccess.get_file_as_string(path).strip_edges()
+	var texture := _decode_webp(encoded, "atlas faction " + asset_name)
+	if texture != null:
+		_texture_cache[key] = texture
+		print("CHK_25D_FACTION_ATLAS_READY asset=%s" % asset_name)
+	return texture
 
 static func _atlas_region_texture(zone: int, profile: Dictionary) -> Texture2D:
 	var cache_key := "region:%d:%s" % [zone, String(profile.get("id", "unknown"))]
@@ -120,8 +182,6 @@ static func _island_atlas_texture(zone: int) -> Texture2D:
 	if FileAccess.file_exists(compact_path):
 		encoded = FileAccess.get_file_as_string(compact_path).strip_edges()
 	else:
-		# Les nouveaux atlas peuvent être découpés pour rester faciles à auditer
-		# dans Git. Tous les morceaux consécutifs sont concaténés avant décodage.
 		var chunk_index := 0
 		while chunk_index < 64:
 			var chunk_path := "%s/island_%d_%d.b64" % [CHUNK_ROOT, zone, chunk_index]
