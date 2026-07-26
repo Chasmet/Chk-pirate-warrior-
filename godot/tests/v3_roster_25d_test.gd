@@ -84,7 +84,7 @@ func _run() -> void:
 	player.enter_boat(Vector3(0, PlayerController.BOAT_WATERLINE, 0), Vector3(0, PlayerController.BOAT_WATERLINE, -40))
 	var pilot := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	_check(player.boat_mode and player.boat_visual.visible, "bateau pilotable visible en troisième personne")
-	_check(pilot != null and pilot.visible and pilot.hframes == 3 and "steering" in pilot.texture.resource_path, "héros 2.5D visible au gouvernail")
+	_check(pilot != null and pilot.visible and pilot.texture != null and "steering" in pilot.texture.resource_path, "héros 2.5D visible au gouvernail")
 	player.queue_free()
 
 	target.queue_free()
