@@ -9,9 +9,9 @@ import java.util.Set;
 /**
  * Catalogue officiel des 42 personnages ennemis importants en 2.5D.
  *
- * Les noms et l'ordre des îles sont verrouillés à partir du dossier de références officiel
- * « asset chk pirate ». Les trois héros Cheikh, Yvane et Nelvyn restent gérés séparément par
- * Character25D et ne doivent jamais être remplacés par une entrée ennemie.
+ * Les noms et l'ordre des îles sont verrouillés à partir des références officielles du projet.
+ * Les trois héros Cheikh, Yvane et Nelvyn sont gérés séparément et ne doivent jamais être
+ * remplacés par une entrée ennemie.
  */
 public final class Enemy25DCatalog {
     public enum Rank { BOSS, COMMANDER, SUBORDINATE }
@@ -33,7 +33,8 @@ public final class Enemy25DCatalog {
 
     private static final Set<String> FORBIDDEN_LEGACY_IDS = Set.of(
             "capitaine_helios", "roi_boreal", "sultan_dune",
-            "seigneur_magma", "reine_mousson", "amiral_foudre"
+            "seigneur_magma", "reine_mousson", "amiral_foudre",
+            "zahrek", "qamar", "sirok", "dune", "khepri", "safra", "rakh"
     );
 
     public static final class Entry {
@@ -48,17 +49,9 @@ public final class Enemy25DCatalog {
         public final String accentColor;
         public final String sheetAssetPath;
 
-        Entry(
-                String id,
-                String displayName,
-                int islandIndex,
-                Rank rank,
-                String weapon,
-                String ability,
-                String primaryColor,
-                String secondaryColor,
-                String accentColor
-        ) {
+        Entry(String id, String displayName, int islandIndex, Rank rank,
+              String weapon, String ability, String primaryColor,
+              String secondaryColor, String accentColor) {
             this.id = id;
             this.displayName = displayName;
             this.islandIndex = islandIndex;
@@ -81,17 +74,9 @@ public final class Enemy25DCatalog {
         }
     }
 
-    private static Entry entry(
-            String id,
-            String displayName,
-            int islandIndex,
-            Rank rank,
-            String weapon,
-            String ability,
-            String primaryColor,
-            String secondaryColor,
-            String accentColor
-    ) {
+    private static Entry entry(String id, String displayName, int islandIndex, Rank rank,
+                               String weapon, String ability, String primaryColor,
+                               String secondaryColor, String accentColor) {
         return new Entry(id, displayName, islandIndex, rank, weapon, ability,
                 primaryColor, secondaryColor, accentColor);
     }
@@ -166,72 +151,72 @@ public final class Enemy25DCatalog {
                     "outils cryogéniques", "mines de glace et tourelle de ralentissement",
                     "#DFF4FF", "#6AAED6", "#263B59"),
 
-            // Île 4 — Désert des Corsaires. Les noms textuels du dossier officiel sont prioritaires.
-            entry("zahrek", "Zahrek", 3, Rank.BOSS,
-                    "cimeterre royal", "mirages, tempête de sable et attaque circulaire",
+            // Île 4 — Désert des Corsaires.
+            entry("zarok", "Zarok, Khan des Sables", 3, Rank.BOSS,
+                    "double cimeterre lourd", "mirages, tempête de sable, frappe circulaire et rage",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("qamar", "Qamar", 3, Rank.COMMANDER,
-                    "sabre du désert", "duel rapide et pas de côté",
+            entry("sabir", "Sabir le Dromadaire", 3, Rank.COMMANDER,
+                    "mousquet du désert", "tir spécial, recul tactique et salves longues",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("sirok", "Sirok", 3, Rank.COMMANDER,
-                    "lance de sable", "charge et bourrasque aveuglante",
+            entry("razka", "Razka la Lame de Sable", 3, Rank.COMMANDER,
+                    "deux sabres courbes", "dash, combo rapide et lame de sable",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("dune", "Dune", 3, Rank.COMMANDER,
-                    "arme lourde", "frappe au sol et mur de sable",
+            entry("al_varis", "Al-Varis l'Artificier", 3, Rank.COMMANDER,
+                    "lance-grenade et mines", "pièges, mines et explosions de zone",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("khepri", "Khepri", 3, Rank.SUBORDINATE,
-                    "lames courbes", "attaque bondissante et recul",
+            entry("chaal", "Chaal le Rapace", 3, Rank.SUBORDINATE,
+                    "deux lames courtes", "esquive, attaque bondissante et repli",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("safra", "Safra", 3, Rank.SUBORDINATE,
-                    "arc court", "tir mobile et marquage de cible",
+            entry("machoire_desert", "Mâchoire du Désert", 3, Rank.SUBORDINATE,
+                    "masse lourde", "charge, brise-garde et interruption",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
-            entry("rakh", "Rakh", 3, Rank.SUBORDINATE,
-                    "masse courte", "charge frontale et interruption",
+            entry("veilleuse_dunes", "Veilleuse des Dunes", 3, Rank.SUBORDINATE,
+                    "lanterne et bâton", "signal lumineux, aveuglement et soutien à distance",
                     "#E6B85C", "#A85D2A", "#3F2B23"),
 
             // Île 5 — Île Volcanique.
-            entry("vulkar", "Vulkar", 4, Rank.BOSS,
+            entry("vulkar", "Vulkar, Seigneur des Flammes", 4, Rank.BOSS,
                     "grande lame volcanique", "lave, explosion, armure en fusion et phase ardente",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("cendre", "Cendre", 4, Rank.COMMANDER,
+            entry("cendre", "Cendre, Lame des Braises", 4, Rank.COMMANDER,
                     "lame des braises", "projection de braises et dash brûlant",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("magma", "Magma", 4, Rank.COMMANDER,
+            entry("magma", "Magma, Bouclier de Lave", 4, Rank.COMMANDER,
                     "bouclier de lave", "garde, charge et zone brûlante",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("pyros", "Pyros", 4, Rank.COMMANDER,
+            entry("pyros", "Pyros, Artificier Infernal", 4, Rank.COMMANDER,
                     "artifices incendiaires", "mines, salves et explosions",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("basalte", "Basalte", 4, Rank.SUBORDINATE,
+            entry("basalte", "Basalte, Gardien des Roches", 4, Rank.SUBORDINATE,
                     "épée de roche", "garde lourde et brise-garde",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("scorie", "Scorie", 4, Rank.SUBORDINATE,
+            entry("scorie", "Scorie, Faucheuse de Feu", 4, Rank.SUBORDINATE,
                     "faux de feu", "attaque circulaire et brûlure",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
-            entry("fumar", "Fumar", 4, Rank.SUBORDINATE,
+            entry("fumar", "Fumar, Alchimiste des Fumées", 4, Rank.SUBORDINATE,
                     "bombes de fumée", "aveuglement, poison et repli",
                     "#FF7A3D", "#7A1F22", "#2B2020"),
 
             // Île 6 — Forteresse de la Tempête.
-            entry("tempyr", "Tempyr", 5, Rank.BOSS,
+            entry("tempyr", "Tempyr, Amiral de la Tempête", 5, Rank.BOSS,
                     "lame de la tempête", "éclairs, vagues, téléportation courte et phase orage",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("orage", "Orage", 5, Rank.COMMANDER,
+            entry("orage", "Orage, Lame du Tonnerre", 5, Rank.COMMANDER,
                     "lame du tonnerre", "dash électrique et étourdissement",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("volt", "Volt", 5, Rank.COMMANDER,
+            entry("volt", "Volt, Ingénieur du Tonnerre", 5, Rank.COMMANDER,
                     "outils électriques", "pièges, arc électrique et surcharge",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("cyclone", "Cyclone", 5, Rank.COMMANDER,
+            entry("cyclone", "Cyclone, Lance des Vents", 5, Rank.COMMANDER,
                     "lance des vents", "bourrasque, projection et attaque tournoyante",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("brisk", "Brisk", 5, Rank.SUBORDINATE,
+            entry("brisk", "Brisk, Coureur des Courants", 5, Rank.SUBORDINATE,
                     "lames légères", "course rapide et attaques en chaîne",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("tonnerre", "Tonnerre", 5, Rank.SUBORDINATE,
+            entry("tonnerre", "Tonnerre, Marteau du Ciel", 5, Rank.SUBORDINATE,
                     "marteau du ciel", "frappe verticale et onde électrique",
                     "#87C8FF", "#42507A", "#E9F1FF"),
-            entry("fulgur", "Fulgur", 5, Rank.SUBORDINATE,
+            entry("fulgur", "Fulgur, Archer des Éclairs", 5, Rank.SUBORDINATE,
                     "arc des éclairs", "salves électriques et zone de foudre",
                     "#87C8FF", "#42507A", "#E9F1FF")
     );
