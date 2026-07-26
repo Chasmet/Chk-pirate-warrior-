@@ -62,6 +62,9 @@ func _run() -> void:
 	var gameplay_repair := root.get_node_or_null("GameplayRepair")
 	_check(gameplay_repair != null, "le système de secours historique reste chargé")
 	if gameplay_repair != null:
+		# En jeu, l'autoload trouve le héros pendant _process. Le test injecte le
+		# même héros explicitement avant de vérifier le point de secours céleste.
+		gameplay_repair.set("player", player)
 		gameplay_repair.call("_rescue_to_zone", world)
 		_check(player.global_position.y > 40.0, "secours V4 : retour sur l’île céleste et non sur l’ancienne île 6")
 	var roster_director := root.get_node_or_null("Roster25DDirector")
