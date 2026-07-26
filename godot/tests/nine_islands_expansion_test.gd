@@ -41,6 +41,12 @@ func _run() -> void:
 	world.configure(save)
 	_check(world.visuals is WorldVisualsV4, "rendu 3D V4 actif")
 	_check(world.visuals.get_node_or_null("OcéanContinuNeufÎles") != null, "océan 3D continu construit")
+	_check(world.visuals.get_node_or_null("Zone_6/TerrainRelief3D") != null, "île 7 : terrain 3D construit")
+	_check(world.visuals.get_node_or_null("Zone_6/GâteauRoyal") != null, "île 7 : ville-gâteau 3D construite")
+	_check(world.visuals.get_node_or_null("Zone_7/CrâneForteresse") != null, "île 8 : forteresse-crâne 3D construite")
+	_check(world.visuals.get_node_or_null("Zone_7/AnneauDeMagma") != null, "île 8 : magma 3D construit")
+	_check(world.visuals.get_node_or_null("Zone_8/TerrasseCéleste") != null, "île 9 : palais céleste 3D construit")
+	_check(world.visuals.get_node_or_null("QuaiMaritimeRoyaumeCéleste/AscenseurDEau") != null, "île 9 : accès maritime vers le ciel construit")
 	for zone in range(9):
 		var sea_dock := world.get_dock_position(zone, true)
 		var land_dock := world.get_dock_position(zone, false)
