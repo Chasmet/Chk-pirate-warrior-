@@ -32,7 +32,8 @@ func _run() -> void:
 		_check(profiles.size() == 7, "île %d : roster complet de sept personnages" % (zone + 1))
 		for profile in profiles:
 			var asset := Enemy25DAssetBank.asset_for_profile(profile)
-			_check(asset.get("texture") as Texture2D != null, "visuel chargé : " + String(profile["name"]))
+			var texture := asset.get("texture") as Texture2D
+			_check(texture != null, "visuel chargé : " + String(profile["name"]))
 
 	var world := GameWorldV4.new()
 	root.add_child(world)
