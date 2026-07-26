@@ -3,6 +3,8 @@ name: Exporter la base Godot réelle
 on:
   push:
     branches: [ agent/godot-real-assets-v3 ]
+  pull_request:
+    branches: [ godot-final-polish ]
   workflow_dispatch:
 
 permissions:
