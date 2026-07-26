@@ -26,7 +26,9 @@ func _run() -> void:
 	target.name = "CibleTest"
 	root.add_child(target)
 
-	var official_texture := Boss25DEmbeddedAssets.texture_for_zone(0)
+	Enemy25DAssetBank.activate_zone(0)
+	var official_asset := Enemy25DAssetBank.asset_for_profile(Enemy25DCatalog.boss_for_zone(0))
+	var official_texture := official_asset.get("texture") as Texture2D
 	_check(official_texture != null, "l’asset officiel de Brakor est décodé depuis le dépôt")
 	if official_texture != null:
 		_check(official_texture.get_width() >= 150 and official_texture.get_height() >= 190, "Brakor conserve une définition adaptée au rendu mobile")
@@ -54,10 +56,10 @@ func _run() -> void:
 	if sprite != null:
 		_check(sprite.billboard == BaseMaterial3D.BILLBOARD_FIXED_Y, "Brakor reste vertical pendant la rotation caméra 360°")
 		_check(not sprite.no_depth_test, "Brakor respecte la profondeur du monde 3D")
-		var visual_height := float(sprite.texture.get_height()) * sprite.pixel_size
+		var visual_height := float(sprite.texture.get_height() / sprite.vframes) * sprite.pixel_size
 		_check(visual_height >= 2.60 and visual_height <= 3.50, "Brakor reste massif sans devenir un géant disproportionné")
-	_check(boss.get_meta("visual_pipeline", "") == "boss_2d_realistic_in_3d", "le pipeline personnage 2.5D / monde 3D est actif")
-	_check(boss.get_meta("visual_asset_source", "") == "embedded_official", "aucun cube ou atlas externe ne remplace Brakor")
+	_check(boss.get_meta("visual_pipeline", "") == "boss_2d_animated_in_3d", "le pipeline personnage 2.5D / monde 3D est actif")
+	_check(boss.get_meta("visual_asset_source", "") == "embedded_official_brakor", "aucun cube ou téléchargement externe ne remplace Brakor")
 
 	var ordinary_profile := EnemyFactory.profile_for_index(0).duplicate(true)
 	ordinary_profile["difficulty"] = "intermediaire"
@@ -71,6 +73,7 @@ func _run() -> void:
 	boss.queue_free()
 	ordinary.queue_free()
 	target.queue_free()
+	Enemy25DAssetBank.clear_active_zone()
 	Boss25DEmbeddedAssets.clear_cache()
 	await process_frame
 	if failures == 0:
