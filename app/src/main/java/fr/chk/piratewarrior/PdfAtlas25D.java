@@ -14,10 +14,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Charge un seul atlas PDF à la fois et anime légèrement ses personnages dans le monde. */
+/** Charge un seul atlas de référence à la fois et anime légèrement ses personnages dans le monde. */
 public final class PdfAtlas25D {
     private static final int COLUMNS = 4;
     private static final int ROWS = 2;
+    private static final int CAKE_ISLAND_INDEX = 6;
+    private static final int CAKE_SOURCE_WIDTH = 1536;
+    private static final int CAKE_SOURCE_HEIGHT = 1024;
+
+    /** Rectangles issus directement de la planche de personnages reçue pour l'île 7. */
+    private static final int[][] CAKE_SOURCE_RECTS = {
+            {380, 60, 1050, 860},
+            {80, 320, 420, 865},
+            {540, 400, 860, 865},
+            {1160, 290, 1515, 870},
+            {770, 260, 1020, 760},
+            {10, 430, 190, 870},
+            {960, 360, 1245, 870}
+    };
 
     private final AssetManager assets;
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -65,17 +79,7 @@ public final class PdfAtlas25D {
         if (canvas == null || entry == null || atlas == null || atlas.isRecycled()) return false;
         if (entry.islandIndex != loadedIsland) return false;
 
-        int cellWidth = atlas.getWidth() / COLUMNS;
-        int cellHeight = atlas.getHeight() / ROWS;
-        int column = entry.atlasSlot % COLUMNS;
-        int row = entry.atlasSlot / COLUMNS;
-        Rect source = new Rect(
-                column * cellWidth,
-                row * cellHeight,
-                (column + 1) * cellWidth,
-                Math.min(atlas.getHeight(), (row + 1) * cellHeight)
-        );
-
+        Rect source = sourceRect(entry.atlasSlot);
         float bob = defeated ? 0f : (float) Math.sin(animationSeconds * 5.1f + entry.atlasSlot) * 2.8f;
         float movement = Math.min(1f, Math.abs(horizontalSpeed) / 120f);
         float lean = defeated ? 72f : horizontalSpeed * 0.025f;
@@ -87,6 +91,10 @@ public final class PdfAtlas25D {
         }
 
         float width = height * 0.78f;
+        if (loadedIsland == CAKE_ISLAND_INDEX) {
+            float ratio = source.width() / (float) Math.max(1, source.height());
+            width = height * GameMath.clamp(ratio * 0.92f, 0.58f, 1.12f);
+        }
         RectF destination = new RectF(-width * 0.5f, -height, width * 0.5f, 0f);
 
         canvas.save();
@@ -99,6 +107,36 @@ public final class PdfAtlas25D {
         bitmapPaint.setAlpha(255);
         canvas.restore();
         return true;
+    }
+
+    private Rect sourceRect(int atlasSlot) {
+        if (loadedIsland == CAKE_ISLAND_INDEX && atlasSlot >= 0 && atlasSlot < CAKE_SOURCE_RECTS.length) {
+            int[] source = CAKE_SOURCE_RECTS[atlasSlot];
+            float scaleX = atlas.getWidth() / (float) CAKE_SOURCE_WIDTH;
+            float scaleY = atlas.getHeight() / (float) CAKE_SOURCE_HEIGHT;
+            return new Rect(
+                    clamp(Math.round(source[0] * scaleX), 0, atlas.getWidth() - 1),
+                    clamp(Math.round(source[1] * scaleY), 0, atlas.getHeight() - 1),
+                    clamp(Math.round(source[2] * scaleX), 1, atlas.getWidth()),
+                    clamp(Math.round(source[3] * scaleY), 1, atlas.getHeight())
+            );
+        }
+
+        int safeSlot = Math.max(0, Math.min(COLUMNS * ROWS - 1, atlasSlot));
+        int cellWidth = atlas.getWidth() / COLUMNS;
+        int cellHeight = atlas.getHeight() / ROWS;
+        int column = safeSlot % COLUMNS;
+        int row = safeSlot / COLUMNS;
+        return new Rect(
+                column * cellWidth,
+                row * cellHeight,
+                (column + 1) * cellWidth,
+                Math.min(atlas.getHeight(), (row + 1) * cellHeight)
+        );
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     public int loadedIsland() {
