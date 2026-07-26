@@ -19,7 +19,7 @@ func _run() -> void:
 	for crew_index in range(2):
 		var profiles := Crew25DCatalogV5.members(crew_index)
 		_check(profiles.size() == 10, "équipage %d : dix membres 2.5D" % (crew_index + 1))
-		_check(FileAccess.file_exists(String(profiles[0]["atlas"])), "atlas découpé depuis la référence fourni")
+		_check(_atlas_available(String(profiles[0]["atlas"])), "atlas haute qualité ou fragments disponibles")
 		_check(float(profiles[0].get("height", 0.0)) > 0.8, "proportions physiques définies")
 		var powers: Dictionary = {}
 		for profile in profiles:
@@ -39,6 +39,35 @@ func _run() -> void:
 			_check(image != null and not image.is_empty(), "image 2.5D décodée")
 			if image != null and not image.is_empty():
 				_check(image.get_pixel(0, 0).a < 0.05, "fond extérieur transparent sans rectangle")
+
+	_check(String(Enemy25DCatalog.ISLANDS[6]["boss"]) == "Big Mom, Reine de Totto Land", "Big Mom est le boss de l’île 7")
+	_check(String(Enemy25DCatalog.ISLANDS[7]["boss"]) == "Kaido, Seigneur des Cent Bêtes", "Kaido est le boss de l’île 8")
+	_check(String(Enemy25DCatalog.ISLANDS[8]["boss"]) == "Imu Sama, Souverain du Trône Vide", "Imu Sama est le boss de l’île 9")
+	for zone_index in range(6, 9):
+		Enemy25DAssetBank.activate_zone(zone_index)
+		var important_profiles: Array[Dictionary] = [Enemy25DCatalog.boss_for_zone(zone_index)]
+		important_profiles.append_array(Enemy25DCatalog.commandants_for_zone(zone_index))
+		important_profiles.append_array(Enemy25DCatalog.nakama_for_all_commandants(zone_index))
+		_check(important_profiles.size() == 7, "île %d : sept personnages importants" % (zone_index + 1))
+		for profile in important_profiles:
+			var asset := Enemy25DAssetBank.asset_for_profile(profile)
+			var faction_texture := asset.get("texture") as Texture2D
+			_check(String(asset.get("source", "")) == "hq_isolated_faction_asset", "%s utilise son asset HQ isolé" % String(profile.get("name", "personnage")))
+			_check(
+				faction_texture != null
+				and faction_texture.get_width() == Enemy25DAssetBank.CHARACTER_OUTPUT_SIZE
+				and faction_texture.get_height() == Enemy25DAssetBank.CHARACTER_OUTPUT_SIZE,
+				"%s possède une texture individuelle carrée" % String(profile.get("name", "personnage"))
+			)
+			if faction_texture != null:
+				var isolated := faction_texture.get_image()
+				_check(
+					isolated != null
+					and not isolated.is_empty()
+					and isolated.get_used_rect().size.y > 180,
+					"%s conserve une silhouette détaillée" % String(profile.get("name", "personnage"))
+				)
+		Enemy25DAssetBank.clear_active_zone()
 
 	var cutout_source := Image.create(48, 48, false, Image.FORMAT_RGBA8)
 	cutout_source.fill(Color.BLACK)
@@ -106,6 +135,12 @@ func _run() -> void:
 	else:
 		push_error("%d vérification(s) V5 ont échoué" % failures)
 	quit(failures)
+
+func _atlas_available(path: String) -> bool:
+	if FileAccess.file_exists(path):
+		return true
+	var asset_name := path.get_file().trim_suffix("_atlas.webp.b64")
+	return FileAccess.file_exists("res://assets/faction25d/chunks/%s_0.b64" % asset_name)
 
 func _find_named(node: Node, target_name: String) -> Node:
 	if String(node.name) == target_name:
