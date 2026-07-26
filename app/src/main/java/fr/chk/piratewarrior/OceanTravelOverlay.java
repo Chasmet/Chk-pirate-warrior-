@@ -21,7 +21,6 @@ import java.util.Random;
 public final class OceanTravelOverlay extends View {
     private enum Mode { LAND, SAILING, ARRIVAL }
 
-    private static final float ROUTE_DISTANCE = WorldConfig.ROUTE_DISTANCE;
     private final PirateGameViewV2 gameView;
     private final BoatPhysics physics = new BoatPhysics();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -84,7 +83,6 @@ public final class OceanTravelOverlay extends View {
         animationTime += dt;
         shake = Math.max(0f, shake - dt * 20f);
         messageTime = Math.max(0f, messageTime - dt);
-
         if (mode == Mode.LAND) drawLandOverlay(canvas);
         else {
             updateSailing(dt);
@@ -96,9 +94,9 @@ public final class OceanTravelOverlay extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
-        int actionIndex = event.getActionIndex();
-        float x = event.getX(actionIndex);
-        float y = event.getY(actionIndex);
+        int index = event.getActionIndex();
+        float x = event.getX(index);
+        float y = event.getY(index);
 
         if (mode == Mode.LAND) {
             if (action == MotionEvent.ACTION_DOWN && forwardButton.contains(x, y)) {
@@ -118,7 +116,7 @@ public final class OceanTravelOverlay extends View {
         }
 
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
-            int pointerId = event.getPointerId(actionIndex);
+            int pointerId = event.getPointerId(index);
             if (brakeButton.contains(x, y)) {
                 brake = 1f;
                 return true;
@@ -150,7 +148,7 @@ public final class OceanTravelOverlay extends View {
 
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP
                 || action == MotionEvent.ACTION_CANCEL) {
-            int pointerId = event.getPointerId(actionIndex);
+            int pointerId = event.getPointerId(index);
             if (pointerId == controlPointer || action == MotionEvent.ACTION_CANCEL) {
                 controlPointer = -1;
                 throttle = 0f;
@@ -180,13 +178,17 @@ public final class OceanTravelOverlay extends View {
         try {
             int gameIsland = islandField.getInt(gameView);
             int island = WorldSession.activeIsland(gameIsland);
-            int hero = selectedHeroField.getInt(gameView);
             float playerX = playerXField.getFloat(gameView);
             int segment = Math.min(5, island);
             float localX = playerX - segment * WorldConfig.ISLAND_WIDTH;
-
             islandField.setInt(gameView, island);
-            drawLocationChip(canvas, island);
+
+            paint.setColor(Color.argb(205, 5, 15, 26));
+            canvas.drawRoundRect(new RectF(getWidth() * 0.30f, 116f,
+                    getWidth() * 0.70f, 168f), 18f, 18f, paint);
+            text(canvas, WorldConfig.ISLAND_NAMES[island], getWidth() * 0.5f, 148f,
+                    19f, island == 7 ? Color.rgb(255, 149, 60) : Color.rgb(250, 214, 104),
+                    true, Paint.Align.CENTER);
 
             if (WorldConfig.hasNextIsland(island) && localX > WorldConfig.ISLAND_WIDTH - 430f) {
                 forwardButton.set(getWidth() - 288f, getHeight() * 0.36f,
@@ -197,8 +199,7 @@ public final class OceanTravelOverlay extends View {
             } else forwardButton.setEmpty();
 
             if (island > 0 && localX < 430f) {
-                backwardButton.set(24f, getHeight() * 0.36f,
-                        288f, getHeight() * 0.48f);
+                backwardButton.set(24f, getHeight() * 0.36f, 288f, getHeight() * 0.48f);
                 button(canvas, backwardButton, "← RETOUR MER", Color.rgb(50, 87, 120));
                 text(canvas, WorldConfig.ISLAND_NAMES[island - 1], backwardButton.centerX(),
                         backwardButton.bottom + 21f, 13f, Color.WHITE, false, Paint.Align.CENTER);
@@ -217,18 +218,13 @@ public final class OceanTravelOverlay extends View {
         }
     }
 
-    private void drawLocationChip(Canvas canvas, int island) {
-        paint.setColor(Color.argb(205, 5, 15, 26));
-        canvas.drawRoundRect(new RectF(getWidth() * 0.30f, 116f,
-                getWidth() * 0.70f, 168f), 18f, 18f, paint);
-        int color = island == 7 ? Color.rgb(255, 149, 60) : Color.rgb(250, 214, 104);
-        text(canvas, WorldConfig.ISLAND_NAMES[island], getWidth() * 0.5f, 148f,
-                19f, color, true, Paint.Align.CENTER);
-    }
-
-    private boolean isGameVisible() throws IllegalAccessException {
-        Object screen = screenField.get(gameView);
-        return screen != null && ("GAME".equals(screen.toString()) || "PAUSE".equals(screen.toString()));
+    private boolean isGameVisible() {
+        try {
+            Object screen = screenField.get(gameView);
+            return screen != null && ("GAME".equals(screen.toString()) || "PAUSE".equals(screen.toString()));
+        } catch (IllegalAccessException ignored) {
+            return false;
+        }
     }
 
     private void startVoyage(int requestedDirection) {
@@ -251,8 +247,6 @@ public final class OceanTravelOverlay extends View {
             createRouteHazards();
             mode = Mode.SAILING;
             lastFrameNanos = 0L;
-            forwardButton.setEmpty();
-            backwardButton.setEmpty();
             gameView.pauseGameLoop();
         } catch (ReflectiveOperationException ignored) {
             mode = Mode.LAND;
@@ -266,7 +260,6 @@ public final class OceanTravelOverlay extends View {
         }
         physics.update(throttle, steering, brake, wind, dt);
         routeDistance += Math.max(0f, physics.getSpeed()) * dt;
-
         for (RouteHazard hazard : hazards) {
             if (hazard.hit) continue;
             float longitudinal = hazard.distance - routeDistance;
@@ -276,18 +269,16 @@ public final class OceanTravelOverlay extends View {
                 float impact = physics.collide(0.72f + hazard.radius / 180f);
                 hull = Math.max(0f, hull - 14f - impact * 32f);
                 shake = 18f + impact * 24f;
-                transientMessage = hazard.magma ? "Impact avec une roche de magma"
-                        : "Collision avec un récif";
+                transientMessage = hazard.magma ? "Impact avec une roche de magma" : "Collision avec un récif";
                 messageTime = 2.2f;
             }
         }
-
         if (hull <= 0f) {
             abortVoyage();
             return;
         }
-        if (routeDistance >= ROUTE_DISTANCE && mode == Mode.SAILING) {
-            routeDistance = ROUTE_DISTANCE;
+        if (routeDistance >= WorldConfig.ROUTE_DISTANCE && mode == Mode.SAILING) {
+            routeDistance = WorldConfig.ROUTE_DISTANCE;
             mode = Mode.ARRIVAL;
             throttle = 0f;
             brake = 1f;
@@ -301,7 +292,6 @@ public final class OceanTravelOverlay extends View {
             canvas.translate(-shake * 0.5f + random.nextFloat() * shake,
                     -shake * 0.5f + random.nextFloat() * shake);
         }
-
         int skyTop = magmaRoute ? Color.rgb(45, 20, 25)
                 : destinationIsland == 2 ? Color.rgb(48, 76, 111)
                 : destinationIsland == 5 ? Color.rgb(27, 34, 64)
@@ -312,7 +302,6 @@ public final class OceanTravelOverlay extends View {
                 skyTop, skyBottom, Shader.TileMode.CLAMP));
         canvas.drawRect(0f, 0f, getWidth(), getHeight() * 0.58f, paint);
         paint.setShader(null);
-
         float horizon = getHeight() * 0.36f;
         paint.setColor(magmaRoute ? Color.rgb(82, 40, 35) : Color.rgb(17, 83, 123));
         canvas.drawRect(0f, horizon, getWidth(), getHeight(), paint);
@@ -321,19 +310,17 @@ public final class OceanTravelOverlay extends View {
         drawHazards(canvas, horizon);
         drawShip(canvas, getWidth() * 0.52f, getHeight() * 0.77f);
         canvas.restore();
-
         drawSailingHud(canvas, magmaRoute);
         drawSailingControls(canvas);
     }
 
     private void drawDestinationIsland(Canvas canvas, float horizon, boolean magmaRoute) {
-        float progress = routeDistance / ROUTE_DISTANCE;
+        float progress = routeDistance / WorldConfig.ROUTE_DISTANCE;
         float islandWidth = 90f + progress * getWidth() * 0.55f;
         float islandHeight = 24f + progress * getHeight() * 0.18f;
         float center = getWidth() * (0.54f - cameraYaw * 0.08f);
         paint.setColor(destinationIsland == 6 ? Color.rgb(161, 91, 130)
-                : destinationIsland == 7 ? Color.rgb(48, 42, 43)
-                : Color.rgb(41, 73, 61));
+                : destinationIsland == 7 ? Color.rgb(48, 42, 43) : Color.rgb(41, 73, 61));
         path.reset();
         path.moveTo(center - islandWidth * 0.5f, horizon + 4f);
         path.lineTo(center - islandWidth * 0.24f, horizon - islandHeight * 0.55f);
@@ -402,12 +389,9 @@ public final class OceanTravelOverlay extends View {
     private void drawShip(Canvas canvas, float centerX, float deckY) {
         float visualHeading = physics.getHeading() - cameraYaw * 0.45f;
         float visualRoll = physics.getRoll() - cameraYaw * 0.08f;
-        float scale = 1f + Math.max(0f, physics.getPitch()) * 0.7f;
         canvas.save();
         canvas.rotate((float) Math.toDegrees(visualRoll), centerX, deckY);
-        canvas.scale(scale, scale, centerX, deckY);
         canvas.translate((float) Math.sin(visualHeading) * 55f, 0f);
-
         paint.setColor(Color.argb(100, 0, 0, 0));
         canvas.drawOval(new RectF(centerX - 138f, deckY + 38f, centerX + 138f, deckY + 72f), paint);
         paint.setColor(Color.rgb(78, 46, 28));
@@ -437,19 +421,10 @@ public final class OceanTravelOverlay extends View {
             pilotSprite.draw(canvas, Character25D.Pose.PILOT, animationTime,
                     centerX + 22f, deckY - 2f, 92f, direction > 0, 1f);
         }
-        drawWheel(canvas, centerX + 20f, deckY - 27f);
-        canvas.restore();
-    }
-
-    private void drawWheel(Canvas canvas, float x, float y) {
         stroke.setColor(Color.rgb(174, 112, 54));
         stroke.setStrokeWidth(5f);
-        canvas.drawCircle(x, y, 20f, stroke);
-        for (int i = 0; i < 8; i++) {
-            double angle = i * Math.PI / 4.0;
-            canvas.drawLine(x, y, x + (float) Math.cos(angle) * 27f,
-                    y + (float) Math.sin(angle) * 27f, stroke);
-        }
+        canvas.drawCircle(centerX + 20f, deckY - 27f, 20f, stroke);
+        canvas.restore();
     }
 
     private void drawSailingHud(Canvas canvas, boolean magmaRoute) {
@@ -460,7 +435,7 @@ public final class OceanTravelOverlay extends View {
                 getWidth() * 0.5f, 42f, 19f,
                 magmaRoute ? Color.rgb(255, 153, 65) : Color.rgb(250, 214, 104),
                 true, Paint.Align.CENTER);
-        int percent = Math.min(100, Math.round(routeDistance / ROUTE_DISTANCE * 100f));
+        int percent = Math.min(100, Math.round(routeDistance / WorldConfig.ROUTE_DISTANCE * 100f));
         text(canvas, "Traversée " + percent + "%  •  Vitesse "
                         + Math.round(Math.max(0f, physics.getSpeed()))
                         + "  •  Coque " + Math.round(hull) + "%",
@@ -492,8 +467,6 @@ public final class OceanTravelOverlay extends View {
         canvas.drawCircle(brakeButton.centerX(), brakeButton.centerY(), 58f, paint);
         text(canvas, "FREIN", brakeButton.centerX(), brakeButton.centerY() + 6f,
                 17f, Color.WHITE, true, Paint.Align.CENTER);
-        text(canvas, "Glisse à droite pour tourner la caméra", getWidth() - 30f,
-                getHeight() - 25f, 12f, Color.WHITE, false, Paint.Align.RIGHT);
     }
 
     private void updateControl(float x, float y) {
@@ -513,13 +486,10 @@ public final class OceanTravelOverlay extends View {
             playerXField.setFloat(gameView, landingX);
             playerYField.setFloat(gameView, getHeight() * 0.73f);
             clearCombatLists();
-
-            // Les collisions réutilisent le dernier segment physique pour les îles 7 et 8.
             islandField.setInt(gameView, virtualSegment);
             rebuildObstaclesMethod.invoke(gameView);
             islandField.setInt(gameView, destinationIsland);
             chooseWeatherMethod.invoke(gameView, true);
-
             mode = Mode.LAND;
             releasePilot();
             transientMessage = "Arrivée : " + WorldConfig.ISLAND_NAMES[destinationIsland];
