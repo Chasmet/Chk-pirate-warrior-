@@ -110,7 +110,10 @@ public final class PdfAtlas25D {
     }
 
     private Rect sourceRect(int atlasSlot) {
-        if (loadedIsland == CAKE_ISLAND_INDEX && atlasSlot >= 0 && atlasSlot < CAKE_SOURCE_RECTS.length) {
+        boolean rawCakeBoard = loadedIsland == CAKE_ISLAND_INDEX
+                && atlas.getWidth() >= 1000
+                && atlas.getHeight() >= 600;
+        if (rawCakeBoard && atlasSlot >= 0 && atlasSlot < CAKE_SOURCE_RECTS.length) {
             int[] source = CAKE_SOURCE_RECTS[atlasSlot];
             float scaleX = atlas.getWidth() / (float) CAKE_SOURCE_WIDTH;
             float scaleY = atlas.getHeight() / (float) CAKE_SOURCE_HEIGHT;
