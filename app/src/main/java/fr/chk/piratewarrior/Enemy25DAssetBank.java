@@ -111,12 +111,17 @@ public final class Enemy25DAssetBank {
         );
         SpriteStrip25D strip = new SpriteStrip25D(folder);
 
+        // Les quatre directions indispensables sont gardées en mémoire pour l'île active seulement.
         for (SpriteStrip25D.Direction direction : SpriteStrip25D.Direction.values()) {
             strip.load(assets, direction, SpriteStrip25D.Animation.IDLE);
             strip.load(assets, direction, SpriteStrip25D.Animation.WALK);
             strip.load(assets, direction, SpriteStrip25D.Animation.ATTACK);
             strip.load(assets, direction, SpriteStrip25D.Animation.HURT);
         }
+
+        // Les animations moins fréquentes restent limitées à la vue frontale afin de maîtriser la RAM.
+        strip.load(assets, SpriteStrip25D.Direction.FRONT, SpriteStrip25D.Animation.POWER);
+        strip.load(assets, SpriteStrip25D.Direction.FRONT, SpriteStrip25D.Animation.DEFEAT);
 
         if (boss) {
             strip.load(assets, SpriteStrip25D.Direction.FRONT, SpriteStrip25D.Animation.INTRO);
