@@ -2,14 +2,14 @@ class_name Crew25DCatalogV5
 extends RefCounted
 
 # Ces deux rosters correspondent directement aux équipages montrés dans les
-# références fournies par Cheikh. Les sprites utilisent les atlas découpés
-# depuis ces images et non des silhouettes procédurales inventées.
+# références fournies par Cheikh. Les nouveaux atlas haute qualité isolent
+# chaque personnage dans sa propre cellule transparente.
 const CREWS := [
 	{
 		"id":"strawhat",
 		"name":"Équipage du Chapeau de Paille",
 		"ship":"Thousand Sunny",
-		"atlas":"res://assets/crew25d/reference/strawhat_atlas_48.webp.b64",
+		"atlas":"res://assets/faction25d/strawhat_hq_atlas.webp.b64",
 		"primary":"d73b2f",
 		"secondary":"f4cf45",
 		"members":[
@@ -29,7 +29,7 @@ const CREWS := [
 		"id":"redhair",
 		"name":"Équipage du Roux",
 		"ship":"Red Force",
-		"atlas":"res://assets/crew25d/reference/redhair_atlas_48.webp.b64",
+		"atlas":"res://assets/faction25d/redhair_hq_atlas.webp.b64",
 		"primary":"9f2532",
 		"secondary":"1d2028",
 		"members":[
