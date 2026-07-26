@@ -4,16 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Catalogue des références visuelles extraites du dossier officiel « asset chk pirate ».
- *
- * Ces entrées servent de fallback visuel lorsque les bandes transparentes finales ne sont pas
- * encore présentes. Les identifiants restent strictement alignés sur Enemy25DCatalog.
- */
+/** Catalogue des atlas de référence utilisés comme fallback 2.5D. */
 public final class PdfAssetCatalog {
     public enum Rank { BOSS, COMMANDER, SUBORDINATE }
 
-    public static final int ISLAND_COUNT = 6;
+    public static final int ISLAND_COUNT = Enemy25DCatalog.ISLAND_COUNT;
     public static final String[] ISLAND_NAMES = Enemy25DCatalog.ISLAND_NAMES.clone();
 
     public static final class Entry {
@@ -31,9 +26,7 @@ public final class PdfAssetCatalog {
             this.atlasSlot = atlasSlot;
         }
 
-        public boolean isBoss() {
-            return rank == Rank.BOSS;
-        }
+        public boolean isBoss() { return rank == Rank.BOSS; }
     }
 
     private static final List<Entry> ENTRIES = List.of(
@@ -83,42 +76,40 @@ public final class PdfAssetCatalog {
             new Entry("cyclone", "Cyclone, Lance des Vents", 5, Rank.COMMANDER, 3),
             new Entry("brisk", "Brisk, Coureur des Courants", 5, Rank.SUBORDINATE, 4),
             new Entry("tonnerre", "Tonnerre, Marteau du Ciel", 5, Rank.SUBORDINATE, 5),
-            new Entry("fulgur", "Fulgur, Archer des Éclairs", 5, Rank.SUBORDINATE, 6)
+            new Entry("fulgur", "Fulgur, Archer des Éclairs", 5, Rank.SUBORDINATE, 6),
+
+            new Entry("matriarche_sucree", "Matriarche Sucrée", 6, Rank.BOSS, 0),
+            new Entry("prince_mochi", "Prince Mochi", 6, Rank.COMMANDER, 1),
+            new Entry("duc_biscuit", "Duc Biscuit", 6, Rank.COMMANDER, 2),
+            new Entry("chevalier_caramel", "Chevalier Caramel", 6, Rank.COMMANDER, 3),
+            new Entry("maitre_bonbon", "Maître Bonbon", 6, Rank.SUBORDINATE, 4),
+            new Entry("gardienne_meringue", "Gardienne Meringue", 6, Rank.SUBORDINATE, 5),
+            new Entry("tireur_praline", "Tireur Praliné", 6, Rank.SUBORDINATE, 6)
     );
 
-    private PdfAssetCatalog() {
-    }
+    private PdfAssetCatalog() {}
 
-    public static List<Entry> all() {
-        return ENTRIES;
-    }
+    public static List<Entry> all() { return ENTRIES; }
 
     public static List<Entry> forIsland(int islandIndex) {
         List<Entry> result = new ArrayList<>(7);
-        for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex) result.add(entry);
-        }
+        for (Entry entry : ENTRIES) if (entry.islandIndex == islandIndex) result.add(entry);
         return Collections.unmodifiableList(result);
     }
 
     public static Entry byId(String id) {
         if (id == null) return null;
-        for (Entry entry : ENTRIES) {
-            if (entry.id.equals(id)) return entry;
-        }
+        for (Entry entry : ENTRIES) if (entry.id.equals(id)) return entry;
         return null;
     }
 
     public static Entry bossForIsland(int islandIndex) {
-        for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) return entry;
-        }
+        for (Entry entry : ENTRIES) if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) return entry;
         throw new IllegalArgumentException("Aucun boss PDF pour l'île " + islandIndex);
     }
 
     public static String atlasAssetPath(int islandIndex) {
         int safe = Math.max(0, Math.min(ISLAND_COUNT - 1, islandIndex));
-        return String.format(java.util.Locale.ROOT,
-                "characters25d/pdf_atlas/island_%02d_atlas.webp.b64", safe + 1);
+        return String.format(java.util.Locale.ROOT, "characters25d/pdf_atlas/island_%02d_atlas.webp.b64", safe + 1);
     }
 }
