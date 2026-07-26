@@ -1,6 +1,7 @@
 ; CHK Pirate Warrior — Godot 4.6.3 stable
 ; Monde ouvert 3D mobile en français.
-; V3.4 : boss, commandants, nakama et animaux originaux en 2.5D.
+; Le monde, les ennemis ordinaires, les animaux, le bateau et les collisions restent en 3D.
+; Seuls les héros et les boss utilisent un Sprite3D réaliste intégré au monde.
 
 config_version=5
 
@@ -25,7 +26,7 @@ StudioGameplayUpgrade="*res://scripts/studio_gameplay_upgrade.gd"
 ArchipelagoMinimap="*res://scripts/archipelago_minimap.gd"
 TargetHealthHud="*res://scripts/target_health_hud.gd"
 AAAPresentationDirector="*res://scripts/aaa_presentation_director.gd"
-Roster25DDirector="*res://scripts/roster_25d_director.gd"
+Boss25DDirector="*res://scripts/boss_25d_director.gd"
 
 [display]
 
