@@ -2,16 +2,10 @@ class_name Enemy25DAssetBank
 extends RefCounted
 
 # Banque mémoire strictement limitée à l’île active. Les sept personnages
-# importants (boss, 3 commandants, 3 nakamas) partagent un atlas embarqué ;
+# importants (boss, 3 commandants, 3 nakamas) partagent un atlas compact ;
 # les 42 textures ne sont donc jamais chargées simultanément.
-const ISLAND_ATLAS_DATA := [
-	preload("res://scripts/roster_data/island_0_port_data.gd"),
-	preload("res://scripts/roster_data/island_1_jungle_data.gd"),
-	preload("res://scripts/roster_data/island_2_snow_data.gd"),
-	preload("res://scripts/roster_data/island_3_desert_data.gd"),
-	preload("res://scripts/roster_data/island_4_volcano_data.gd"),
-	preload("res://scripts/roster_data/island_5_storm_data.gd")
-]
+const COMPACT_ROOT := "res://assets/roster25d/compact"
+const SOURCE_SHEET_SIZE := Vector2(320.0, 240.0)
 
 static var _active_zone := -1
 static var _texture_cache: Dictionary = {}
@@ -63,10 +57,13 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 			"animated": false,
 			"hframes": 1,
 			"vframes": 1,
-			"source": "embedded_official_island_atlas"
+			"source": "embedded_compact_island_atlas"
 		}
 
-	_log_missing_once("%d:%s" % [zone, String(profile.get("id", "unknown"))], "Asset 2.5D manquant zone=%d personnage=%s" % [zone, String(profile.get("name", "personnage"))])
+	_log_missing_once(
+		"%d:%s" % [zone, String(profile.get("id", "unknown"))],
+		"Asset 2.5D manquant zone=%d personnage=%s" % [zone, String(profile.get("name", "personnage"))]
+	)
 	return {}
 
 static func _atlas_region_texture(zone: int, profile: Dictionary) -> AtlasTexture:
@@ -76,9 +73,22 @@ static func _atlas_region_texture(zone: int, profile: Dictionary) -> AtlasTextur
 	var sheet := _island_atlas_texture(zone)
 	if sheet == null:
 		return null
+
+	var source_region := Rect2(profile.get("atlas_region", Enemy25DCatalog.BOSS_REGION))
+	var scale := Vector2(
+		float(sheet.get_width()) / SOURCE_SHEET_SIZE.x,
+		float(sheet.get_height()) / SOURCE_SHEET_SIZE.y
+	)
+	var scaled_region := Rect2(source_region.position * scale, source_region.size * scale)
+	var sheet_rect := Rect2(Vector2.ZERO, Vector2(sheet.get_width(), sheet.get_height()))
+	scaled_region = scaled_region.intersection(sheet_rect)
+	if scaled_region.size.x < 1.0 or scaled_region.size.y < 1.0:
+		_log_missing_once(cache_key, "Région 2.5D invalide : " + cache_key)
+		return null
+
 	var atlas := AtlasTexture.new()
 	atlas.atlas = sheet
-	atlas.region = Rect2(profile.get("atlas_region", Enemy25DCatalog.BOSS_REGION))
+	atlas.region = scaled_region
 	atlas.filter_clip = true
 	_texture_cache[cache_key] = atlas
 	return atlas
@@ -87,10 +97,12 @@ static func _island_atlas_texture(zone: int) -> Texture2D:
 	var key := "sheet:%d" % zone
 	if _texture_cache.has(key):
 		return _texture_cache[key] as Texture2D
-	if zone < 0 or zone >= ISLAND_ATLAS_DATA.size():
+	var path := "%s/island_%d.b64" % [COMPACT_ROOT, zone]
+	if not FileAccess.file_exists(path):
+		_log_missing_once(key, "Atlas compact absent : " + path)
 		return null
-	var source = ISLAND_ATLAS_DATA[zone]
-	var texture := _decode_webp(String(source.WEBP_BASE64), "atlas île %d" % zone)
+	var encoded := FileAccess.get_file_as_string(path).strip_edges()
+	var texture := _decode_webp(encoded, "atlas compact île %d" % zone)
 	if texture != null:
 		_texture_cache[key] = texture
 	return texture
