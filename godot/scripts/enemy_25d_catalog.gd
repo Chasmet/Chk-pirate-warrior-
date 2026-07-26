@@ -58,22 +58,25 @@ const ISLANDS := [
 		"animals":["Crabe des Falaises", "Lézard des Remparts", "Serpent Marinier", "Loup d’Orage"]
 	},
 	{
-		"key":"gateau", "accent":"ef86b5", "boss":"Marzipana, Reine des Délices",
-		"commandants":["Crémor, Chevalier du Glaçage", "Fournaise, Maître du Four", "Baron Croquant"],
-		"nakama":["Régliss", "Meringa", "Pralin"],
-		"animals":["Crabe Caramel", "Cerf Biscuit", "Singe Confiseur", "Oiseau Meringue"]
+		"key":"gateau", "accent":"ef86b5", "boss":"Big Mom, Reine de Totto Land",
+		"commandants":["Katakuri", "Smoothie", "Cracker"],
+		"nakama":["Perospero", "Oven", "Daifuku"],
+		"animals":["Crabe Caramel", "Cerf Biscuit", "Singe Confiseur", "Oiseau Meringue"],
+		"faction_asset":"bigmom_hq"
 	},
 	{
-		"key":"crane", "accent":"ff4a18", "boss":"Ragnarok, Seigneur de la Citadelle du Crâne",
-		"commandants":["Chevalier Corne-Noire", "Tyran des Braises", "Canon du Crâne"],
-		"nakama":["Roi Déchu", "Oracle Pourpre", "Exécuteur des Forges"],
-		"animals":["Lézard de Basalte", "Aigle des Cendres", "Loup Magmatique", "Crabe Obsidienne"]
+		"key":"crane", "accent":"ff4a18", "boss":"Kaido, Seigneur des Cent Bêtes",
+		"commandants":["King", "Queen", "Jack"],
+		"nakama":["Orochi", "Page One", "Ulti"],
+		"animals":["Lézard de Basalte", "Aigle des Cendres", "Loup Magmatique", "Crabe Obsidienne"],
+		"faction_asset":"kaido_hq"
 	},
 	{
-		"key":"ciel", "accent":"8bdcff", "boss":"Astrael, Souverain du Royaume Céleste",
-		"commandants":["Sage de l’Aube", "Gardien des Lois", "Maître du Trident"],
-		"nakama":["Ancien des Nuages", "Veilleur d’Or", "Moine de l’Éther"],
-		"animals":["Aigle Céleste", "Mouette d’Azur", "Cerf des Nuages", "Lézard de Cristal"]
+		"key":"ciel", "accent":"8bdcff", "boss":"Imu Sama, Souverain du Trône Vide",
+		"commandants":["Saint Saturne", "Saint Mars", "Saint Warcury"],
+		"nakama":["Saint Nusjuro", "Saint Ju Peter", "Saint Garling"],
+		"animals":["Aigle Céleste", "Mouette d’Azur", "Cerf des Nuages", "Lézard de Cristal"],
+		"faction_asset":"final_hq"
 	}
 ]
 
@@ -212,6 +215,11 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 			pixel_size = 0.024
 			sprite_y = 0.58
 	var safe_id := display_name.to_lower().replace(" ", "_").replace("'", "").replace("’", "").replace("-", "_")
+	var faction_index := 0
+	if rank == "commandant":
+		faction_index = index + 1
+	elif rank == "nakama":
+		faction_index = index + 4
 	return {
 		"id":"z%d_%s_%d_%s" % [zone, rank, index, safe_id],
 		"name":display_name,
@@ -229,6 +237,8 @@ static func _make_profile(zone: int, rank: String, index: int, display_name: Str
 		"visual_25d":true,
 		"atlas_zone":zone,
 		"atlas_region":region,
+		"faction_asset":String(island.get("faction_asset", "")),
+		"faction_index":faction_index,
 		"pixel_size":pixel_size,
 		"sprite_y":sprite_y,
 		"visual_layers":visual_layers,
