@@ -13,16 +13,16 @@ const CREWS := [
 		"primary":"d73b2f",
 		"secondary":"f4cf45",
 		"members":[
-			{"id":"luffy","name":"Luffy","role":"capitaine","weapon":"poings","atlas_index":0,"height":1.74},
-			{"id":"zoro","name":"Zoro","role":"sabreur","weapon":"trois sabres","atlas_index":1,"height":1.81},
-			{"id":"sanji","name":"Sanji","role":"cuisinier","weapon":"jambes","atlas_index":2,"height":1.80},
-			{"id":"franky","name":"Franky","role":"charpentier","weapon":"gantelets","atlas_index":3,"height":2.40},
-			{"id":"chopper","name":"Chopper","role":"médecin","weapon":"transformation","atlas_index":4,"height":0.95},
-			{"id":"robin","name":"Robin","role":"archéologue","weapon":"pouvoir","atlas_index":5,"height":1.88},
-			{"id":"nami","name":"Nami","role":"navigatrice","weapon":"bâton climatique","atlas_index":6,"height":1.70},
-			{"id":"usopp","name":"Usopp","role":"tireur","weapon":"lance-pierre","atlas_index":7,"height":1.76},
-			{"id":"brook","name":"Brook","role":"musicien","weapon":"canne-épée","atlas_index":8,"height":2.45},
-			{"id":"jinbe","name":"Jinbe","role":"timonier","weapon":"karaté marin","atlas_index":9,"height":2.30}
+			{"id":"luffy","name":"Luffy","role":"capitaine","weapon":"poings","power":"elastic_burst","atlas_index":0,"height":1.74},
+			{"id":"zoro","name":"Zoro","role":"sabreur","weapon":"trois sabres","power":"triple_slash","atlas_index":1,"height":1.81},
+			{"id":"sanji","name":"Sanji","role":"cuisinier","weapon":"jambes","power":"flame_kick","atlas_index":2,"height":1.80},
+			{"id":"franky","name":"Franky","role":"charpentier","weapon":"gantelets","power":"energy_beam","atlas_index":3,"height":2.40},
+			{"id":"chopper","name":"Chopper","role":"médecin","weapon":"transformation","power":"guard_heal","atlas_index":4,"height":0.95},
+			{"id":"robin","name":"Robin","role":"archéologue","weapon":"pouvoir","power":"grasp_bind","atlas_index":5,"height":1.88},
+			{"id":"nami","name":"Nami","role":"navigatrice","weapon":"bâton climatique","power":"thunder_cloud","atlas_index":6,"height":1.70},
+			{"id":"usopp","name":"Usopp","role":"tireur","weapon":"lance-pierre","power":"sniper_seed","atlas_index":7,"height":1.76},
+			{"id":"brook","name":"Brook","role":"musicien","weapon":"canne-épée","power":"ice_slash","atlas_index":8,"height":2.45},
+			{"id":"jinbe","name":"Jinbe","role":"timonier","weapon":"karaté marin","power":"water_palm","atlas_index":9,"height":2.30}
 		]
 	},
 	{
@@ -33,16 +33,16 @@ const CREWS := [
 		"primary":"9f2532",
 		"secondary":"1d2028",
 		"members":[
-			{"id":"shanks","name":"Shanks","role":"capitaine","weapon":"sabre","atlas_index":0,"height":1.99},
-			{"id":"benn_beckman","name":"Benn Beckman","role":"second","weapon":"fusil","atlas_index":1,"height":2.06},
-			{"id":"lucky_roux","name":"Lucky Roux","role":"combattant","weapon":"pistolet","atlas_index":2,"height":2.18},
-			{"id":"yasopp","name":"Yasopp","role":"tireur","weapon":"fusil","atlas_index":3,"height":1.83},
-			{"id":"limejuice","name":"Limejuice","role":"combattant","weapon":"bâton","atlas_index":4,"height":2.00},
-			{"id":"bonk_punch","name":"Bonk Punch","role":"combattant","weapon":"poings","atlas_index":5,"height":2.12},
-			{"id":"monster","name":"Monster","role":"combattant","weapon":"agilité","atlas_index":6,"height":1.32},
-			{"id":"building_snake","name":"Building Snake","role":"navigateur","weapon":"sabres","atlas_index":7,"height":2.08},
-			{"id":"hongo","name":"Hongo","role":"médecin","weapon":"fusil","atlas_index":8,"height":1.91},
-			{"id":"gab","name":"Gab","role":"combattant","weapon":"crocs","atlas_index":9,"height":2.04}
+			{"id":"shanks","name":"Shanks","role":"capitaine","weapon":"sabre","power":"haki_wave","atlas_index":0,"height":1.99},
+			{"id":"benn_beckman","name":"Benn Beckman","role":"second","weapon":"fusil","power":"rifle_burst","atlas_index":1,"height":2.06},
+			{"id":"lucky_roux","name":"Lucky Roux","role":"combattant","weapon":"pistolet","power":"rapid_shot","atlas_index":2,"height":2.18},
+			{"id":"yasopp","name":"Yasopp","role":"tireur","weapon":"fusil","power":"sniper_shot","atlas_index":3,"height":1.83},
+			{"id":"limejuice","name":"Limejuice","role":"combattant","weapon":"bâton","power":"sky_kick","atlas_index":4,"height":2.00},
+			{"id":"bonk_punch","name":"Bonk Punch","role":"combattant","weapon":"poings","power":"ground_smash","atlas_index":5,"height":2.12},
+			{"id":"monster","name":"Monster","role":"combattant","weapon":"agilité","power":"acrobat_rush","atlas_index":6,"height":1.32},
+			{"id":"building_snake","name":"Building Snake","role":"navigateur","weapon":"sabres","power":"dual_slash","atlas_index":7,"height":2.08},
+			{"id":"hongo","name":"Hongo","role":"médecin","weapon":"fusil","power":"support_heal","atlas_index":8,"height":1.91},
+			{"id":"gab","name":"Gab","role":"combattant","weapon":"crocs","power":"shock_roar","atlas_index":9,"height":2.04}
 		]
 	}
 ]
