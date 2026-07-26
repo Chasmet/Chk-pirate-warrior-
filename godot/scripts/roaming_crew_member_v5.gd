@@ -9,10 +9,13 @@ var support_cooldown := 0.0
 var local_time := 0.0
 var member_profile: Dictionary = {}
 var sprite: Sprite3D
+var ground_shadow: MeshInstance3D
 var rng := RandomNumberGenerator.new()
+var visual_height := 1.80
 
 func configure_crew(data: Dictionary, player: PlayerController, initial_attitude: String, seed_value: int) -> void:
 	member_profile = data.duplicate(true)
+	visual_height = clampf(float(data.get("height", 1.80)), 0.80, 2.60)
 	rng.seed = seed_value
 	var combat_profile := {
 		"id":"crew_%s_%s" % [String(data.get("crew_id", "crew")), String(data.get("id", "member"))],
@@ -30,11 +33,13 @@ func configure_crew(data: Dictionary, player: PlayerController, initial_attitude
 	name = "Équipage_%s_%s" % [String(data.get("crew_id", "crew")), String(data.get("id", "member"))]
 	_build_collision_v5()
 	_build_sprite_v5()
+	_build_ground_shadow_v5()
 	set_attitude(initial_attitude)
 	set_meta("crew_id", data.get("crew_id", ""))
 	set_meta("crew_name", data.get("crew_name", ""))
 	set_meta("member_name", data.get("name", ""))
 	set_meta("role", data.get("role", ""))
+	set_meta("visual_pipeline", "hero_style_25d_in_3d")
 
 func set_home(value: Vector3) -> void:
 	home_position = value
@@ -148,26 +153,59 @@ func _build_collision_v5() -> void:
 	var collision := CollisionShape3D.new()
 	collision.name = "CollisionÉquipageV5"
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.48
-	capsule.height = 1.42
+	capsule.radius = clampf(visual_height * 0.24, 0.30, 0.62)
+	capsule.height = maxf(visual_height - capsule.radius * 2.0, 0.45)
 	collision.shape = capsule
-	collision.position.y = 0.94
+	collision.position.y = visual_height * 0.50
 	add_child(collision)
 
 func _build_sprite_v5() -> void:
 	sprite = Sprite3D.new()
-	sprite.name = "Personnage25DOriginal"
+	sprite.name = "Personnage25DHérosStyle"
 	sprite.texture = Crew25DAssetFactoryV5.texture_for(member_profile)
-	sprite.pixel_size = 0.0125
-	sprite.position.y = 1.62
+	sprite.hframes = Crew25DAssetFactoryV5.FRAME_COUNT
+	sprite.vframes = 1
+	sprite.frame = 0
+	# La planche normalisée utilise 238 pixels utiles comme les héros utilisent
+	# leur hauteur réelle pour calculer le pixel_size.
+	sprite.pixel_size = visual_height / 238.0
+	sprite.position.y = visual_height * 0.50
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.double_sided = true
+	sprite.shaded = false
 	sprite.no_depth_test = false
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	sprite.alpha_scissor_threshold = 0.055
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.render_priority = 7
 	add_child(sprite)
+
+func _build_ground_shadow_v5() -> void:
+	ground_shadow = MeshInstance3D.new()
+	ground_shadow.name = "OmbreAuSolÉquipage"
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = clampf(visual_height * 0.28, 0.28, 0.72)
+	mesh.bottom_radius = mesh.top_radius
+	mesh.height = 0.018
+	mesh.radial_segments = 28
+	ground_shadow.mesh = mesh
+	ground_shadow.position.y = 0.025
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.005, 0.008, 0.012, 0.43)
+	ground_shadow.material_override = material
+	add_child(ground_shadow)
 
 func _update_sprite_motion() -> void:
 	if not is_instance_valid(sprite):
 		return
-	var speed_ratio := clampf(Vector2(velocity.x, velocity.z).length() / maxf(speed, 0.1), 0.0, 1.0)
-	sprite.position.y = 1.62 + absf(sin(local_time * 7.0)) * 0.055 * speed_ratio
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	var speed_ratio := clampf(horizontal_speed / maxf(speed, 0.1), 0.0, 1.0)
+	if attack_windup > 0.0 or support_cooldown > 0.82:
+		sprite.frame = 3
+	elif speed_ratio > 0.12:
+		sprite.frame = 1 + int(floor(local_time * 7.2)) % 2
+	else:
+		sprite.frame = 0
+	sprite.position.y = visual_height * 0.50 + absf(sin(local_time * 7.0)) * 0.028 * speed_ratio
