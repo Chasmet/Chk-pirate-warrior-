@@ -2,9 +2,10 @@ class_name Enemy25DAssetBank
 extends RefCounted
 
 # Banque mémoire strictement limitée à l’île active. Les sept personnages
-# importants (boss, 3 commandants, 3 nakamas) partagent un atlas compact ;
-# les 42 textures ne sont donc jamais chargées simultanément.
+# importants de cette île (boss, 3 commandants, 3 nakamas) partagent un atlas.
+# Même avec 9 îles et 63 personnages importants, une seule île reste chargée.
 const COMPACT_ROOT := "res://assets/roster25d/compact"
+const CHUNK_ROOT := "res://assets/roster25d/chunks"
 const SOURCE_SHEET_SIZE := Vector2(320.0, 240.0)
 
 static var _active_zone := -1
@@ -57,7 +58,7 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 			"animated": false,
 			"hframes": 1,
 			"vframes": 1,
-			"source": "embedded_compact_island_atlas"
+			"source": "embedded_island_atlas"
 		}
 
 	_log_missing_once(
@@ -97,14 +98,27 @@ static func _island_atlas_texture(zone: int) -> Texture2D:
 	var key := "sheet:%d" % zone
 	if _texture_cache.has(key):
 		return _texture_cache[key] as Texture2D
-	var path := "%s/island_%d.b64" % [COMPACT_ROOT, zone]
-	if not FileAccess.file_exists(path):
-		_log_missing_once(key, "Atlas compact absent : " + path)
+
+	# Les six atlas historiques restent dans compact/. Les nouveaux assets
+	# peuvent être déposés en morceaux dans chunks/ sans modifier le moteur.
+	var candidates := [
+		"%s/island_%d.b64" % [COMPACT_ROOT, zone],
+		"%s/island_%d_0.b64" % [CHUNK_ROOT, zone]
+	]
+	var path := ""
+	for candidate in candidates:
+		if FileAccess.file_exists(String(candidate)):
+			path = String(candidate)
+			break
+	if path.is_empty():
+		_log_missing_once(key, "Atlas 2.5D absent pour l’île %d : %s" % [zone, ", ".join(candidates)])
 		return null
+
 	var encoded := FileAccess.get_file_as_string(path).strip_edges()
-	var texture := _decode_webp(encoded, "atlas compact île %d" % zone)
+	var texture := _decode_webp(encoded, "atlas 2.5D île %d" % zone)
 	if texture != null:
 		_texture_cache[key] = texture
+		print("CHK_25D_ATLAS_READY zone=%d path=%s" % [zone, path])
 	return texture
 
 static func _decode_webp(encoded: String, label: String) -> Texture2D:
