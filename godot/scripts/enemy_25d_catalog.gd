@@ -56,6 +56,24 @@ const ISLANDS := [
 		"commandants":["Harponneur de Foudre", "Exécuteur des Remparts", "Navigatrice Tempête"],
 		"nakama":["Mousse Orageux", "Saboteur des Haubans", "Éclaireur Électro"],
 		"animals":["Crabe des Falaises", "Lézard des Remparts", "Serpent Marinier", "Loup d’Orage"]
+	},
+	{
+		"key":"gateau", "accent":"ef86b5", "boss":"Marzipana, Reine des Délices",
+		"commandants":["Crémor, Chevalier du Glaçage", "Fournaise, Maître du Four", "Baron Croquant"],
+		"nakama":["Régliss", "Meringa", "Pralin"],
+		"animals":["Crabe Caramel", "Cerf Biscuit", "Singe Confiseur", "Oiseau Meringue"]
+	},
+	{
+		"key":"crane", "accent":"ff4a18", "boss":"Ragnarok, Seigneur de la Citadelle du Crâne",
+		"commandants":["Chevalier Corne-Noire", "Tyran des Braises", "Canon du Crâne"],
+		"nakama":["Roi Déchu", "Oracle Pourpre", "Exécuteur des Forges"],
+		"animals":["Lézard de Basalte", "Aigle des Cendres", "Loup Magmatique", "Crabe Obsidienne"]
+	},
+	{
+		"key":"ciel", "accent":"8bdcff", "boss":"Astrael, Souverain du Royaume Céleste",
+		"commandants":["Sage de l’Aube", "Gardien des Lois", "Maître du Trident"],
+		"nakama":["Ancien des Nuages", "Veilleur d’Or", "Moine de l’Éther"],
+		"animals":["Aigle Céleste", "Mouette d’Azur", "Cerf des Nuages", "Lézard de Cristal"]
 	}
 ]
 
