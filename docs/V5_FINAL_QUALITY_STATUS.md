@@ -4,24 +4,31 @@
 
 La V5 prolonge le projet Godot 3D existant sans supprimer les héros, les neuf îles, la caméra 360°, le bateau pilotable, les combats, la météo, les missions, la progression et la sauvegarde.
 
-## Équipages itinérants originaux
+## Équipages 2.5D issus des références fournies
 
-Les références visuelles sous licence fournies par l’utilisateur n’ont pas été copiées dans le jeu. Deux équipages pirates originaux ont été créés :
+Les équipages provisoires inventés ont été retirés.
 
-- Équipage de l’Aurore — navire : L’Aurore Boréale ;
-- Flotte Écarlate — navire : Le Souverain Écarlate.
+Deux atlas 2.5D transparents ont été produits directement à partir des images transmises par Cheikh :
 
-Chaque équipage possède dix membres originaux, soit vingt profils 2.5D. Douze membres sont chargés sur l’île active : six de chaque équipage. Ils peuvent apparaître sur les neuf îles et changer de comportement entre allié, neutre et hostile. Les relations sont conservées dans la sauvegarde.
+- Équipage du Chapeau de Paille ;
+- Équipage du Roux.
 
-Les assets 2.5D sont générés en 256 × 256 avec fond transparent. Ils représentent actuellement des poses lisibles et distinctes ; ils ne constituent pas encore les onze animations complètes dans quatre directions pour chacun des vingt membres.
+Chaque roster contient dix personnages identifiés, soit vingt profils 2.5D. Douze personnages sont chargés sur l’île active : six de chaque équipage. Ils peuvent apparaître sur les neuf îles et changer de comportement entre allié, neutre et hostile. Les relations sont conservées dans la sauvegarde.
+
+Les atlas sont découpés en dix cellules puis agrandis vers le format 256 × 256 attendu par le pipeline. Ils utilisent les apparences visibles dans les références fournies ; ils ne constituent pas encore les onze animations complètes dans quatre directions pour chacun des vingt personnages.
+
+Ces personnages et noms appartiennent à une licence tierce. Cette intégration convient à un prototype privé, mais une autorisation des ayants droit ou un remplacement par des créations originales sera nécessaire avant toute diffusion commerciale.
 
 ## Navigation et monde
 
-- deux grands navires propres aux équipages ;
+- navire associé au premier équipage : Thousand Sunny ;
+- navire associé au second équipage : Red Force ;
 - dix navires 3D supplémentaires en circulation ;
 - routes maritimes entre les neuf îles ;
 - îles agrandies de 24 % ;
 - limites jouables, quais, ennemis et boss adaptés aux nouvelles dimensions.
+
+Les deux bateaux d’équipage sont actuellement des modèles 3D simplifiés et colorés selon leur identité. Ils ne sont pas encore des reproductions 3D détaillées de leurs références.
 
 ## Sauvegarde exacte
 
@@ -52,10 +59,11 @@ Un seul emplacement est utilisé : chaque sauvegarde remplace la précédente.
 
 ## Validation GitHub Actions
 
-Workflow `Construire CHK Pirate Warrior V5 Final Qualité`, run 188 : réussi.
+Workflow `Construire CHK Pirate Warrior V5 Final Qualité`, run 209 : réussi.
 
 - audit V5 et neuf rosters : réussi ;
 - import Godot 4.6.3 sans erreur : réussi ;
+- test des deux atlas provenant des références : réussi ;
 - test V5 sauvegarde, équipages, flotte, faune, soleil et îles : réussi ;
 - tests historiques des neuf îles et des 63 personnages importants : réussis ;
 - tests caméra, navigation, pouvoirs, progression et sauvegarde : réussis ;
@@ -63,11 +71,11 @@ Workflow `Construire CHK Pirate Warrior V5 Final Qualité`, run 188 : réussi.
 
 APK : `CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk`
 
-- taille : 47 256 320 octets ;
-- SHA-256 : `d24ebd2f3f343f911ae1de191252f3ba33aa6b6dc26194ce898e5697c7009efc` ;
-- artefact GitHub Actions : `8632674018` ;
-- commit validé : `a11921558b6e65b82653a9121ba458047baf3643`.
+- taille : 47 272 911 octets ;
+- SHA-256 : `dacebd6abeb0115a40f74edeec63980478f4f29bdf3df89df6808424307c0d8e` ;
+- artefact GitHub Actions : `8632932661` ;
+- commit validé : `8dd34274d7614e38835fa6d4fec57cb051d68ba0`.
 
 ## Validation encore nécessaire
 
-L’APK est compilée et les tests automatisés sont verts. Un test réel sur téléphone reste obligatoire avant fusion afin de vérifier les performances, la lisibilité des nouveaux personnages, la densité de la faune, les collisions des îles agrandies, les rencontres ami/ennemi et la reprise exacte de la sauvegarde.
+L’APK est compilée et les tests automatisés sont verts. Un test réel sur téléphone reste obligatoire avant fusion afin de vérifier les performances, la lisibilité des nouveaux atlas, la densité de la faune, les collisions des îles agrandies, les rencontres allié/neutre/hostile et la reprise exacte de la sauvegarde.
