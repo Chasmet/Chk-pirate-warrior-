@@ -1,68 +1,67 @@
 {
   "island": 3,
-  "name": "Volcan rouge",
+  "name": "Désert des Corsaires",
+  "status": "integration_in_progress",
+  "boss": {
+    "id": "zarok",
+    "name": "Zarok, Khan des Sables",
+    "weapon": "double cimeterre lourd",
+    "combatRole": "boss_controller",
+    "signature": "mirages, tempête de sable, frappe circulaire et rage"
+  },
   "commanders": [
     {
-      "id": "ignara",
-      "name": "Ignara",
-      "silhouette": "guerrière élancée avec deux rubans de lave en mouvement",
-      "face": "cheveux rouges courts, tatouage noir autour de l'œil droit",
-      "weapon": "deux fouets de lave",
-      "combatRole": "area_controller",
-      "signature": "dessine des zones brûlantes autour du héros",
-      "continuity": ["fouet long main droite", "tatouage œil droit", "armure noire légère"]
+      "id": "sabir",
+      "name": "Sabir le Dromadaire",
+      "weapon": "mousquet du désert",
+      "combatRole": "ranged",
+      "signature": "tir spécial, recul tactique et salves longues"
     },
     {
-      "id": "bombax",
-      "name": "Bombax",
-      "silhouette": "artificier rond avec sac dorsal volumineux",
-      "face": "lunettes épaisses, moustache noire, casque cabossé",
-      "weapon": "bombes artisanales et lance-grenade court",
-      "combatRole": "explosive_trapper",
-      "signature": "pose des mines puis force le déplacement",
-      "continuity": ["sac dorsal toujours visible", "lunettes jaunes", "gant rouge main gauche"]
+      "id": "razka",
+      "name": "Razka la Lame de Sable",
+      "weapon": "deux sabres courbes",
+      "combatRole": "assassin",
+      "signature": "dash, combo rapide et lame de sable"
     },
     {
-      "id": "chainor",
-      "name": "Chainor",
-      "silhouette": "combattant grand, torse protégé, chaînes enroulées autour des bras",
-      "face": "visage marqué, cheveux noirs rasés sur les côtés",
-      "weapon": "chaînes brûlantes avec crochets",
-      "combatRole": "grappler",
-      "signature": "attire le héros puis enchaîne une frappe lourde",
-      "continuity": ["crochet principal bras droit", "chaîne double bras gauche", "ceinture orange"]
+      "id": "al_varis",
+      "name": "Al-Varis l'Artificier",
+      "weapon": "lance-grenade et mines",
+      "combatRole": "controller",
+      "signature": "pièges, mines et explosions de zone"
     }
   ],
   "subordinates": [
     {
-      "id": "cendre",
-      "name": "Cendre",
-      "linkedCommander": "ignara",
-      "silhouette": "éclaireur fin avec cape grise brûlée",
-      "weapon": "lame courte chauffée",
-      "combatRole": "burning_flanker",
-      "signature": "projette des braises avant l'attaque",
-      "continuity": ["lame main droite", "cape grise", "masque noir"]
+      "id": "chaal",
+      "name": "Chaal le Rapace",
+      "weapon": "deux lames courtes",
+      "combatRole": "assassin",
+      "signature": "esquive, attaque bondissante et repli",
+      "sourceUpload": "Sprite Perso 1 ile 4.png"
     },
     {
-      "id": "meche",
-      "name": "Mèche",
-      "linkedCommander": "bombax",
-      "silhouette": "petit grenadier nerveux avec poches nombreuses",
-      "weapon": "grenades incendiaires",
-      "combatRole": "grenadier",
-      "signature": "lance deux grenades à trajectoires différentes",
-      "continuity": ["mèche allumée sur le casque", "sacoche gauche", "gants bruns"]
+      "id": "machoire_desert",
+      "name": "Mâchoire du Désert",
+      "weapon": "masse lourde",
+      "combatRole": "tank",
+      "signature": "charge, brise-garde et interruption",
+      "sourceUpload": "Sprite Perso 2 ile 4.png"
     },
     {
-      "id": "crochet",
-      "name": "Crochet",
-      "linkedCommander": "chainor",
-      "silhouette": "soldat compact avec un seul crochet lourd",
-      "weapon": "chaîne courte et crochet",
-      "combatRole": "interruptor",
-      "signature": "interrompt les attaques puissantes du héros",
-      "continuity": ["crochet main gauche", "casque sans visière", "protection rouge bras droit"]
+      "id": "veilleuse_dunes",
+      "name": "Veilleuse des Dunes",
+      "weapon": "lanterne et bâton",
+      "combatRole": "controller",
+      "signature": "signal lumineux, aveuglement et soutien à distance",
+      "sourceUpload": "Sprite Perso 4 ile 4.png"
     }
-  ]
+  ],
+  "validation": {
+    "expectedRoster": 7,
+    "transparentDirectionalStripsComplete": false,
+    "visibleThroughFallback": true,
+    "note": "L'île ne doit pas être déclarée terminée avant validation des quatre directions et de toutes les animations."
+  }
 }
