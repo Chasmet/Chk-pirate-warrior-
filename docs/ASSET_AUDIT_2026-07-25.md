@@ -1,85 +1,79 @@
-# Audit réel des assets 2.5D - 25 juillet 2026
+# Audit réel des assets 2.5D — mise à jour du 26 juillet 2026
 
 ## Sources vérifiées
 
 - branche `agent/real-3d-foundation-v2` ;
 - PR brouillon n°13 ;
-- fichier joint `asset chk pirate.pdf` (9 pages) ;
+- fichier joint `asset chk pirate.pdf` ;
+- derniers packs visuels fournis dans la conversation, notamment les planches détaillées des îles 3 à 6 ;
+- planches officielles des trois héros Cheikh, Yvane et Nelvyn ;
 - catalogue Java `Enemy25DCatalog` ;
 - catalogue JSON `app/src/main/assets/characters25d/catalog.json` ;
-- dossiers et chemins modifiés dans la PR.
+- chargeur `Enemy25DAssetBank`, rendu `PirateGameAssetOverlay` et tests associés.
 
 ## Conclusion immédiate
 
-Le PDF fournit de bonnes **références visuelles** pour les six îles, mais il ne fournit pas les
-assets techniques suffisants pour livrer le jeu clé en main.
+Les références reçues permettent désormais de verrouiller les six rosters officiels et d'afficher les
+sept personnages importants de l'île active dans le jeu : un boss, trois commandants et trois
+subordonnés. Le moteur utilise d'abord les vraies bandes `SpriteStrip25D` lorsqu'elles existent, puis
+l'atlas officiel comme fallback, sans charger les 42 personnages simultanément.
 
-Aucune île ne peut être déclarée artistiquement terminée selon la règle du projet, car les éléments
-suivants ne sont pas présents sous forme de fichiers de production complets :
-
-- bandes WEBP transparentes par animation et par direction ;
-- pivots et métadonnées de découpe vérifiés ;
-- variantes de phase 2 et ultimes des six boss ;
-- modèles GLB optimisés des animaux et ennemis ordinaires ;
-- animations de navigation du héros sur le bateau ;
-- tests visuels sur téléphone des assets finaux.
-
-Les fichiers JSON et les planches composées visibles dans le PDF sont des références, pas des
-sprites transparents prêts à être chargés par `SpriteStrip25D`.
+Aucune île ne peut cependant être déclarée artistiquement terminée selon la règle du projet. Les
+planches composées envoyées restent des sources de production tant qu'elles ne sont pas découpées en
+bandes WEBP transparentes, validées dans les quatre directions et visibles sur téléphone.
 
 ## État par île
 
-| Île | Référence visuelle | Roster officiel | Bandes transparentes jouables | État réel |
+| Île | Roster officiel | Affichage fallback | Bandes transparentes complètes | État réel |
 |---|---:|---:|---:|---|
-| 1. Port des Naufragés | oui | verrouillé | non | référence complète, production technique manquante |
-| 2. Jungle Sauvage | oui | verrouillé | non | référence complète, production technique manquante |
-| 3. Royaume des Neiges | oui, avec miniatures d'animations | verrouillé | non | miniatures non exploitables directement comme bandes 256 x 256 |
-| 4. Désert des Corsaires | oui | verrouillé sur le texte du PDF | non | conflit de noms entre texte et illustration, assets finaux manquants |
-| 5. Île Volcanique | oui, avec miniatures d'animations | verrouillé | non | miniatures non exploitables directement comme bandes 256 x 256 |
-| 6. Forteresse de la Tempête | oui, avec miniatures d'animations | verrouillé | non | miniatures non exploitables directement comme bandes 256 x 256 |
+| 1. Port des Naufragés | verrouillé | oui | non | roster et gameplay branchés, production technique manquante |
+| 2. Jungle Sauvage | verrouillé | oui | non | roster et gameplay branchés, production technique manquante |
+| 3. Royaume des Neiges | verrouillé | oui | non | nombreuses miniatures disponibles, découpe finale à produire |
+| 4. Désert des Corsaires | verrouillé après validation utilisateur | oui | non | conflit de noms résolu, intégration logique en cours |
+| 5. Île Volcanique | verrouillé | oui | non | planches détaillées reçues, bandes finales à produire |
+| 6. Forteresse de la Tempête | verrouillé | oui | non | planches détaillées reçues, bandes finales à produire |
 
-## Conflit détecté pour l'île 4
+## Validation définitive du Désert des Corsaires
 
-La hiérarchie textuelle du PDF indique :
+Le dernier pack visuel fourni tranche explicitement l'ancien conflit entre le texte du PDF et la
+planche de roster. La liste officielle à utiliser dans le jeu est maintenant :
 
-- Zahrek ;
-- Qamar ;
-- Sirok ;
-- Dune ;
-- Khepri ;
-- Safra ;
-- Rakh.
+- **Boss** : Zarok, Khan des Sables ;
+- **Commandants** : Sabir le Dromadaire, Razka la Lame de Sable, Al-Varis l'Artificier ;
+- **Subordonnés** : Chaal le Rapace, Mâchoire du Désert, Veilleuse des Dunes.
 
-L'illustration intégrée à la même partie du PDF affiche d'autres noms, notamment Zarok, Sabir,
-Razka, Al-Varis, Chaal, Mâchoire du Désert et Veilleuse des Dunes.
+Les anciens identifiants Zahrek, Qamar, Sirok, Dune, Khepri, Safra et Rakh sont désormais considérés
+comme incompatibles et ne doivent plus être chargés.
 
-Pour éviter un nouveau catalogue contradictoire, le code utilise désormais la hiérarchie textuelle
-comme source officielle. L'illustration reste une référence d'ambiance tant qu'une validation
-artistique explicite n'a pas tranché ce conflit.
+## Intégration gameplay des ennemis importants
 
-## Corrections réalisées pendant cet audit
+- exactement sept personnages importants sont attribués sur l'île active ;
+- les autres adversaires restent des ennemis ordinaires destinés aux modèles 3D ;
+- les commandants et subordonnés ne partagent plus tous les mêmes statistiques ;
+- les rôles à distance, assassin, contrôleur et combattant lourd modifient la vie, la vitesse, la
+  distance d'engagement, le rayon de collision et le délai d'attaque ;
+- le boss conserve son identité propre et ses animations spéciales lorsqu'elles sont disponibles ;
+- un asset absent est journalisé et remplacé par un fallback sans faire planter le jeu ;
+- le changement d'île libère les textures précédentes avant de préparer le roster suivant.
 
-- remplacement des anciens boss provisoires (Capitaine Hélios, Roi Boréal, Sultan des Dunes,
-  Seigneur Magma, Reine Mousson et Amiral Foudre) ;
-- verrouillage des 42 noms officiels dans le catalogue Java et le catalogue JSON ;
-- conservation de Cheikh, Yvane et Nelvyn hors du catalogue ennemi ;
-- validation de la répartition 6 boss / 18 commandants / 18 subordonnés ;
-- journalisation claire des bandes manquantes ou invalides ;
-- rapport de chargement limité aux sept personnages de l'île active ;
-- maintien du fallback lorsqu'un asset manque.
+## Assets encore réellement manquants
 
-## Ordre de production recommandé
+- bandes WEBP transparentes par animation et par direction pour les 42 ennemis importants ;
+- pivots, hitbox, cadence et métadonnées validés pour chaque personnage ;
+- rage, phase 2, attaque de zone et ultime des six boss ;
+- modèles GLB optimisés des ennemis ordinaires et de la faune ;
+- animations du héros au gouvernail et sur le pont du bateau ;
+- validation visuelle sur téléphone des assets finaux.
 
-1. **Port des Naufragés** : produire Brakor puis les six personnages liés ;
-2. **Jungle Sauvage** : produire Malkor puis les six personnages liés ;
-3. **Royaume des Neiges** : exploiter la planche détaillée comme guide, mais redessiner de vraies
-   bandes transparentes ;
-4. **Désert des Corsaires** : commencer seulement après validation définitive du conflit de noms ;
-5. **Île Volcanique** ;
-6. **Forteresse de la Tempête**.
+## Ordre de production maintenu
 
-## Critère de passage à l'île suivante
+1. Port des Naufragés : Brakor, puis les trois commandants et les trois subordonnés ;
+2. Jungle Sauvage ;
+3. Royaume des Neiges ;
+4. Désert des Corsaires ;
+5. Île Volcanique ;
+6. Forteresse de la Tempête.
 
-Une île ne passe à l'état « terminée » que lorsque ses sept personnages importants disposent de
-bandes transparentes chargées dans le jeu, que le boss possède ses animations spéciales, que les
-tests et `assembleDebug` passent, puis qu'une vidéo de gameplay sur téléphone confirme le rendu.
+Une île passe à l'état « terminée » uniquement lorsque ses sept personnages disposent de vraies
+bandes transparentes chargées dans le jeu, que les animations spéciales du boss fonctionnent, que les
+tests, le lint et `assembleDebug` passent, puis qu'une vidéo Android confirme le rendu sans régression.
