@@ -60,4 +60,4 @@ APK : `CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk`
 
 ## Validation encore nécessaire
 
-La PR reste en Draft jusqu’au test visuel sur téléphone. Il faut contrôler le détourage, les tailles relatives, les quatre poses, les performances et les collisions dans les neuf îles.
+La PR reste en Draft jusqu’au test visuel sur téléphone. Il faut contrôler le détourage, les tailles relatives, les quatre poses, les performances et les collisions dans les neuf îles. Une compilation verte confirme le fonctionnement technique, pas la qualité visuelle finale sur chaque appareil Android.
