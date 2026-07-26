@@ -18,8 +18,22 @@ func configure(target_player: PlayerController, zone_definitions: Array, data: D
 	zones = zone_definitions
 	save_data = data
 	rng.seed = 15041982
-	if not save_data.has("crew_relations"):
-		save_data["crew_relations"] = {"aurore":"neutral", "ecarlate":"neutral"}
+	if not save_data.has("crew_relations") or not (save_data["crew_relations"] is Dictionary):
+		save_data["crew_relations"] = {"strawhat":"neutral", "redhair":"neutral"}
+	else:
+		var relations := save_data["crew_relations"] as Dictionary
+		# Migration des identifiants provisoires créés avant l’intégration des
+		# véritables références envoyées.
+		if relations.has("aurore") and not relations.has("strawhat"):
+			relations["strawhat"] = relations["aurore"]
+		if relations.has("ecarlate") and not relations.has("redhair"):
+			relations["redhair"] = relations["ecarlate"]
+		relations.erase("aurore")
+		relations.erase("ecarlate")
+		if not relations.has("strawhat"):
+			relations["strawhat"] = "neutral"
+		if not relations.has("redhair"):
+			relations["redhair"] = "neutral"
 	set_process(true)
 
 func set_active_zone(zone_index: int) -> void:
