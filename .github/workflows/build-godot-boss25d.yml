@@ -1,4 +1,4 @@
-name: Construire CHK Pirate Warrior V3.5
+name: Construire CHK Pirate Warrior V4.0
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: chk-godot-v35-${{ github.ref }}
+  group: chk-godot-v40-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -31,19 +31,24 @@ jobs:
         with:
           lfs: true
 
-      - name: Auditer les rosters 2.5D embarqués
+      - name: Auditer les neuf rosters 2.5D embarqués
         shell: bash
         run: |
           set -euxo pipefail
           test -s godot/assets/boss25d/data/island_0_boss_data.gd
-          for zone in 0 1 2 3 4 5; do
+          for zone in 0 1 2 3 4 5 6 7 8; do
             source="godot/assets/roster25d/compact/island_${zone}.b64"
             test -s "$source"
             test "$(stat -c%s "$source")" -gt 1000
           done
+          test -s godot/scripts/game_world_v4.gd
+          test -s godot/scripts/world_visuals_v4.gd
           test -s godot/scripts/enemy_25d_asset_bank.gd
-          test -s godot/scripts/roster_25d_director.gd
-          grep -q 'Roster25DDirector' godot/project.godot
+          test -s godot/scripts/roster_25d_director_v4.gd
+          test -s godot/tests/nine_islands_expansion_test.gd
+          grep -q 'main_v4.gd' godot/scenes/main.tscn
+          grep -q 'archipelago_minimap_v4.gd' godot/project.godot
+          grep -q 'roster_25d_director_v4.gd' godot/project.godot
           grep -q 'CombatVarietyDirector' godot/project.godot
           grep -Fq 'include_filter="*.b64"' godot/export_presets.cfg
 
@@ -112,12 +117,19 @@ jobs:
           timeout 300s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Tester le roster V3 et le bateau
+      - name: Tester les neuf îles, l’océan et les quais
         shell: bash
         run: |
           set -o pipefail
-          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v3-roster-test.log
-          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v3-roster-test.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/nine_islands_expansion_test.gd 2>&1 | tee godot-nine-islands-test.log
+          grep -q 'CHK_NINE_ISLANDS_READY' godot-nine-islands-test.log
+
+      - name: Tester les 63 personnages 2.5D et le bateau
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v4-roster-test.log
+          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v4-roster-test.log
           "$GODOT_BIN" --headless --path godot --script res://tests/boss_25d_visual_test.gd 2>&1 | tee godot-boss25d-test.log
           grep -q 'BRAKOR 2.5D DANS MONDE 3D RÉUSSI' godot-boss25d-test.log
 
@@ -130,28 +142,29 @@ jobs:
           "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
           grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
-      - name: Construire l’APK Android V3.5
+      - name: Construire l’APK Android V4.0
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V3.5-debug.apk" 2>&1 | tee godot-export.log
-          test -s build/CHK-Pirate-Warrior-V3.5-debug.apk
-          unzip -t build/CHK-Pirate-Warrior-V3.5-debug.apk >/dev/null
-          sha256sum build/CHK-Pirate-Warrior-V3.5-debug.apk | tee build/SHA256.txt
-          stat -c 'APK_BYTES=%s' build/CHK-Pirate-Warrior-V3.5-debug.apk | tee build/APK_SIZE.txt
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V4.0-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-V4.0-debug.apk
+          unzip -t build/CHK-Pirate-Warrior-V4.0-debug.apk >/dev/null
+          sha256sum build/CHK-Pirate-Warrior-V4.0-debug.apk | tee build/SHA256.txt
+          stat -c 'APK_BYTES=%s' build/CHK-Pirate-Warrior-V4.0-debug.apk | tee build/APK_SIZE.txt
 
-      - name: Publier l’APK V3.5 testée
+      - name: Publier l’APK V4.0 testée
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V3.5-APK
+          name: CHK-Pirate-Warrior-V4.0-APK
           path: |
-            build/CHK-Pirate-Warrior-V3.5-debug.apk
+            build/CHK-Pirate-Warrior-V4.0-debug.apk
             build/SHA256.txt
             build/APK_SIZE.txt
-            godot-v3-roster-test.log
+            godot-nine-islands-test.log
+            godot-v4-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
@@ -159,14 +172,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publier les diagnostics V3.5
+      - name: Publier les diagnostics V4.0
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V3.5-diagnostics
+          name: CHK-Pirate-Warrior-V4.0-diagnostics
           path: |
             godot-import.log
-            godot-v3-roster-test.log
+            godot-nine-islands-test.log
+            godot-v4-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
