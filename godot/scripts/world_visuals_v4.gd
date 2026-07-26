@@ -262,11 +262,11 @@ func _build_sky_palace(root: Node3D, island_radius: float) -> void:
 		_add_sphere(root, "NuagePortant", p, 6.5 + float(index % 3), Color(0.86, 0.95, 1.0, 0.44), true)
 
 func _build_sky_sea_gate(root: Node3D, island_radius: float, raw_direction: Vector3) -> void:
-	var direction := raw_direction.normalized()
-	var lift_position := direction * (island_radius - 13.0)
+	var direction: Vector3 = raw_direction.normalized()
+	var lift_position: Vector3 = direction * (island_radius - 13.0)
 	_add_cylinder(root, "AscenseurDEau", lift_position + Vector3(0, 25.0, 0), 3.8, 6.0, 50.0, Color(0.35, 0.80, 1.0, 0.52), true, false)
 	for side in [-1.0, 1.0]:
-		var tangent := Vector3(direction.z, 0, -direction.x) * side * 8.0
+		var tangent: Vector3 = Vector3(direction.z, 0, -direction.x) * float(side) * 8.0
 		_add_cylinder(root, "PilierDuPortail", lift_position + tangent + Vector3(0, 8.0, 0), 1.5, 2.2, 16.0, Color("dfeefa"))
 		_add_sphere(root, "FlammeCéleste", lift_position + tangent + Vector3(0, 17.0, 0), 1.2, Color("72d9ff"), true)
 
