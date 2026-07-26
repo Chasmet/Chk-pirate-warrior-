@@ -40,7 +40,7 @@ static func load_data() -> Dictionary:
 		for key in parsed.keys():
 			merged[key] = parsed[key]
 		# Migration transparente des anciennes sauvegardes V2 à V4.
-		if not merged.get("crew_relations") is Dictionary:
+		if not (merged.get("crew_relations") is Dictionary):
 			merged["crew_relations"] = {"aurore":"neutral", "ecarlate":"neutral"}
 		return merged
 	return default_data()
