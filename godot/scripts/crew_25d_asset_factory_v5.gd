@@ -6,6 +6,7 @@ const ATLAS_ROWS := 2
 const OUTPUT_SIZE := 320
 const CONTENT_HEIGHT := 298.0
 const FRAME_COUNT := 4
+const FACTION_CHUNK_ROOT := "res://assets/faction25d/chunks"
 
 static var _texture_cache: Dictionary = {}
 static var _atlas_cache: Dictionary = {}
@@ -13,7 +14,7 @@ static var _atlas_cache: Dictionary = {}
 static func texture_for(profile: Dictionary) -> Texture2D:
 	var crew_id := String(profile.get("crew_id", ""))
 	var member_id := String(profile.get("id", ""))
-	var cache_key := "%s:%s:v3" % [crew_id, member_id]
+	var cache_key := "%s:%s:hq-v1" % [crew_id, member_id]
 	if _texture_cache.has(cache_key):
 		return _texture_cache[cache_key] as Texture2D
 
@@ -45,12 +46,9 @@ static func _load_reference_atlas(path: String) -> Image:
 		return null
 	if _atlas_cache.has(path):
 		return _atlas_cache[path] as Image
-	if not FileAccess.file_exists(path):
+	var encoded := _read_encoded_atlas(path)
+	if encoded.is_empty():
 		return null
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return null
-	var encoded := file.get_as_text().strip_edges()
 	var raw := Marshalls.base64_to_raw(encoded)
 	if raw.is_empty():
 		return null
@@ -68,6 +66,23 @@ static func _load_reference_atlas(path: String) -> Image:
 	image.convert(Image.FORMAT_RGBA8)
 	_atlas_cache[path] = image
 	return image
+
+static func _read_encoded_atlas(path: String) -> String:
+	if FileAccess.file_exists(path):
+		return FileAccess.get_file_as_string(path).strip_edges()
+	var file_name := path.get_file()
+	var asset_name := file_name.trim_suffix("_atlas.webp.b64")
+	var encoded := ""
+	var chunk_index := 0
+	while chunk_index < 64:
+		var chunk_path := "%s/%s_%d.b64" % [FACTION_CHUNK_ROOT, asset_name, chunk_index]
+		if not FileAccess.file_exists(chunk_path):
+			break
+		encoded += FileAccess.get_file_as_string(chunk_path).strip_edges()
+		chunk_index += 1
+	if chunk_index > 0:
+		print("CHK_CREW_HQ_ATLAS_READY asset=%s chunks=%d" % [asset_name, chunk_index])
+	return encoded
 
 # Quatre états lisibles dans le monde 3D : attente, deux pas de marche et attaque.
 # La silhouette reste identique ; seules l’amplitude et la position changent.
