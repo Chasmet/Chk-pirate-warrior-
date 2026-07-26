@@ -1,45 +1,56 @@
 class_name Enemy25DVisual
 extends RefCounted
 
+# Affichage volontairement limité aux boss existants.
+# Leur IA, leurs collisions, leur vie et leurs attaques restent celles du monde 3D.
 static func apply(enemy: EnemyAI, profile: Dictionary) -> bool:
-	if not bool(profile.get("visual_25d", false)):
+	if not is_instance_valid(enemy) or not enemy.boss:
 		return false
+	if not bool(profile.get("boss", false)) or String(profile.get("rank", "boss")) != "boss":
+		return false
+	if enemy.get_node_or_null("Visual25D") != null:
+		return true
+
 	var texture := Enemy25DCatalog.atlas_texture(profile)
 	if texture == null:
-		push_error("Texture 2.5D absente pour " + String(profile.get("name", "unité")))
+		push_error("Texture du boss 2.5D absente pour " + String(profile.get("name", "boss")))
 		return false
 
 	_hide_procedural_model(enemy)
+
 	var root := Node3D.new()
 	root.name = "Visual25D"
-	root.position.y = float(profile.get("sprite_y", 1.0))
 	enemy.add_child(root)
 
-	var layer_count := clampi(int(profile.get("visual_layers", 2)), 1, 3)
-	for layer_index in range(layer_count - 1, -1, -1):
-		var sprite := Sprite3D.new()
-		sprite.name = "Character25D" if layer_index == 0 else "Profondeur25D_%d" % layer_index
-		sprite.texture = texture
-		sprite.pixel_size = float(profile.get("pixel_size", 0.026))
-		sprite.centered = true
-		sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-		sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-		sprite.alpha_scissor_threshold = 0.035
-		sprite.no_depth_test = false
-		sprite.render_priority = 7 - layer_index
-		sprite.position = Vector3(float(layer_index) * -0.018, 0.0, float(layer_index) * 0.055)
-		var depth_scale := 1.0 + float(layer_index) * 0.018
-		sprite.scale = Vector3(depth_scale, depth_scale, 1.0)
-		if layer_index > 0:
-			sprite.modulate = Color(0.28, 0.30, 0.34, 0.58 - float(layer_index - 1) * 0.13)
-		root.add_child(sprite)
+	var sprite := Sprite3D.new()
+	sprite.name = "Character25D"
+	sprite.texture = texture
+	# Le boss reste massif mais ne devient pas un géant disproportionné.
+	var pixel_size := minf(float(profile.get("pixel_size", 0.0185)), 0.0185)
+	sprite.pixel_size = pixel_size
+	sprite.centered = true
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.double_sided = true
+	sprite.shaded = false
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	sprite.alpha_scissor_threshold = 0.045
+	sprite.no_depth_test = false
+	sprite.render_priority = 8
+	sprite.modulate = Color.WHITE
+	root.add_child(sprite)
+
+	# Même principe que les héros : le pivot visuel est placé aux pieds.
+	var region: Rect2 = profile.get("atlas_region", Enemy25DCatalog.BOSS_REGION)
+	root.position.y = maxf(0.80, region.size.y * pixel_size * 0.5)
 
 	_add_ground_shadow(enemy, profile)
 	var animator := Enemy25DAnimator.new()
 	animator.name = "Animation25D"
 	enemy.add_child(animator)
 	animator.bind(enemy, root)
-	enemy.set_meta("visual_pipeline", "2.5d_original")
+
+	enemy.set_meta("visual_pipeline", "boss_2d_realistic_in_3d")
 	enemy.set_meta("atlas_zone", int(profile.get("atlas_zone", 0)))
 	return true
 
@@ -67,7 +78,6 @@ static func _add_ground_shadow(enemy: EnemyAI, profile: Dictionary) -> void:
 	shadow.material_override = material
 	enemy.add_child(shadow)
 
-
 class Enemy25DAnimator:
 	extends Node
 
@@ -75,7 +85,6 @@ class Enemy25DAnimator:
 	var visual_root: Node3D
 	var rest_position := Vector3.ZERO
 	var animation_time := 0.0
-	var last_hit_stun := 0.0
 
 	func bind(target: EnemyAI, root: Node3D) -> void:
 		enemy = target
@@ -90,7 +99,7 @@ class Enemy25DAnimator:
 		var movement := clampf(Vector2(enemy.velocity.x, enemy.velocity.z).length() / maxf(enemy.speed, 0.1), 0.0, 1.0)
 		var pace := lerpf(2.3, 8.5, movement)
 		var stride := sin(animation_time * pace)
-		var bob := absf(stride) * movement * (0.075 if enemy.boss else 0.052)
+		var bob := absf(stride) * movement * 0.075
 		var attack_lean := 0.0
 		if enemy.attack_windup > 0.0:
 			attack_lean = sin(clampf(enemy.attack_windup / 0.48, 0.0, 1.0) * PI) * -0.14
@@ -98,20 +107,13 @@ class Enemy25DAnimator:
 		visual_root.position = rest_position + Vector3(0.0, bob, 0.0)
 		visual_root.rotation.z = stride * movement * 0.035 + attack_lean + hit_lean
 		var pulse := 1.0
-		if enemy.boss and enemy.phase > 1:
+		if enemy.phase > 1:
 			pulse += sin(animation_time * (5.0 + enemy.phase)) * 0.018 * float(enemy.phase - 1)
 		visual_root.scale = Vector3.ONE * pulse
 		_update_hit_feedback()
 
 	func _update_hit_feedback() -> void:
-		var active := enemy.hit_stun > 0.0
-		for child in visual_root.get_children():
-			if child is Sprite3D:
-				var sprite := child as Sprite3D
-				if active:
-					sprite.modulate = Color(1.0, 0.42, 0.30, sprite.modulate.a)
-				elif String(sprite.name).begins_with("Profondeur"):
-					var index := int(String(sprite.name).get_slice("_", 1))
-					sprite.modulate = Color(0.28, 0.30, 0.34, 0.58 - float(index - 1) * 0.13)
-				else:
-					sprite.modulate = Color.WHITE
+		var sprite := visual_root.get_node_or_null("Character25D") as Sprite3D
+		if sprite == null:
+			return
+		sprite.modulate = Color(1.0, 0.42, 0.30, 1.0) if enemy.hit_stun > 0.0 else Color.WHITE
