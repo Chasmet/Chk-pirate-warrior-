@@ -4,7 +4,8 @@ import android.content.Context;
 import android.widget.FrameLayout;
 
 /**
- * Conserve le moteur V2, les assets officiels et ajoute héros, pouvoirs et navigation sans repartir de zéro.
+ * Conserve le moteur V2, les assets officiels et ajoute héros, pouvoirs, carte et navigation
+ * sans repartir de zéro.
  */
 public final class PirateGameContainer extends FrameLayout {
     private final PirateGameViewV2 gameView;
@@ -15,12 +16,15 @@ public final class PirateGameContainer extends FrameLayout {
         OfficialHeroOverlay heroOverlay = new OfficialHeroOverlay(context, gameView);
         PirateGameAssetOverlay assetOverlay = new PirateGameAssetOverlay(context, gameView);
         HeroPowerOverlay powerOverlay = new HeroPowerOverlay(context, gameView);
+        WorldMapOverlay mapOverlay = new WorldMapOverlay(context, gameView);
         BoatTravelOverlay boatOverlay = new BoatTravelOverlay(context, gameView);
 
         addView(gameView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(heroOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(assetOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(powerOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        // La carte reste sous la couche bateau : elle est disponible à terre et ne bloque pas le pilotage.
+        addView(mapOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(boatOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
