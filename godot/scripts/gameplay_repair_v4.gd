@@ -4,6 +4,8 @@ extends "res://scripts/gameplay_repair.gd"
 # variante replace désormais le héros sur l’île active, y compris la
 # Citadelle du Crâne et le Royaume Céleste suspendu.
 func _repair_land_position(delta: float, world: Node) -> void:
+	if not _resolve_player_from_world(world):
+		return
 	var zone_index := _current_zone_index(world)
 	var zone: Dictionary = GameWorldV4.ZONES_V4[zone_index]
 	var elevation := float(zone.get("elevation", 0.0))
@@ -37,10 +39,22 @@ func _repair_land_position(delta: float, world: Node) -> void:
 	_rescue_to_zone(world)
 
 func _rescue_to_zone(world: Node) -> void:
+	if not _resolve_player_from_world(world):
+		push_warning("Secours V4 impossible : joueur introuvable")
+		return
 	var zone_index := _current_zone_index(world)
 	player.teleport_to_world_position(Vector3(GameWorldV4.ZONES_V4[zone_index]["spawn"]))
 	player.velocity = Vector3.ZERO
 	print("CHK_PLAYER_RESCUED_V4 zone=%d" % zone_index)
+
+func _resolve_player_from_world(world: Node) -> bool:
+	if is_instance_valid(player):
+		return true
+	if is_instance_valid(world) and world.has_method("get_player"):
+		var candidate = world.call("get_player")
+		if candidate is PlayerController:
+			player = candidate as PlayerController
+	return is_instance_valid(player)
 
 func _current_zone_index(world: Node) -> int:
 	if is_instance_valid(world):
