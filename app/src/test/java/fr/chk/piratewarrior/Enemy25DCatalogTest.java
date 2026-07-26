@@ -80,8 +80,8 @@ public final class Enemy25DCatalogTest {
                 Set.of("ronce", "tika", "mamba"));
         assertRoster(2, "skarn", Set.of("eira", "volkr", "nivor"),
                 Set.of("brume", "harka", "flint"));
-        assertRoster(3, "zahrek", Set.of("qamar", "sirok", "dune"),
-                Set.of("khepri", "safra", "rakh"));
+        assertRoster(3, "zarok", Set.of("sabir", "razka", "al_varis"),
+                Set.of("chaal", "machoire_desert", "veilleuse_dunes"));
         assertRoster(4, "vulkar", Set.of("cendre", "magma", "pyros"),
                 Set.of("basalte", "scorie", "fumar"));
         assertRoster(5, "tempyr", Set.of("orage", "volt", "cyclone"),
@@ -89,10 +89,11 @@ public final class Enemy25DCatalogTest {
     }
 
     @Test
-    public void incompatibleLegacyBossesAreRemoved() {
+    public void incompatibleLegacyIdentifiersAreRemoved() {
         Set<String> forbidden = Set.of(
                 "capitaine_helios", "roi_boreal", "sultan_dune",
-                "seigneur_magma", "reine_mousson", "amiral_foudre"
+                "seigneur_magma", "reine_mousson", "amiral_foudre",
+                "zahrek", "qamar", "sirok", "dune", "khepri", "safra", "rakh"
         );
         for (String id : forbidden) assertNull(Enemy25DCatalog.byId(id));
         for (Enemy25DCatalog.Entry entry : Enemy25DCatalog.all()) {
