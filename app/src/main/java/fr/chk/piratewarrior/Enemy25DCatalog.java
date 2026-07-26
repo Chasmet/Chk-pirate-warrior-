@@ -6,21 +6,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Catalogue officiel des 42 personnages ennemis importants en 2.5D.
- *
- * Les noms et l'ordre des îles sont verrouillés à partir des références officielles du projet.
- * Les trois héros Cheikh, Yvane et Nelvyn sont gérés séparément et ne doivent jamais être
- * remplacés par une entrée ennemie.
- */
+/** Catalogue officiel des personnages ennemis importants en 2.5D, chargés île par île. */
 public final class Enemy25DCatalog {
     public enum Rank { BOSS, COMMANDER, SUBORDINATE }
 
-    public static final int ISLAND_COUNT = 6;
-    public static final int EXPECTED_BOSSES = 6;
-    public static final int EXPECTED_COMMANDERS = 18;
-    public static final int EXPECTED_SUBORDINATES = 18;
-    public static final int EXPECTED_TOTAL = 42;
+    public static final int ISLAND_COUNT = 7;
+    public static final int EXPECTED_BOSSES = ISLAND_COUNT;
+    public static final int EXPECTED_COMMANDERS = ISLAND_COUNT * 3;
+    public static final int EXPECTED_SUBORDINATES = ISLAND_COUNT * 3;
+    public static final int EXPECTED_TOTAL = ISLAND_COUNT * 7;
 
     public static final String[] ISLAND_NAMES = {
             "Port des Naufragés",
@@ -28,7 +22,8 @@ public final class Enemy25DCatalog {
             "Royaume des Neiges",
             "Désert des Corsaires",
             "Île Volcanique",
-            "Forteresse de la Tempête"
+            "Forteresse de la Tempête",
+            "Île des Gâteaux"
     };
 
     private static final Set<String> FORBIDDEN_LEGACY_IDS = Set.of(
@@ -49,9 +44,8 @@ public final class Enemy25DCatalog {
         public final String accentColor;
         public final String sheetAssetPath;
 
-        Entry(String id, String displayName, int islandIndex, Rank rank,
-              String weapon, String ability, String primaryColor,
-              String secondaryColor, String accentColor) {
+        Entry(String id, String displayName, int islandIndex, Rank rank, String weapon,
+              String ability, String primaryColor, String secondaryColor, String accentColor) {
             this.id = id;
             this.displayName = displayName;
             this.islandIndex = islandIndex;
@@ -61,17 +55,11 @@ public final class Enemy25DCatalog {
             this.primaryColor = primaryColor;
             this.secondaryColor = secondaryColor;
             this.accentColor = accentColor;
-            this.sheetAssetPath = String.format(
-                    java.util.Locale.ROOT,
-                    "characters25d/island_%02d/%s/sheet.webp",
-                    islandIndex + 1,
-                    id
-            );
+            this.sheetAssetPath = String.format(java.util.Locale.ROOT,
+                    "characters25d/island_%02d/%s/sheet.webp", islandIndex + 1, id);
         }
 
-        public boolean isBoss() {
-            return rank == Rank.BOSS;
-        }
+        public boolean isBoss() { return rank == Rank.BOSS; }
     }
 
     private static Entry entry(String id, String displayName, int islandIndex, Rank rank,
@@ -218,90 +206,76 @@ public final class Enemy25DCatalog {
                     "#87C8FF", "#42507A", "#E9F1FF"),
             entry("fulgur", "Fulgur, Archer des Éclairs", 5, Rank.SUBORDINATE,
                     "arc des éclairs", "salves électriques et zone de foudre",
-                    "#87C8FF", "#42507A", "#E9F1FF")
+                    "#87C8FF", "#42507A", "#E9F1FF"),
+
+            // Île 7 — Île des Gâteaux.
+            entry("matriarche_sucree", "Matriarche Sucrée", 6, Rank.BOSS,
+                    "sceptre pâtissier et nuages sucrés", "vague de crème, invocation gourmande, contrôle de zone et banquet ultime",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("prince_mochi", "Prince Mochi", 6, Rank.COMMANDER,
+                    "poings extensibles", "enchaînements rapides, projection et immobilisation élastique",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("duc_biscuit", "Duc Biscuit", 6, Rank.COMMANDER,
+                    "épée de sucre cristallisé", "garde lourde, contre tranchant et mur de biscuit",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("chevalier_caramel", "Chevalier Caramel", 6, Rank.COMMANDER,
+                    "grande lame caramélisée", "charge brûlante, garde et zone collante",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("maitre_bonbon", "Maître Bonbon", 6, Rank.SUBORDINATE,
+                    "canne et projectiles sucrés", "tirs courbes, pièges et ralentissement",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("gardienne_meringue", "Gardienne Meringue", 6, Rank.SUBORDINATE,
+                    "lame légère et rubans de crème", "esquive aérienne, rafale et soutien",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A"),
+            entry("tireur_praline", "Tireur Praliné", 6, Rank.SUBORDINATE,
+                    "mousquet praliné", "salves, recul tactique et éclats de noisette",
+                    "#F7A7C6", "#FFD36E", "#7B3F2A")
     );
 
-    static {
-        validateOrThrow();
-    }
+    static { validateOrThrow(); }
 
-    private Enemy25DCatalog() {
-    }
+    private Enemy25DCatalog() {}
 
-    public static List<Entry> all() {
-        return ENTRIES;
-    }
+    public static List<Entry> all() { return ENTRIES; }
 
     public static Entry bossForIsland(int islandIndex) {
-        for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) return entry;
-        }
+        for (Entry entry : ENTRIES) if (entry.islandIndex == islandIndex && entry.rank == Rank.BOSS) return entry;
         throw new IllegalArgumentException("Aucun boss 2.5D pour l'île " + islandIndex);
     }
 
-    public static List<Entry> commandersForIsland(int islandIndex) {
-        return filterByIslandAndRank(islandIndex, Rank.COMMANDER);
-    }
-
-    public static List<Entry> subordinatesForIsland(int islandIndex) {
-        return filterByIslandAndRank(islandIndex, Rank.SUBORDINATE);
-    }
+    public static List<Entry> commandersForIsland(int islandIndex) { return filterByIslandAndRank(islandIndex, Rank.COMMANDER); }
+    public static List<Entry> subordinatesForIsland(int islandIndex) { return filterByIslandAndRank(islandIndex, Rank.SUBORDINATE); }
 
     public static Entry byId(String id) {
         if (id == null) return null;
-        for (Entry entry : ENTRIES) {
-            if (entry.id.equals(id)) return entry;
-        }
+        for (Entry entry : ENTRIES) if (entry.id.equals(id)) return entry;
         return null;
     }
 
     private static List<Entry> filterByIslandAndRank(int islandIndex, Rank rank) {
         List<Entry> result = new ArrayList<>();
-        for (Entry entry : ENTRIES) {
-            if (entry.islandIndex == islandIndex && entry.rank == rank) result.add(entry);
-        }
+        for (Entry entry : ENTRIES) if (entry.islandIndex == islandIndex && entry.rank == rank) result.add(entry);
         return Collections.unmodifiableList(result);
     }
 
     private static void validateOrThrow() {
-        if (ENTRIES.size() != EXPECTED_TOTAL) {
-            throw new IllegalStateException("Le catalogue doit contenir exactement 42 personnages 2.5D.");
-        }
-
+        if (ENTRIES.size() != EXPECTED_TOTAL) throw new IllegalStateException("Le catalogue doit contenir exactement " + EXPECTED_TOTAL + " personnages 2.5D.");
         Set<String> ids = new HashSet<>();
         int bosses = 0;
         int commanders = 0;
         int subordinates = 0;
-
         for (Entry entry : ENTRIES) {
             if (!ids.add(entry.id)) throw new IllegalStateException("Identifiant 2.5D dupliqué : " + entry.id);
-            if (FORBIDDEN_LEGACY_IDS.contains(entry.id)) {
-                throw new IllegalStateException("Identifiant provisoire interdit : " + entry.id);
-            }
-            if (entry.islandIndex < 0 || entry.islandIndex >= ISLAND_COUNT) {
-                throw new IllegalStateException("Île invalide pour " + entry.id);
-            }
-            if (!entry.sheetAssetPath.endsWith("/sheet.webp")) {
-                throw new IllegalStateException("Chemin de planche invalide pour " + entry.id);
-            }
-            switch (entry.rank) {
-                case BOSS -> bosses++;
-                case COMMANDER -> commanders++;
-                case SUBORDINATE -> subordinates++;
-            }
+            if (FORBIDDEN_LEGACY_IDS.contains(entry.id)) throw new IllegalStateException("Identifiant provisoire interdit : " + entry.id);
+            if (entry.islandIndex < 0 || entry.islandIndex >= ISLAND_COUNT) throw new IllegalStateException("Île invalide pour " + entry.id);
+            if (!entry.sheetAssetPath.endsWith("/sheet.webp")) throw new IllegalStateException("Chemin de planche invalide pour " + entry.id);
+            switch (entry.rank) { case BOSS -> bosses++; case COMMANDER -> commanders++; case SUBORDINATE -> subordinates++; }
         }
-
-        if (bosses != EXPECTED_BOSSES || commanders != EXPECTED_COMMANDERS
-                || subordinates != EXPECTED_SUBORDINATES) {
-            throw new IllegalStateException("Répartition invalide : boss=" + bosses
-                    + ", commandants=" + commanders + ", subordonnés=" + subordinates);
+        if (bosses != EXPECTED_BOSSES || commanders != EXPECTED_COMMANDERS || subordinates != EXPECTED_SUBORDINATES) {
+            throw new IllegalStateException("Répartition invalide : boss=" + bosses + ", commandants=" + commanders + ", subordonnés=" + subordinates);
         }
-
         for (int island = 0; island < ISLAND_COUNT; island++) {
-            if (commandersForIsland(island).size() != 3 || subordinatesForIsland(island).size() != 3) {
-                throw new IllegalStateException("L'île " + island
-                        + " doit avoir 1 boss, 3 commandants et 3 subordonnés.");
-            }
+            if (commandersForIsland(island).size() != 3 || subordinatesForIsland(island).size() != 3) throw new IllegalStateException("L'île " + island + " doit avoir 1 boss, 3 commandants et 3 subordonnés.");
             bossForIsland(island);
         }
     }
