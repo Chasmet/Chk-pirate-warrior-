@@ -13,16 +13,21 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	_check(Crew25DCatalogV5.CREWS.size() == 2, "deux équipages originaux enregistrés")
+	_check(Crew25DCatalogV5.CREWS.size() == 2, "deux équipages de référence enregistrés")
+	_check(String(Crew25DCatalogV5.CREWS[0]["id"]) == "strawhat", "équipage du Chapeau de Paille enregistré")
+	_check(String(Crew25DCatalogV5.CREWS[1]["id"]) == "redhair", "équipage du Roux enregistré")
 	for crew_index in range(2):
 		var profiles := Crew25DCatalogV5.members(crew_index)
 		_check(profiles.size() == 10, "équipage %d : dix membres 2.5D" % (crew_index + 1))
+		_check(FileAccess.file_exists(String(profiles[0]["atlas"])), "atlas découpé depuis la référence fourni")
 		var texture := Crew25DAssetFactoryV5.texture_for(profiles[0])
-		_check(texture != null and texture.get_width() == 256 and texture.get_height() == 256, "asset 2.5D procédural transparent disponible")
+		_check(texture != null and texture.get_width() == 256 and texture.get_height() == 256, "asset 2.5D issu de la référence disponible")
 
 	var defaults := SaveSystem.default_data()
 	_check(int(defaults.get("save_version", 0)) == 5, "format de sauvegarde V5")
 	_check(defaults.has("exact_position") and defaults.has("crew_relations"), "position exacte et relations persistées")
+	var relations := defaults["crew_relations"] as Dictionary
+	_check(relations.has("strawhat") and relations.has("redhair"), "relations des équipages de référence sauvegardées")
 
 	var ui := GameUIV5.new()
 	root.add_child(ui)
@@ -53,9 +58,9 @@ func _run() -> void:
 	_check(get_nodes_in_group("ambient_animals").size() >= 70, "faune et oiseaux 3D enrichis")
 	var own_ships := 0
 	for ship in world.ambient_fleet.ships:
-		if is_instance_valid(ship) and String(ship.get_meta("crew_id", "")) in ["aurore", "ecarlate"]:
+		if is_instance_valid(ship) and String(ship.get_meta("crew_id", "")) in ["strawhat", "redhair"]:
 			own_ships += 1
-	_check(own_ships == 2, "chaque équipage possède son propre bateau")
+	_check(own_ships == 2, "chaque équipage de référence possède son propre bateau")
 
 	world.queue_free()
 	Crew25DAssetFactoryV5.clear_cache()
