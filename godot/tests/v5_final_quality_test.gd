@@ -20,8 +20,14 @@ func _run() -> void:
 		var profiles := Crew25DCatalogV5.members(crew_index)
 		_check(profiles.size() == 10, "équipage %d : dix membres 2.5D" % (crew_index + 1))
 		_check(FileAccess.file_exists(String(profiles[0]["atlas"])), "atlas découpé depuis la référence fourni")
+		_check(float(profiles[0].get("height", 0.0)) > 0.8, "proportions physiques définies")
 		var texture := Crew25DAssetFactoryV5.texture_for(profiles[0])
-		_check(texture != null and texture.get_width() == 256 and texture.get_height() == 256, "asset 2.5D issu de la référence disponible")
+		_check(
+			texture != null
+			and texture.get_width() == 256 * Crew25DAssetFactoryV5.FRAME_COUNT
+			and texture.get_height() == 256,
+			"planche 2.5D quatre poses issue de la référence disponible"
+		)
 
 	var defaults := SaveSystem.default_data()
 	_check(int(defaults.get("save_version", 0)) == 5, "format de sauvegarde V5")
@@ -56,6 +62,11 @@ func _run() -> void:
 	_check(world.ambient_fleet != null and world.ambient_fleet.ships.size() >= 12, "petits navires et deux grands bateaux en mer")
 	_check(world.crew_director != null and world.crew_director.members.size() == 12, "deux équipages présents sur l’île active")
 	_check(get_nodes_in_group("ambient_animals").size() >= 70, "faune et oiseaux 3D enrichis")
+	var hero_style_members := 0
+	for member in world.crew_director.members:
+		if is_instance_valid(member) and String(member.get_meta("visual_pipeline", "")) == "hero_style_25d_in_3d":
+			hero_style_members += 1
+	_check(hero_style_members == 12, "les équipages utilisent le même pipeline 2.5D que les héros")
 	var own_ships := 0
 	for ship in world.ambient_fleet.ships:
 		if is_instance_valid(ship) and String(ship.get_meta("crew_id", "")) in ["strawhat", "redhair"]:
