@@ -4,7 +4,7 @@ func _build_world() -> void:
 	if is_instance_valid(world):
 		world.queue_free()
 	world = GameWorldV4.new()
-	world.name = "Monde3DNeufÎles"
+	world.name = "Monde3D"
 	add_child(world)
 	world.player_ready.connect(_on_player_ready)
 	world.zone_changed.connect(_on_zone_changed)
@@ -20,7 +20,9 @@ func _build_world() -> void:
 
 func _build_ui() -> void:
 	ui = GameUIV4.new()
-	ui.name = "InterfaceFrançaiseNeufÎles"
+	# Les noms historiques sont conservés afin que les directeurs runtime déjà
+	# validés retrouvent toujours le monde et l’interface V4.
+	ui.name = "InterfaceFrançaise"
 	add_child(ui)
 	ui.play_requested.connect(_start_game)
 	ui.difficulty_selected.connect(_start_new_game)
