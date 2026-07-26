@@ -48,14 +48,14 @@ public final class Enemy25DCombatProfile {
 
         String description = (entry.weapon + " " + entry.ability).toLowerCase(Locale.ROOT);
         boolean ranged = containsAny(description,
-                "fusil", "arc ", "arbal", "pistolet", "tir", "salve", "tourelle",
-                "mine", "projectile", "bombe", "artifice", "outils");
+                "fusil", "mousquet", "arc ", "arbal", "pistolet", "tir", "salve", "tourelle",
+                "mines", "projectile", "bombe", "artifice", "outils", "lance-grenade");
         boolean assassin = containsAny(description,
-                "double lame", "dague", "furtiv", "esquive", "dash", "attaque dans le dos",
-                "rapide", "bond");
+                "double lame", "deux lames", "dague", "furtiv", "esquive", "dash",
+                "attaque dans le dos", "rapide", "bond");
         boolean controller = containsAny(description,
                 "piège", "immobil", "contrôle", "zone", "tempête", "gel", "poison",
-                "fumée", "aveug", "racine", "surcharge", "bourrasque");
+                "fumée", "aveug", "racine", "surcharge", "bourrasque", "signal lumineux");
         boolean bruiser = containsAny(description,
                 "bouclier", "masse", "ancre", "lourde", "garde", "charge",
                 "brise-garde", "projection", "renversement");
