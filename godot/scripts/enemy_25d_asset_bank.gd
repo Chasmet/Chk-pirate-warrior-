@@ -39,7 +39,6 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 	if not ["boss", "commandant", "nakama"].has(rank):
 		return {}
 
-	# Brakor garde son image officielle détaillée déjà validée sur téléphone.
 	if zone == 0 and rank == "boss":
 		var brakor := Boss25DEmbeddedAssets.texture_for_zone(0)
 		if brakor != null:
@@ -99,26 +98,31 @@ static func _island_atlas_texture(zone: int) -> Texture2D:
 	if _texture_cache.has(key):
 		return _texture_cache[key] as Texture2D
 
-	# Les six atlas historiques restent dans compact/. Les nouveaux assets
-	# peuvent être déposés en morceaux dans chunks/ sans modifier le moteur.
-	var candidates := [
-		"%s/island_%d.b64" % [COMPACT_ROOT, zone],
-		"%s/island_%d_0.b64" % [CHUNK_ROOT, zone]
-	]
-	var path := ""
-	for candidate in candidates:
-		if FileAccess.file_exists(String(candidate)):
-			path = String(candidate)
-			break
-	if path.is_empty():
-		_log_missing_once(key, "Atlas 2.5D absent pour l’île %d : %s" % [zone, ", ".join(candidates)])
+	var compact_path := "%s/island_%d.b64" % [COMPACT_ROOT, zone]
+	var encoded := ""
+	var source_path := compact_path
+	if FileAccess.file_exists(compact_path):
+		encoded = FileAccess.get_file_as_string(compact_path).strip_edges()
+	else:
+		# Les nouveaux atlas peuvent être découpés pour rester faciles à auditer
+		# dans Git. Tous les morceaux consécutifs sont concaténés avant décodage.
+		var chunk_index := 0
+		while chunk_index < 64:
+			var chunk_path := "%s/island_%d_%d.b64" % [CHUNK_ROOT, zone, chunk_index]
+			if not FileAccess.file_exists(chunk_path):
+				break
+			encoded += FileAccess.get_file_as_string(chunk_path).strip_edges()
+			chunk_index += 1
+		source_path = "%s/island_%d_[0..%d].b64" % [CHUNK_ROOT, zone, chunk_index - 1]
+
+	if encoded.is_empty():
+		_log_missing_once(key, "Atlas 2.5D absent pour l’île %d" % zone)
 		return null
 
-	var encoded := FileAccess.get_file_as_string(path).strip_edges()
 	var texture := _decode_webp(encoded, "atlas 2.5D île %d" % zone)
 	if texture != null:
 		_texture_cache[key] = texture
-		print("CHK_25D_ATLAS_READY zone=%d path=%s" % [zone, path])
+		print("CHK_25D_ATLAS_READY zone=%d path=%s" % [zone, source_path])
 	return texture
 
 static func _decode_webp(encoded: String, label: String) -> Texture2D:
