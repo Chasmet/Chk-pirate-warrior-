@@ -9,6 +9,15 @@ func _check(condition: bool, message: String) -> void:
 		failures += 1
 		push_error("ÉCHEC  " + message)
 
+func _find_collision(node: Node) -> CollisionShape3D:
+	if node is CollisionShape3D:
+		return node as CollisionShape3D
+	for child in node.get_children():
+		var found := _find_collision(child)
+		if found != null:
+			return found
+	return null
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -30,14 +39,15 @@ func _run() -> void:
 
 	var original_health := boss.max_health
 	var original_damage := boss.attack_damage
-	var original_collision := boss.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	var original_collision := _find_collision(boss)
 	var visual_profile := Enemy25DCatalog.boss_for_zone(0)
 	var applied := Enemy25DVisual.apply(boss, visual_profile)
+	var collision_after := _find_collision(boss)
 	var sprite := boss.get_node_or_null("Visual25D/Character25D") as Sprite3D
 
 	_check(applied, "le véritable visuel de Brakor est appliqué au boss existant")
 	_check(boss is CharacterBody3D, "Brakor reste un CharacterBody3D dans le monde ouvert")
-	_check(original_collision != null and original_collision.shape != null, "la collision 3D de Brakor est conservée")
+	_check(original_collision != null and collision_after == original_collision and collision_after.shape != null, "la collision 3D de Brakor est conservée")
 	_check(is_equal_approx(boss.max_health, original_health), "la vie du boss n'est pas modifiée par son apparence")
 	_check(is_equal_approx(boss.attack_damage, original_damage), "les dégâts du boss ne sont pas modifiés par son apparence")
 	_check(sprite != null and sprite.texture != null, "Brakor possède un Sprite3D réel")
