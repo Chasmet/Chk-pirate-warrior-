@@ -59,9 +59,14 @@ func _run() -> void:
 	world.current_zone = 8
 	var player := world.get_player()
 	player.teleport_to_world_position(Vector3(1900, 5, -110))
-	GameplayRepair.call("_rescue_to_zone", world)
-	_check(player.global_position.y > 40.0, "secours V4 : retour sur l’île céleste et non sur l’ancienne île 6")
-	var creature_kind := String(Roster25DDirector.call("_animal_creature", 7, 0))
+	var gameplay_repair := root.get_node_or_null("GameplayRepair")
+	_check(gameplay_repair != null, "le système de secours historique reste chargé")
+	if gameplay_repair != null:
+		gameplay_repair.call("_rescue_to_zone", world)
+		_check(player.global_position.y > 40.0, "secours V4 : retour sur l’île céleste et non sur l’ancienne île 6")
+	var roster_director := root.get_node_or_null("Roster25DDirector")
+	_check(roster_director != null, "le directeur des rosters reste chargé")
+	var creature_kind := String(roster_director.call("_animal_creature", 7, 0)) if roster_director != null else ""
 	_check(not creature_kind.is_empty(), "la faune de l’île 8 conserve un modèle 3D")
 
 	world.queue_free()
