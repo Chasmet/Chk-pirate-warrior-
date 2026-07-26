@@ -21,13 +21,33 @@ func _run() -> void:
 		_check(profiles.size() == 10, "équipage %d : dix membres 2.5D" % (crew_index + 1))
 		_check(FileAccess.file_exists(String(profiles[0]["atlas"])), "atlas découpé depuis la référence fourni")
 		_check(float(profiles[0].get("height", 0.0)) > 0.8, "proportions physiques définies")
+		var powers: Dictionary = {}
+		for profile in profiles:
+			var power := String(profile.get("power", ""))
+			_check(not power.is_empty(), "%s possède un pouvoir signature" % String(profile.get("name", "pirate")))
+			powers[power] = true
+		_check(powers.size() == profiles.size(), "équipage %d : dix pouvoirs distincts" % (crew_index + 1))
 		var texture := Crew25DAssetFactoryV5.texture_for(profiles[0])
 		_check(
 			texture != null
-			and texture.get_width() == 256 * Crew25DAssetFactoryV5.FRAME_COUNT
-			and texture.get_height() == 256,
-			"planche 2.5D quatre poses issue de la référence disponible"
+			and texture.get_width() == Crew25DAssetFactoryV5.OUTPUT_SIZE * Crew25DAssetFactoryV5.FRAME_COUNT
+			and texture.get_height() == Crew25DAssetFactoryV5.OUTPUT_SIZE,
+			"planche 2.5D haute définition quatre poses disponible"
 		)
+		if texture != null:
+			var image := texture.get_image()
+			_check(image != null and not image.is_empty(), "image 2.5D décodée")
+			if image != null and not image.is_empty():
+				_check(image.get_pixel(0, 0).a < 0.05, "fond extérieur transparent sans rectangle")
+
+	var cutout_source := Image.create(48, 48, false, Image.FORMAT_RGBA8)
+	cutout_source.fill(Color.BLACK)
+	for y in range(8, 45):
+		for x in range(14, 34):
+			cutout_source.set_pixel(x, y, Color("d58b52"))
+	var cutout := CharacterCutout25D.normalized_image(cutout_source, 192)
+	_check(cutout.get_pixel(0, 0).a < 0.05, "détourage commun supprime le fond connecté aux bords")
+	_check(cutout.get_used_rect().size.y > 120, "détourage conserve et agrandit la silhouette")
 
 	var defaults := SaveSystem.default_data()
 	_check(int(defaults.get("save_version", 0)) == 5, "format de sauvegarde V5")
@@ -63,10 +83,14 @@ func _run() -> void:
 	_check(world.crew_director != null and world.crew_director.members.size() == 12, "deux équipages présents sur l’île active")
 	_check(get_nodes_in_group("ambient_animals").size() >= 70, "faune et oiseaux 3D enrichis")
 	var hero_style_members := 0
+	var powered_members := 0
 	for member in world.crew_director.members:
 		if is_instance_valid(member) and String(member.get_meta("visual_pipeline", "")) == "hero_style_25d_in_3d":
 			hero_style_members += 1
+		if is_instance_valid(member) and not String(member.get_meta("signature_power", "")).is_empty():
+			powered_members += 1
 	_check(hero_style_members == 12, "les équipages utilisent le même pipeline 2.5D que les héros")
+	_check(powered_members == 12, "les douze pirates actifs ont un pouvoir signature")
 	var own_ships := 0
 	for ship in world.ambient_fleet.ships:
 		if is_instance_valid(ship) and String(ship.get_meta("crew_id", "")) in ["strawhat", "redhair"]:
@@ -75,6 +99,7 @@ func _run() -> void:
 
 	world.queue_free()
 	Crew25DAssetFactoryV5.clear_cache()
+	Enemy25DAssetBank.clear_active_zone()
 	await process_frame
 	if failures == 0:
 		print("CHK_V5_FINAL_QUALITY_READY")
