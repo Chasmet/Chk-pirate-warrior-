@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/main_v4.gd" id="1_main"]
 [ext_resource type="Texture2D" path="res://assets/ui/menu_reference.jpg" id="2_boot"]
 [ext_resource type="Script" path="res://scripts/combat_variety_director.gd" id="3_combat"]
 
