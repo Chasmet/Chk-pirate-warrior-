@@ -5,12 +5,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Catalogue des références visuelles extraites du PDF officiel « asset chk pirate ».
+ * Catalogue des références visuelles extraites du dossier officiel « asset chk pirate ».
  *
- * Ces entrées servent uniquement de fallback visuel et de repère artistique. Elles ne constituent
- * pas les bandes d'animation transparentes finales. Les noms suivent la hiérarchie textuelle du
- * PDF ; pour l'île 4, cette hiérarchie est prioritaire sur les libellés contradictoires visibles
- * dans l'illustration de la planche.
+ * Ces entrées servent de fallback visuel lorsque les bandes transparentes finales ne sont pas
+ * encore présentes. Les identifiants restent strictement alignés sur Enemy25DCatalog.
  */
 public final class PdfAssetCatalog {
     public enum Rank { BOSS, COMMANDER, SUBORDINATE }
@@ -39,7 +37,7 @@ public final class PdfAssetCatalog {
     }
 
     private static final List<Entry> ENTRIES = List.of(
-            new Entry("brakor", "Brakor", 0, Rank.BOSS, 0),
+            new Entry("brakor", "Brakor, Gardien du Port", 0, Rank.BOSS, 0),
             new Entry("tireur_quais", "Tireur des Quais", 0, Rank.COMMANDER, 1),
             new Entry("maitre_croc", "Maître Croc", 0, Rank.COMMANDER, 2),
             new Entry("ingenieur_amarres", "Ingénieur des Amarres", 0, Rank.COMMANDER, 3),
@@ -63,29 +61,29 @@ public final class PdfAssetCatalog {
             new Entry("harka", "Harka, Berserker des Glaces", 2, Rank.SUBORDINATE, 5),
             new Entry("flint", "Flint, Ingénieur du Froid", 2, Rank.SUBORDINATE, 6),
 
-            new Entry("zahrek", "Zahrek", 3, Rank.BOSS, 0),
-            new Entry("qamar", "Qamar", 3, Rank.COMMANDER, 1),
-            new Entry("sirok", "Sirok", 3, Rank.COMMANDER, 2),
-            new Entry("dune", "Dune", 3, Rank.COMMANDER, 3),
-            new Entry("khepri", "Khepri", 3, Rank.SUBORDINATE, 4),
-            new Entry("safra", "Safra", 3, Rank.SUBORDINATE, 5),
-            new Entry("rakh", "Rakh", 3, Rank.SUBORDINATE, 6),
+            new Entry("zarok", "Zarok, Khan des Sables", 3, Rank.BOSS, 0),
+            new Entry("sabir", "Sabir le Dromadaire", 3, Rank.COMMANDER, 1),
+            new Entry("razka", "Razka la Lame de Sable", 3, Rank.COMMANDER, 2),
+            new Entry("al_varis", "Al-Varis l'Artificier", 3, Rank.COMMANDER, 3),
+            new Entry("chaal", "Chaal le Rapace", 3, Rank.SUBORDINATE, 4),
+            new Entry("machoire_desert", "Mâchoire du Désert", 3, Rank.SUBORDINATE, 5),
+            new Entry("veilleuse_dunes", "Veilleuse des Dunes", 3, Rank.SUBORDINATE, 6),
 
-            new Entry("vulkar", "Vulkar", 4, Rank.BOSS, 0),
-            new Entry("cendre", "Cendre", 4, Rank.COMMANDER, 1),
-            new Entry("magma", "Magma", 4, Rank.COMMANDER, 2),
-            new Entry("pyros", "Pyros", 4, Rank.COMMANDER, 3),
-            new Entry("basalte", "Basalte", 4, Rank.SUBORDINATE, 4),
-            new Entry("scorie", "Scorie", 4, Rank.SUBORDINATE, 5),
-            new Entry("fumar", "Fumar", 4, Rank.SUBORDINATE, 6),
+            new Entry("vulkar", "Vulkar, Seigneur des Flammes", 4, Rank.BOSS, 0),
+            new Entry("cendre", "Cendre, Lame des Braises", 4, Rank.COMMANDER, 1),
+            new Entry("magma", "Magma, Bouclier de Lave", 4, Rank.COMMANDER, 2),
+            new Entry("pyros", "Pyros, Artificier Infernal", 4, Rank.COMMANDER, 3),
+            new Entry("basalte", "Basalte, Gardien des Roches", 4, Rank.SUBORDINATE, 4),
+            new Entry("scorie", "Scorie, Faucheuse de Feu", 4, Rank.SUBORDINATE, 5),
+            new Entry("fumar", "Fumar, Alchimiste des Fumées", 4, Rank.SUBORDINATE, 6),
 
-            new Entry("tempyr", "Tempyr", 5, Rank.BOSS, 0),
-            new Entry("orage", "Orage", 5, Rank.COMMANDER, 1),
-            new Entry("volt", "Volt", 5, Rank.COMMANDER, 2),
-            new Entry("cyclone", "Cyclone", 5, Rank.COMMANDER, 3),
-            new Entry("brisk", "Brisk", 5, Rank.SUBORDINATE, 4),
-            new Entry("tonnerre", "Tonnerre", 5, Rank.SUBORDINATE, 5),
-            new Entry("fulgur", "Fulgur", 5, Rank.SUBORDINATE, 6)
+            new Entry("tempyr", "Tempyr, Amiral de la Tempête", 5, Rank.BOSS, 0),
+            new Entry("orage", "Orage, Lame du Tonnerre", 5, Rank.COMMANDER, 1),
+            new Entry("volt", "Volt, Ingénieur du Tonnerre", 5, Rank.COMMANDER, 2),
+            new Entry("cyclone", "Cyclone, Lance des Vents", 5, Rank.COMMANDER, 3),
+            new Entry("brisk", "Brisk, Coureur des Courants", 5, Rank.SUBORDINATE, 4),
+            new Entry("tonnerre", "Tonnerre, Marteau du Ciel", 5, Rank.SUBORDINATE, 5),
+            new Entry("fulgur", "Fulgur, Archer des Éclairs", 5, Rank.SUBORDINATE, 6)
     );
 
     private PdfAssetCatalog() {
@@ -101,6 +99,14 @@ public final class PdfAssetCatalog {
             if (entry.islandIndex == islandIndex) result.add(entry);
         }
         return Collections.unmodifiableList(result);
+    }
+
+    public static Entry byId(String id) {
+        if (id == null) return null;
+        for (Entry entry : ENTRIES) {
+            if (entry.id.equals(id)) return entry;
+        }
+        return null;
     }
 
     public static Entry bossForIsland(int islandIndex) {
