@@ -25,7 +25,24 @@ func _spawn_animals(zone_index: int) -> void:
 		var angle := 1.12 + TAU * float(index) / 4.0
 		var distance := radius * (0.27 if index % 2 == 0 else 0.54)
 		var position := center + Vector3(cos(angle), 0.0, sin(angle)) * distance
-		_spawn_profile(Enemy25DCatalog.animal_for_zone(zone_index, index), position)
+		var profile := Enemy25DCatalog.animal_for_zone(zone_index, index)
+		profile["creature"] = _animal_creature(zone_index, index)
+		profile["visual_25d"] = false
+		_spawn_profile(profile, position)
+
+func _animal_creature(zone_index: int, index: int) -> String:
+	var species := [
+		["crab", "lizard", "monkey", "bird"],
+		["monkey", "lizard", "bird", "crab"],
+		["lizard", "crab", "bird", "monkey"],
+		["lizard", "monkey", "bird", "crab"],
+		["lizard", "crab", "bird", "monkey"],
+		["crab", "lizard", "bird", "monkey"],
+		["crab", "monkey", "lizard", "bird"],
+		["lizard", "bird", "monkey", "crab"],
+		["bird", "bird", "monkey", "lizard"]
+	]
+	return String(species[clampi(zone_index, 0, species.size() - 1)][clampi(index, 0, 3)])
 
 func _apply_pending_boss_visual() -> void:
 	if not is_instance_valid(world):
