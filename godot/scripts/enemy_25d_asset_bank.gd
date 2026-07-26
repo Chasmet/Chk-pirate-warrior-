@@ -9,8 +9,9 @@ const CHUNK_ROOT := "res://assets/roster25d/chunks"
 const SOURCE_SHEET_SIZE := Vector2(320.0, 240.0)
 const CHARACTER_OUTPUT_SIZE := 384
 const FACTION_ROOT := "res://assets/faction25d"
+const FACTION_CHUNK_ROOT := "res://assets/faction25d/chunks"
 const FACTION_COLUMNS := 5
-const FACTION_CELL_SIZE := 192
+const FACTION_CELL_SIZE := 128
 
 static var _active_zone := -1
 static var _texture_cache: Dictionary = {}
@@ -118,16 +119,31 @@ static func _faction_atlas_texture(asset_name: String) -> Texture2D:
 	var key := "faction_sheet:" + asset_name
 	if _texture_cache.has(key):
 		return _texture_cache[key] as Texture2D
-	var path := "%s/%s_atlas.webp.b64" % [FACTION_ROOT, asset_name]
-	if not FileAccess.file_exists(path):
-		_log_missing_once(key, "Atlas haute qualité absent : " + path)
+	var encoded := _read_faction_encoded(asset_name)
+	if encoded.is_empty():
+		_log_missing_once(key, "Atlas haute qualité absent : " + asset_name)
 		return null
-	var encoded := FileAccess.get_file_as_string(path).strip_edges()
 	var texture := _decode_webp(encoded, "atlas faction " + asset_name)
 	if texture != null:
 		_texture_cache[key] = texture
 		print("CHK_25D_FACTION_ATLAS_READY asset=%s" % asset_name)
 	return texture
+
+static func _read_faction_encoded(asset_name: String) -> String:
+	var full_path := "%s/%s_atlas.webp.b64" % [FACTION_ROOT, asset_name]
+	if FileAccess.file_exists(full_path):
+		return FileAccess.get_file_as_string(full_path).strip_edges()
+	var encoded := ""
+	var chunk_index := 0
+	while chunk_index < 64:
+		var chunk_path := "%s/%s_%d.b64" % [FACTION_CHUNK_ROOT, asset_name, chunk_index]
+		if not FileAccess.file_exists(chunk_path):
+			break
+		encoded += FileAccess.get_file_as_string(chunk_path).strip_edges()
+		chunk_index += 1
+	if chunk_index > 0:
+		print("CHK_25D_FACTION_CHUNKS_READY asset=%s chunks=%d" % [asset_name, chunk_index])
+	return encoded
 
 static func _atlas_region_texture(zone: int, profile: Dictionary) -> Texture2D:
 	var cache_key := "region:%d:%s" % [zone, String(profile.get("id", "unknown"))]
