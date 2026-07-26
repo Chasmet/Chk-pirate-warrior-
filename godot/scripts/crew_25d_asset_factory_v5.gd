@@ -83,7 +83,7 @@ static func _cleanup_connected_black_background(image: Image) -> void:
 		queue.append(Vector2i(width - 1, y))
 	var cursor := 0
 	while cursor < queue.size():
-		var point := queue[cursor]
+		var point: Vector2i = queue[cursor]
 		cursor += 1
 		var offset := point.y * width + point.x
 		if visited[offset] == 1:
@@ -93,10 +93,10 @@ static func _cleanup_connected_black_background(image: Image) -> void:
 		var luminance := maxf(color.r, maxf(color.g, color.b))
 		if color.a < 0.02 or luminance < 0.115:
 			image.set_pixelv(point, Color(0, 0, 0, 0))
-			for direction in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-				var next := point + direction
-				if next.x >= 0 and next.x < width and next.y >= 0 and next.y < height:
-					queue.append(next)
+			for direction: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var next_point: Vector2i = point + direction
+				if next_point.x >= 0 and next_point.x < width and next_point.y >= 0 and next_point.y < height:
+					queue.append(next_point)
 
 static func _fit_to_character_canvas(source: Image) -> Image:
 	var used := source.get_used_rect()
@@ -122,7 +122,7 @@ static func _fit_to_character_canvas(source: Image) -> Image:
 static func _build_pose_strip(character: Image) -> Image:
 	var strip := Image.create(OUTPUT_SIZE * FRAME_COUNT, OUTPUT_SIZE, false, Image.FORMAT_RGBA8)
 	strip.fill(Color(0, 0, 0, 0))
-	var shifts := [Vector2i(0, 0), Vector2i(-2, -2), Vector2i(2, 0), Vector2i(0, -4)]
+	var shifts: Array[Vector2i] = [Vector2i(0, 0), Vector2i(-2, -2), Vector2i(2, 0), Vector2i(0, -4)]
 	for frame in range(FRAME_COUNT):
 		strip.blit_rect(character, Rect2i(0, 0, OUTPUT_SIZE, OUTPUT_SIZE), Vector2i(frame * OUTPUT_SIZE, 0) + shifts[frame])
 	return strip
