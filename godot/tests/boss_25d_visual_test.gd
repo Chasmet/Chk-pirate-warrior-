@@ -66,9 +66,9 @@ func _run() -> void:
 	ordinary_profile["zone"] = 0
 	var ordinary := EnemyFactory.create_enemy(ordinary_profile, target)
 	root.add_child(ordinary)
-	var ordinary_rejected := not Enemy25DVisual.apply(ordinary, visual_profile)
-	_check(ordinary_rejected, "le pipeline boss ne modifie pas un ennemi ordinaire")
-	_check(ordinary.get_node_or_null("Visual25D") == null, "aucun visuel de Brakor n'est copié sur les autres ennemis")
+	var ordinary_rejected := not Enemy25DVisual.apply(ordinary, ordinary_profile)
+	_check(ordinary_rejected, "le pipeline 2.5D important ne modifie pas un ennemi ordinaire")
+	_check(ordinary.get_node_or_null("Visual25D") == null, "aucun visuel important n'est copié sur les ennemis ordinaires")
 
 	boss.queue_free()
 	ordinary.queue_free()
