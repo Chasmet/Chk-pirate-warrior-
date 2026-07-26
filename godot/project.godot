@@ -19,7 +19,7 @@ boot_splash/show_image=false
 
 ThirdPersonCameraGuard="*res://scripts/third_person_camera_guard.gd"
 HeroMaterialRenderer="*res://scripts/hero_material_renderer.gd"
-GameplayRepair="*res://scripts/gameplay_repair.gd"
+GameplayRepair="*res://scripts/gameplay_repair_v4.gd"
 StudioGameDirector="*res://scripts/studio_game_director_v4.gd"
 BoatPresentationDirector="*res://scripts/boat_presentation_director.gd"
 StudioGameplayUpgrade="*res://scripts/studio_gameplay_upgrade.gd"
