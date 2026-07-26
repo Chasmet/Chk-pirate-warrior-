@@ -7,6 +7,7 @@ extends RefCounted
 const COMPACT_ROOT := "res://assets/roster25d/compact"
 const CHUNK_ROOT := "res://assets/roster25d/chunks"
 const SOURCE_SHEET_SIZE := Vector2(320.0, 240.0)
+const CHARACTER_OUTPUT_SIZE := 384
 
 static var _active_zone := -1
 static var _texture_cache: Dictionary = {}
@@ -50,14 +51,14 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 				"source": "embedded_official_brakor"
 			}
 
-	var atlas_texture := _atlas_region_texture(zone, profile)
-	if atlas_texture != null:
+	var character_texture := _atlas_region_texture(zone, profile)
+	if character_texture != null:
 		return {
-			"texture": atlas_texture,
+			"texture": character_texture,
 			"animated": false,
 			"hframes": 1,
 			"vframes": 1,
-			"source": "embedded_island_atlas"
+			"source": "cleaned_island_atlas"
 		}
 
 	_log_missing_once(
@@ -66,10 +67,10 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 	)
 	return {}
 
-static func _atlas_region_texture(zone: int, profile: Dictionary) -> AtlasTexture:
+static func _atlas_region_texture(zone: int, profile: Dictionary) -> Texture2D:
 	var cache_key := "region:%d:%s" % [zone, String(profile.get("id", "unknown"))]
 	if _texture_cache.has(cache_key):
-		return _texture_cache[cache_key] as AtlasTexture
+		return _texture_cache[cache_key] as Texture2D
 	var sheet := _island_atlas_texture(zone)
 	if sheet == null:
 		return null
@@ -86,12 +87,27 @@ static func _atlas_region_texture(zone: int, profile: Dictionary) -> AtlasTextur
 		_log_missing_once(cache_key, "Région 2.5D invalide : " + cache_key)
 		return null
 
-	var atlas := AtlasTexture.new()
-	atlas.atlas = sheet
-	atlas.region = scaled_region
-	atlas.filter_clip = true
-	_texture_cache[cache_key] = atlas
-	return atlas
+	var start := Vector2i(
+		clampi(int(floor(scaled_region.position.x)), 0, sheet.get_width() - 1),
+		clampi(int(floor(scaled_region.position.y)), 0, sheet.get_height() - 1)
+	)
+	var raw_end := scaled_region.position + scaled_region.size
+	var end := Vector2i(
+		clampi(int(ceil(raw_end.x)), start.x + 1, sheet.get_width()),
+		clampi(int(ceil(raw_end.y)), start.y + 1, sheet.get_height())
+	)
+	var pixel_region := Rect2i(start, end - start)
+	var sheet_image := sheet.get_image()
+	if sheet_image == null or sheet_image.is_empty():
+		_log_missing_once(cache_key, "Image source 2.5D illisible : " + cache_key)
+		return null
+	var source := sheet_image.get_region(pixel_region)
+	var cleaned := CharacterCutout25D.texture_from_region(source, CHARACTER_OUTPUT_SIZE)
+	if cleaned == null:
+		_log_missing_once(cache_key, "Détourage 2.5D impossible : " + cache_key)
+		return null
+	_texture_cache[cache_key] = cleaned
+	return cleaned
 
 static func _island_atlas_texture(zone: int) -> Texture2D:
 	var key := "sheet:%d" % zone
@@ -135,6 +151,7 @@ static func _decode_webp(encoded: String, label: String) -> Texture2D:
 	if error != OK or image.is_empty():
 		_log_missing_once(label, "Décodage WEBP impossible (%d) : %s" % [error, label])
 		return null
+	image.convert(Image.FORMAT_RGBA8)
 	return ImageTexture.create_from_image(image)
 
 static func _log_missing_once(key: String, message: String) -> void:
