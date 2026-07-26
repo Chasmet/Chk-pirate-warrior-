@@ -5,7 +5,7 @@ const DEFAULT_OUTPUT_SIZE := 384
 const BORDER := 4
 
 static func texture_from_region(source: Image, output_size: int = DEFAULT_OUTPUT_SIZE) -> Texture2D:
-	var normalized := normalized_image(source, output_size)
+	var normalized: Image = normalized_image(source, output_size)
 	if normalized == null or normalized.is_empty():
 		return null
 	return ImageTexture.create_from_image(normalized)
@@ -16,9 +16,9 @@ static func normalized_image(source: Image, output_size: int = DEFAULT_OUTPUT_SI
 	if source == null or source.is_empty():
 		return canvas
 
-	var image := source.duplicate()
+	var image: Image = source.duplicate()
 	image.convert(Image.FORMAT_RGBA8)
-	var background := _dominant_edge_color(image)
+	var background: Color = _dominant_edge_color(image)
 	var padded := Image.create(image.get_width() + BORDER * 2, image.get_height() + BORDER * 2, false, Image.FORMAT_RGBA8)
 	padded.fill(background)
 	padded.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), Vector2i(BORDER, BORDER))
@@ -94,12 +94,12 @@ static func _remove_edge_background(image: Image, background: Color) -> void:
 		if visited[offset] == 1:
 			continue
 		visited[offset] = 1
-		var color := image.get_pixelv(point)
+		var color: Color = image.get_pixelv(point)
 		if not _is_background(color, background):
 			continue
 		image.set_pixelv(point, Color(0, 0, 0, 0))
 		for direction: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-			var next_point := point + direction
+			var next_point: Vector2i = point + direction
 			if next_point.x >= 0 and next_point.x < width and next_point.y >= 0 and next_point.y < height:
 				queue.append(next_point)
 
@@ -122,10 +122,10 @@ static func _is_background(color: Color, background: Color) -> bool:
 static func _remove_dark_halo(image: Image) -> void:
 	var width := image.get_width()
 	var height := image.get_height()
-	var copy := image.duplicate()
+	var copy: Image = image.duplicate()
 	for y in range(1, height - 1):
 		for x in range(1, width - 1):
-			var color := copy.get_pixel(x, y)
+			var color: Color = copy.get_pixel(x, y)
 			if color.a <= 0.0:
 				continue
 			var touches_transparency := false
