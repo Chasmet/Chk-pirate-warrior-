@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Set;
 
 public final class PdfAssetCatalogTest {
-    @Test public void pdfCatalogContainsSevenCompleteIslandGroups() {
-        assertEquals(49, PdfAssetCatalog.all().size());
-        assertEquals(7, PdfAssetCatalog.ISLAND_NAMES.length);
+    @Test public void pdfCatalogContainsEightCompleteIslandGroups() {
+        assertEquals(56, PdfAssetCatalog.all().size());
+        assertEquals(8, PdfAssetCatalog.ISLAND_NAMES.length);
         for (int island = 0; island < PdfAssetCatalog.ISLAND_COUNT; island++) {
             List<PdfAssetCatalog.Entry> entries = PdfAssetCatalog.forIsland(island);
             assertEquals(7, entries.size());
@@ -24,30 +24,43 @@ public final class PdfAssetCatalogTest {
                 assertEquals(island, entry.islandIndex);
                 assertTrue(entry.atlasSlot >= 0 && entry.atlasSlot <= 6);
                 assertTrue("Emplacement d'atlas dupliqué", slots.add(entry.atlasSlot));
-                assertNotNull(entry.id); assertNotNull(entry.displayName);
-                switch (entry.rank) { case BOSS -> bosses++; case COMMANDER -> commanders++; case SUBORDINATE -> subordinates++; }
+                assertNotNull(entry.id);
+                assertNotNull(entry.displayName);
+                switch (entry.rank) {
+                    case BOSS -> bosses++;
+                    case COMMANDER -> commanders++;
+                    case SUBORDINATE -> subordinates++;
+                }
             }
-            assertEquals(1, bosses); assertEquals(3, commanders); assertEquals(3, subordinates); assertEquals(7, slots.size());
+            assertEquals(1, bosses);
+            assertEquals(3, commanders);
+            assertEquals(3, subordinates);
+            assertEquals(7, slots.size());
             assertTrue(PdfAssetCatalog.atlasAssetPath(island).endsWith(".webp.b64"));
         }
     }
 
     @Test public void officialBossesMatchTheValidatedRosterBoards() {
-        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zarok", "Vulkar", "Tempyr", "Matriarche"};
-        for (int island = 0; island < bosses.length; island++) assertTrue(PdfAssetCatalog.bossForIsland(island).displayName.contains(bosses[island]));
+        String[] bosses = {"Brakor", "Malkor", "Skarn", "Zarok", "Vulkar", "Tempyr", "Matriarche", "Kaor"};
+        for (int island = 0; island < bosses.length; island++) {
+            assertTrue(PdfAssetCatalog.bossForIsland(island).displayName.contains(bosses[island]));
+        }
     }
 
-    @Test public void cakeIslandUsesTheReceivedTwoPointFiveDAssets() {
+    @Test public void newIslandAssetsUseDedicatedPaths() {
         assertEquals("characters25d/pdf_atlas/island_07_atlas.webp.b64", PdfAssetCatalog.atlasAssetPath(6));
+        assertEquals("characters25d/pdf_atlas/island_08_atlas.webp.b64", PdfAssetCatalog.atlasAssetPath(7));
         assertNotNull(PdfAssetCatalog.byId("matriarche_sucree"));
-        assertNotNull(PdfAssetCatalog.byId("prince_mochi"));
-        assertNotNull(PdfAssetCatalog.byId("tireur_praline"));
+        assertNotNull(PdfAssetCatalog.byId("kaor_crane"));
+        assertNotNull(PdfAssetCatalog.byId("oracle_pourpre"));
     }
 
     @Test public void protectedHeroesAreNeverEnemyAssets() {
         for (PdfAssetCatalog.Entry entry : PdfAssetCatalog.all()) {
             String id = entry.id.toLowerCase(java.util.Locale.ROOT);
-            assertFalse(id.equals("cheikh")); assertFalse(id.equals("yvane")); assertFalse(id.equals("nelvyn"));
+            assertFalse(id.equals("cheikh"));
+            assertFalse(id.equals("yvane"));
+            assertFalse(id.equals("nelvyn"));
         }
     }
 }
