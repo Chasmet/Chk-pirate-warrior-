@@ -1,81 +1,63 @@
-# CHK Pirate Warrior V5 Final Qualité
+# CHK Pirate Warrior — V5 Final Qualité
 
-## Continuité du jeu
+## Base conservée
 
-La V5 prolonge le projet Godot 3D existant sans supprimer les héros, les neuf îles, la caméra 360°, le bateau pilotable, les combats, la météo, les missions, la progression et la sauvegarde.
+La V5 continue le véritable projet Godot 3D existant : neuf îles, océan continu, bateau pilotable, héros Cheikh/Yvane/Nelvyn, caméra troisième personne 360°, combats, météo, progression et sauvegarde.
 
-## Équipages 2.5D issus des références fournies
+## Correction des équipages 2.5D
 
-Les équipages provisoires inventés ont été retirés.
+Le rendu en rectangles ou blocs noirs a été supprimé.
 
-Deux atlas 2.5D transparents ont été produits directement à partir des images transmises par Cheikh :
+Les deux équipages issus des références transmises utilisent maintenant le même principe de rendu que les trois héros :
 
-- Équipage du Chapeau de Paille ;
-- Équipage du Roux.
+- Sprite3D vertical dans le monde 3D ;
+- fond noir détouré depuis les bords sans effacer les vêtements noirs ;
+- personnage recadré sur sa silhouette réelle ;
+- toile transparente de 256 × 256 ;
+- pivot constant aux pieds ;
+- taille physique propre à chaque personnage ;
+- capsule de collision adaptée à la taille ;
+- ombre au sol séparée ;
+- planche de quatre poses : attente, deux poses de marche, attaque ;
+- billboard fixe en Y, profondeur active et alpha scissor comme les héros.
 
-Chaque roster contient dix personnages identifiés, soit vingt profils 2.5D. Douze personnages sont chargés sur l’île active : six de chaque équipage. Ils peuvent apparaître sur les neuf îles et changer de comportement entre allié, neutre et hostile. Les relations sont conservées dans la sauvegarde.
+La source visuelle reste l’atlas fourni. Le code ne remplace pas les personnages par des formes générées et ne génère aucune nouvelle image.
 
-Les atlas sont découpés en dix cellules puis agrandis vers le format 256 × 256 attendu par le pipeline. Ils utilisent les apparences visibles dans les références fournies ; ils ne constituent pas encore les onze animations complètes dans quatre directions pour chacun des vingt personnages.
+## Limite actuelle
 
-Ces personnages et noms appartiennent à une licence tierce. Cette intégration convient à un prototype privé, mais une autorisation des ayants droit ou un remplacement par des créations originales sera nécessaire avant toute diffusion commerciale.
+Les atlas de référence embarqués ont une cellule source de 48 × 48 pixels. Le nouveau pipeline améliore fortement la présentation, le détourage et les proportions, mais il ne peut pas recréer les détails absents de la source. Pour obtenir exactement la finesse visuelle de Cheikh, Yvane et Nelvyn, il faudra ensuite disposer de véritables planches propres et haute résolution pour chaque personnage, idéalement avec les onze animations et quatre directions.
 
-## Navigation et monde
+Ces personnages et noms appartiennent à une licence tierce. Cette intégration convient à un prototype privé, mais une autorisation des ayants droit ou un remplacement sera nécessaire avant une diffusion commerciale.
 
-- navire associé au premier équipage : Thousand Sunny ;
-- navire associé au second équipage : Red Force ;
-- dix navires 3D supplémentaires en circulation ;
-- routes maritimes entre les neuf îles ;
-- îles agrandies de 24 % ;
-- limites jouables, quais, ennemis et boss adaptés aux nouvelles dimensions.
+## Autres systèmes V5
 
-Les deux bateaux d’équipage sont actuellement des modèles 3D simplifiés et colorés selon leur identité. Ils ne sont pas encore des reproductions 3D détaillées de leurs références.
+- bouton de sauvegarde exacte à côté de Pause ;
+- un seul emplacement, la nouvelle sauvegarde remplace l’ancienne ;
+- position, rotation, caméra et état du bateau enregistrés ;
+- deux équipages libres alliés, neutres ou hostiles sur les neuf îles ;
+- deux navires associés et petits navires en circulation ;
+- îles agrandies ;
+- faune 3D et oiseaux supplémentaires ;
+- soleil, nuages et transitions météo améliorés.
 
-## Sauvegarde exacte
+## Validation
 
-Un bouton `SAUVEG.` est placé immédiatement à côté du bouton `PAUSE`.
+GitHub Actions V5 run 220 :
 
-La sauvegarde enregistre et restaure :
-
-- la position XYZ exacte ;
-- l’orientation du héros ;
-- l’orientation de la caméra ;
-- l’île active ;
-- l’état à terre ou en bateau ;
-- le cap et la vitesse du bateau ;
-- la progression et les relations avec les équipages.
-
-Un seul emplacement est utilisé : chaque sauvegarde remplace la précédente.
-
-## Faune, météo et rendu
-
-- huit animaux 3D supplémentaires par île ;
-- davantage de mouettes et d’aigles 3D ;
-- LOD et distance de visibilité appliqués à la faune ;
-- soleil visible et couleur dynamique ;
-- nuages mobiles ;
-- transitions météo progressives ;
-- contraste, saturation, éclairage et ombres ajustés ;
-- conservation du moteur mobile OpenGL et des protections de stabilité existantes.
-
-## Validation GitHub Actions
-
-Workflow `Construire CHK Pirate Warrior V5 Final Qualité`, run 209 : réussi.
-
-- audit V5 et neuf rosters : réussi ;
-- import Godot 4.6.3 sans erreur : réussi ;
-- test des deux atlas provenant des références : réussi ;
-- test V5 sauvegarde, équipages, flotte, faune, soleil et îles : réussi ;
-- tests historiques des neuf îles et des 63 personnages importants : réussis ;
-- tests caméra, navigation, pouvoirs, progression et sauvegarde : réussis ;
-- export et validation APK Android : réussis.
+- import Godot 4.6.3 : réussi ;
+- test du pipeline 2.5D quatre poses : réussi ;
+- test des deux équipages et de leurs proportions : réussi ;
+- neuf îles et systèmes historiques : réussis ;
+- caméra, navigation, pouvoirs, progression et sauvegarde : réussis ;
+- APK Android construite, signée et publiée.
 
 APK : `CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk`
 
-- taille : 47 272 911 octets ;
-- SHA-256 : `dacebd6abeb0115a40f74edeec63980478f4f29bdf3df89df6808424307c0d8e` ;
-- artefact GitHub Actions : `8632932661` ;
-- commit validé : `8dd34274d7614e38835fa6d4fec57cb051d68ba0`.
+- taille : 47 277 007 octets ;
+- SHA-256 : `633ec46e6f4043f3f72e7c954ca1543a21ebfc4a95a893458fd8b49d4bca579d` ;
+- artefact GitHub Actions : `8633201701` ;
+- commit validé : `aeed6a4d379d4d629d3380d733192455b6d3ecad`.
 
 ## Validation encore nécessaire
 
-L’APK est compilée et les tests automatisés sont verts. Un test réel sur téléphone reste obligatoire avant fusion afin de vérifier les performances, la lisibilité des nouveaux atlas, la densité de la faune, les collisions des îles agrandies, les rencontres allié/neutre/hostile et la reprise exacte de la sauvegarde.
+La PR reste en Draft jusqu’au test visuel sur téléphone. Il faut contrôler le détourage, les tailles relatives, les quatre poses, les performances et les collisions dans les neuf îles.
