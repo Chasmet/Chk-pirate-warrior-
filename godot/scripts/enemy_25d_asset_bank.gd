@@ -11,7 +11,7 @@ const CHARACTER_OUTPUT_SIZE := 384
 const FACTION_ROOT := "res://assets/faction25d"
 const FACTION_CHUNK_ROOT := "res://assets/faction25d/chunks"
 const FACTION_COLUMNS := 5
-const FACTION_CELL_SIZE := 128
+const FACTION_ROWS := 2
 
 static var _active_zone := -1
 static var _texture_cache: Dictionary = {}
@@ -83,6 +83,7 @@ static func asset_for_profile(profile: Dictionary) -> Dictionary:
 	)
 	return {}
 
+
 static func _faction_character_texture(asset_name: String, character_index: int) -> Texture2D:
 	var resolved_index := maxi(0, character_index)
 	var cache_key := "faction_region:%s:%d" % [asset_name, resolved_index]
@@ -95,13 +96,21 @@ static func _faction_character_texture(asset_name: String, character_index: int)
 	if image == null or image.is_empty():
 		_log_missing_once(cache_key, "Atlas de faction illisible : " + asset_name)
 		return null
+	if image.get_width() % FACTION_COLUMNS != 0 or image.get_height() % FACTION_ROWS != 0:
+		_log_missing_once(cache_key, "Dimensions d’atlas de faction invalides : %s %s" % [asset_name, image.get_size()])
+		return null
+	var cell_width := int(image.get_width() / FACTION_COLUMNS)
+	var cell_height := int(image.get_height() / FACTION_ROWS)
+	if cell_width <= 1 or cell_height <= 1:
+		_log_missing_once(cache_key, "Cellule d’atlas de faction invalide : " + cache_key)
+		return null
 	var column := resolved_index % FACTION_COLUMNS
 	var row := int(resolved_index / FACTION_COLUMNS)
 	var region := Rect2i(
-		column * FACTION_CELL_SIZE,
-		row * FACTION_CELL_SIZE,
-		FACTION_CELL_SIZE,
-		FACTION_CELL_SIZE
+		column * cell_width,
+		row * cell_height,
+		cell_width,
+		cell_height
 	)
 	var sheet_rect := Rect2i(Vector2i.ZERO, image.get_size())
 	region = region.intersection(sheet_rect)
@@ -198,6 +207,8 @@ static func _island_atlas_texture(zone: int) -> Texture2D:
 	if FileAccess.file_exists(compact_path):
 		encoded = FileAccess.get_file_as_string(compact_path).strip_edges()
 	else:
+		# Les nouveaux atlas peuvent être découpés pour rester faciles à auditer
+		# dans Git. Tous les morceaux consécutifs sont concaténés avant décodage.
 		var chunk_index := 0
 		while chunk_index < 64:
 			var chunk_path := "%s/island_%d_%d.b64" % [CHUNK_ROOT, zone, chunk_index]
