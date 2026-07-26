@@ -15,6 +15,7 @@ func _spawn_crew(crew_index: int, attitude: String) -> void:
 		var member := MobileCrewMemberV6.new()
 		add_child(member)
 		member.configure_crew(profile, player, attitude, 50000 + active_zone * 1000 + crew_index * 100 + slot)
+		member.set_meta("mobile_friendly_v6", true)
 		member.set_follow_slot(_formation_slot(crew_index, slot))
 		var angle := base_angle + float(slot) * 0.30
 		var distance := island_radius * (0.28 + float(slot % 3) * 0.055)

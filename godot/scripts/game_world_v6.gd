@@ -13,7 +13,7 @@ func configure(data: Dictionary) -> void:
 	visuals.add_child(island_life)
 	island_life.configure(zones_v5)
 	island_life.set_active_zone(current_zone)
-	polish_director = GeneralPolishDirectorV6.new()
+	polish_director = GeneralPolishDirectorV6Fixed.new()
 	polish_director.name = "AméliorationGénéraleV6"
 	add_child(polish_director)
 	polish_director.configure(self, player, visuals as WorldVisualsV5)
