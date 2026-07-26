@@ -61,7 +61,7 @@ func _run() -> void:
 	_check(player.boat_visual != null and player.boat_visual.visible, "le bateau est visible dans l’océan continu")
 	var pilot := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	_check(pilot != null and "steering" in pilot.texture.resource_path, "le pilote reste visible à la barre")
-	_check(player.boat_target.distance_to(world.get_dock_position(8, true)) < 0.1, "le cap peut viser le quai maritime de l’île 9")
+	_check(world.destination_zone == 8, "le cap peut viser le quai maritime de l’île 9")
 	var boat_start := player.global_position
 	player.set_move_input(Vector2(-0.65, -1.0))
 	for _frame in range(45):
