@@ -148,11 +148,31 @@ static func _read_faction_encoded(asset_name: String) -> String:
 		var chunk_path := "%s/%s_%d.b64" % [FACTION_CHUNK_ROOT, asset_name, chunk_index]
 		if not FileAccess.file_exists(chunk_path):
 			break
-		encoded += FileAccess.get_file_as_string(chunk_path).strip_edges()
+		var chunk := FileAccess.get_file_as_string(chunk_path).strip_edges()
+		chunk = _repair_faction_chunk(asset_name, chunk_index, chunk)
+		encoded += chunk
 		chunk_index += 1
 	if chunk_index > 0:
 		print("CHK_25D_FACTION_CHUNKS_READY asset=%s chunks=%d" % [asset_name, chunk_index])
 	return encoded
+
+static func _repair_faction_chunk(asset_name: String, chunk_index: int, chunk: String) -> String:
+	# Répare uniquement les fragments historiques corrompus lors de leur premier
+	# transfert GitHub. Les nouveaux atlas restent inchangés.
+	if asset_name == "bigmom_hq":
+		if chunk_index == 0:
+			var tail_path := "%s/bigmom_hq_0_tail_fix.b64" % FACTION_CHUNK_ROOT
+			if FileAccess.file_exists(tail_path) and chunk.length() >= 10000:
+				return chunk.substr(0, 10000) + FileAccess.get_file_as_string(tail_path).strip_edges()
+		elif chunk_index == 1 and chunk.length() > 9139:
+			return chunk.substr(0, 9139) + "S" + chunk.substr(9140)
+		elif chunk_index == 2 and chunk.length() > 6828:
+			return chunk.substr(0, 6828) + "e" + chunk.substr(6829)
+	elif asset_name == "kaido_hq" and chunk_index == 2 and chunk.length() == 11999:
+		return chunk.substr(0, 9948) + "i" + chunk.substr(9948)
+	elif asset_name == "final_hq" and chunk_index == 1 and chunk.length() == 12001:
+		return chunk.substr(0, 12000)
+	return chunk
 
 static func _atlas_region_texture(zone: int, profile: Dictionary) -> Texture2D:
 	var cache_key := "region:%d:%s" % [zone, String(profile.get("id", "unknown"))]
