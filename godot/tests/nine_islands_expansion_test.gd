@@ -55,6 +55,15 @@ func _run() -> void:
 	_check(world.get_dock_position(8, false).y > 40.0, "île 9 : débarquement sur le royaume céleste")
 	_check(world.get_dock_position(8, true).y < 1.0, "île 9 : arrivée manuelle par l’océan")
 
+	# Les systèmes historiques doivent aussi reconnaître les trois nouvelles îles.
+	world.current_zone = 8
+	var player := world.get_player()
+	player.teleport_to_world_position(Vector3(1900, 5, -110))
+	GameplayRepair.call("_rescue_to_zone", world)
+	_check(player.global_position.y > 40.0, "secours V4 : retour sur l’île céleste et non sur l’ancienne île 6")
+	var creature_kind := String(Roster25DDirector.call("_animal_creature", 7, 0))
+	_check(not creature_kind.is_empty(), "la faune de l’île 8 conserve un modèle 3D")
+
 	world.queue_free()
 	Enemy25DAssetBank.clear_active_zone()
 	await process_frame
