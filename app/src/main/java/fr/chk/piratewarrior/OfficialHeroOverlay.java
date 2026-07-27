@@ -15,8 +15,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 
 /**
- * Affiche les trois héros validés au-dessus du fallback procédural.
- * La V5.5 anime les bitmaps officiels par transformations légères sans modifier leur identité.
+ * Affiche et anime les trois héros officiels au-dessus du fallback Character25D.
+ * Les transformations restent légères et conservent strictement les visuels fournis.
  */
 public final class OfficialHeroOverlay extends View {
     private static final String[] HERO_ASSETS = {
@@ -30,11 +30,14 @@ public final class OfficialHeroOverlay extends View {
 
     private final PirateGameViewV2 gameView;
     private final Bitmap[] heroes = new Bitmap[3];
-    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-    private final Paint auraPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint effectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect source = new Rect();
     private final RectF localDestination = new RectF();
+    private final RectF effectRect = new RectF();
+    private final HeroAnimationDynamics.Input animationInput = new HeroAnimationDynamics.Input();
+    private final HeroAnimationDynamics.Controller animationController = new HeroAnimationDynamics.Controller();
 
     private Field screenField;
     private Field runningField;
@@ -46,25 +49,28 @@ public final class OfficialHeroOverlay extends View {
     private Field cameraXField;
     private Field cameraInputYField;
     private Field jumpHeightField;
+    private Field jumpVelocityField;
     private Field attackTimeField;
+    private Field dodgeTimeField;
     private Field hurtTimeField;
     private Field auraTimeField;
+    private Field sprintingField;
     private Field animationTimeField;
     private Field defeatedBossesField;
     private boolean reflectionReady;
 
     private long lastFrameNanos;
-    private float previousJumpHeight;
-    private float landingTime;
-    private float victoryTime;
     private float idleTime;
+    private float victoryTime;
     private int lastBosses = -1;
+    private int lastHeroIndex = -1;
+    private boolean facingRight = true;
 
     public OfficialHeroOverlay(Context context, PirateGameViewV2 gameView) {
         super(context);
         this.gameView = gameView;
-        stroke.setStyle(Paint.Style.STROKE);
-        stroke.setStrokeCap(Paint.Cap.ROUND);
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setStrokeCap(Paint.Cap.ROUND);
         setClickable(false);
         setFocusable(false);
         setWillNotDraw(false);
@@ -75,19 +81,18 @@ public final class OfficialHeroOverlay extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         float dt = frameDelta();
-        landingTime = Math.max(0f, landingTime - dt);
         victoryTime = Math.max(0f, victoryTime - dt);
 
         if (!ensureReflection()) {
             postInvalidateOnAnimation();
             return;
         }
+
         try {
             Object screen = screenField.get(gameView);
             boolean running = runningField.getBoolean(gameView);
             if (!running || screen == null || !"GAME".equals(screen.toString())) {
                 idleTime = 0f;
-                previousJumpHeight = 0f;
                 postInvalidateOnAnimation();
                 return;
             }
@@ -99,6 +104,11 @@ public final class OfficialHeroOverlay extends View {
                 return;
             }
 
+            if (heroIndex != lastHeroIndex) {
+                animationController.reset(heroIndex);
+                lastHeroIndex = heroIndex;
+            }
+
             float playerX = playerXField.getFloat(gameView);
             float playerY = playerYField.getFloat(gameView);
             float playerVX = playerVXField.getFloat(gameView);
@@ -106,123 +116,135 @@ public final class OfficialHeroOverlay extends View {
             float cameraX = cameraXField.getFloat(gameView);
             float cameraInputY = cameraInputYField.getFloat(gameView);
             float jumpHeight = jumpHeightField.getFloat(gameView);
+            float jumpVelocity = jumpVelocityField.getFloat(gameView);
             float attackTime = attackTimeField.getFloat(gameView);
+            float dodgeTime = dodgeTimeField.getFloat(gameView);
             float hurtTime = hurtTimeField.getFloat(gameView);
             float auraTime = auraTimeField.getFloat(gameView);
-            float animation = animationTimeField.getFloat(gameView);
-            int bosses = defeatedBossesField.getInt(gameView);
+            boolean sprinting = sprintingField.getBoolean(gameView);
+            float globalAnimation = animationTimeField.getFloat(gameView);
+            int defeatedBosses = defeatedBossesField.getInt(gameView);
 
-            if (previousJumpHeight > 1f && jumpHeight <= 0f) landingTime = 0.36f;
-            previousJumpHeight = jumpHeight;
-            if (lastBosses >= 0 && bosses > lastBosses) victoryTime = 1.55f;
-            lastBosses = bosses;
+            if (lastBosses >= 0 && defeatedBosses > lastBosses) victoryTime = 1.65f;
+            lastBosses = defeatedBosses;
 
             float movement = GameMath.length(playerVX, playerVY);
-            if (movement < 8f && jumpHeight <= 0f && attackTime <= 0f && hurtTime <= 0f) idleTime += dt;
-            else idleTime = 0f;
-
-            V55RuntimeState.HeroAnimation mode = V55RuntimeState.HeroAnimation.NONE;
-            float modeProgress = 0f;
-            V55RuntimeState.Snapshot runtime = V55RuntimeState.heroSnapshot();
-            if (runtime.active && runtime.heroIndex == heroIndex) {
-                mode = runtime.animation;
-                modeProgress = runtime.progress;
-            } else if (victoryTime > 0f) {
-                mode = V55RuntimeState.HeroAnimation.VICTORY;
-                modeProgress = 1f - victoryTime / 1.55f;
-            } else if (landingTime > 0f) {
-                mode = V55RuntimeState.HeroAnimation.LAND;
-                modeProgress = 1f - landingTime / 0.36f;
-            } else if (cameraInputY > 0.72f && movement < 12f) {
-                mode = V55RuntimeState.HeroAnimation.CROUCH;
-                modeProgress = 0.5f + (float) Math.sin(animation * 5f) * 0.5f;
-            } else if (idleTime > 6.2f) {
-                mode = V55RuntimeState.HeroAnimation.INTERACT;
-                modeProgress = (idleTime % 2f) * 0.5f;
-            } else if (idleTime > 3.1f) {
-                mode = V55RuntimeState.HeroAnimation.OBSERVE;
-                modeProgress = ((idleTime - 3.1f) % 2f) * 0.5f;
+            if (movement < 8f && jumpHeight <= 0f && attackTime <= 0f
+                    && dodgeTime <= 0f && hurtTime <= 0f) {
+                idleTime += dt;
+            } else {
+                idleTime = 0f;
             }
+
+            if (Math.abs(playerVX) > 4f) facingRight = playerVX > 0f;
+
+            V55RuntimeState.Snapshot runtime = V55RuntimeState.heroSnapshot();
+            animationInput.heroIndex = heroIndex;
+            animationInput.velocityX = playerVX;
+            animationInput.velocityY = playerVY;
+            animationInput.jumpHeight = jumpHeight;
+            animationInput.jumpVelocity = jumpVelocity;
+            animationInput.attackTime = attackTime;
+            animationInput.dodgeTime = dodgeTime;
+            animationInput.hurtTime = hurtTime;
+            animationInput.auraTime = auraTime;
+            animationInput.sprinting = sprinting;
+            animationInput.forcedMotion = null;
+            animationInput.externalProgress = 0f;
+
+            if (runtime.active && runtime.heroIndex == heroIndex) {
+                animationInput.forcedMotion = mapRuntimeMotion(runtime.animation);
+                animationInput.externalProgress = runtime.progress;
+            } else if (victoryTime > 0f) {
+                animationInput.forcedMotion = HeroAnimationDynamics.Motion.VICTORY;
+                animationInput.externalProgress = 1f - victoryTime / 1.65f;
+            } else if (cameraInputY > 0.72f && movement < 12f) {
+                animationInput.forcedMotion = HeroAnimationDynamics.Motion.CROUCH;
+                animationInput.externalProgress = 0.5f + (float) Math.sin(globalAnimation * 5f) * 0.5f;
+            } else if (idleTime > 6.2f) {
+                animationInput.forcedMotion = HeroAnimationDynamics.Motion.INTERACT;
+                animationInput.externalProgress = (idleTime % 2f) * 0.5f;
+            } else if (idleTime > 3.1f) {
+                animationInput.forcedMotion = HeroAnimationDynamics.Motion.OBSERVE;
+                animationInput.externalProgress = ((idleTime - 3.1f) % 2f) * 0.5f;
+            }
+
+            HeroAnimationDynamics.Transform transform = animationController.update(animationInput, dt);
 
             float screenX = playerX - cameraX;
             float depth = GameMath.clamp((playerY - getHeight() * 0.30f)
                     / Math.max(1f, getHeight() * 0.62f), 0f, 1f);
-            float height = 154f + depth * 55f;
-            float width = height * bitmap.getWidth() / Math.max(1f, bitmap.getHeight());
-            float bob = movement > 7f ? (float) Math.sin(animation * (movement > 210f ? 14f : 9f)) * 3.2f
-                    : (float) Math.sin(animation * 4f) * 1.5f;
-            float feetY = playerY - jumpHeight - bob;
-            boolean facingRight = Math.abs(playerVX) < 5f || playerVX >= 0f;
-
-            if (auraTime > 0f) drawAura(canvas, heroIndex, screenX, feetY, height, animation);
-            drawModeEffectsBehind(canvas, mode, modeProgress, heroIndex, screenX, feetY, height, animation);
-
-            float rotation = attackTime > 0f ? (facingRight ? 7f : -7f) : 0f;
-            float scaleX = 1f;
-            float scaleY = 1f;
-            float offsetX = 0f;
-            float offsetY = 0f;
-
-            switch (mode) {
-                case LAND -> {
-                    float impact = (float) Math.sin(GameMath.clamp(modeProgress, 0f, 1f) * Math.PI);
-                    scaleX = 1f + impact * 0.14f;
-                    scaleY = 1f - impact * 0.20f;
-                    offsetY = impact * 4f;
-                }
-                case PARRY -> {
-                    rotation += (facingRight ? -1f : 1f) * (7f + (float) Math.sin(modeProgress * Math.PI) * 5f);
-                    scaleX = 1.04f;
-                    scaleY = 1.02f;
-                }
-                case INTERACT -> {
-                    rotation += (float) Math.sin(modeProgress * Math.PI * 2f) * 4f;
-                    offsetX = (float) Math.sin(modeProgress * Math.PI * 2f) * 5f;
-                }
-                case VICTORY -> {
-                    float lift = Math.abs((float) Math.sin(modeProgress * Math.PI * 2f));
-                    offsetY = -lift * 18f;
-                    scaleX = 1.04f + lift * 0.05f;
-                    scaleY = 1.04f + lift * 0.05f;
-                    rotation += (facingRight ? 1f : -1f) * (float) Math.sin(modeProgress * Math.PI) * 7f;
-                }
-                case CROUCH -> {
-                    scaleX = 1.08f;
-                    scaleY = 0.73f;
-                }
-                case OBSERVE -> {
-                    rotation += (float) Math.sin(modeProgress * Math.PI * 2f) * 2.5f;
-                    offsetX = (facingRight ? 1f : -1f) * 4f;
-                }
-                case SPECIAL -> {
-                    float surge = (float) Math.sin(modeProgress * Math.PI);
-                    scaleX = 1f + surge * 0.10f;
-                    scaleY = 1f + surge * 0.07f;
-                    rotation += (facingRight ? 1f : -1f) * surge * 10f;
-                }
-                default -> {
-                    // Mouvement normal conservé.
-                }
-            }
+            float heroHeight = 154f + depth * 55f;
+            float heroWidth = heroHeight * bitmap.getWidth() / Math.max(1f, bitmap.getHeight());
+            float feetY = playerY - jumpHeight + transform.offsetY;
 
             source.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
-            localDestination.set(-width * 0.5f, -height, width * 0.5f, 0f);
-            int alpha = hurtTime > 0f && ((int) (animation * 18f) & 1) == 0 ? 135 : 255;
+            localDestination.set(-heroWidth * 0.5f, -heroHeight, heroWidth * 0.5f, 0f);
 
-            if (mode == V55RuntimeState.HeroAnimation.SPECIAL) {
-                for (int copy = 3; copy >= 1; copy--) {
-                    float trail = (facingRight ? -1f : 1f) * copy * 16f;
-                    drawHeroBitmap(canvas, bitmap, screenX + offsetX + trail, feetY + offsetY,
-                            scaleX, scaleY, rotation, facingRight, 42 + copy * 20);
-                }
+            drawGroundContact(canvas, transform, heroIndex, screenX, playerY, heroHeight);
+            if (auraTime > 0f || transform.motion == HeroAnimationDynamics.Motion.AURA) {
+                drawAura(canvas, heroIndex, screenX, feetY, heroHeight, globalAnimation,
+                        Math.max(0.45f, transform.effectStrength));
             }
-            drawHeroBitmap(canvas, bitmap, screenX + offsetX, feetY + offsetY,
-                    scaleX, scaleY, rotation, facingRight, alpha);
-            drawModeEffectsFront(canvas, mode, modeProgress, heroIndex, screenX, feetY, height, animation);
+            drawBehindEffects(canvas, transform, heroIndex, screenX, feetY, heroHeight, globalAnimation);
+
+            int mainAlpha = hurtTime > 0f && ((int) (globalAnimation * 18f) & 1) == 0 ? 135 : 255;
+            if (transform.trailStrength > 0.08f) {
+                drawAfterImages(canvas, bitmap, transform, screenX, feetY, facingRight);
+            }
+
+            drawHeroBitmap(canvas, bitmap,
+                    screenX + transform.offsetX,
+                    feetY,
+                    transform.scaleX,
+                    transform.scaleY,
+                    transform.rotation,
+                    facingRight,
+                    mainAlpha);
+
+            drawFrontEffects(canvas, transform, heroIndex, screenX, feetY, heroHeight, globalAnimation);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
-            // Le fallback Character25D reste visible si le moteur change.
+            // Character25D reste visible si une donnée du moteur évolue ou si un asset manque.
         }
+
         postInvalidateOnAnimation();
+    }
+
+    private static HeroAnimationDynamics.Motion mapRuntimeMotion(V55RuntimeState.HeroAnimation animation) {
+        return switch (animation) {
+            case LAND -> HeroAnimationDynamics.Motion.LAND;
+            case PARRY -> HeroAnimationDynamics.Motion.PARRY;
+            case INTERACT -> HeroAnimationDynamics.Motion.INTERACT;
+            case VICTORY -> HeroAnimationDynamics.Motion.VICTORY;
+            case CROUCH -> HeroAnimationDynamics.Motion.CROUCH;
+            case OBSERVE -> HeroAnimationDynamics.Motion.OBSERVE;
+            case SPECIAL -> HeroAnimationDynamics.Motion.SPECIAL;
+            case NONE -> null;
+        };
+    }
+
+    private void drawAfterImages(
+            Canvas canvas,
+            Bitmap bitmap,
+            HeroAnimationDynamics.Transform transform,
+            float x,
+            float feetY,
+            boolean right
+    ) {
+        float direction = right ? -1f : 1f;
+        int copies = transform.trailStrength > 0.72f ? 3 : 2;
+        for (int copy = copies; copy >= 1; copy--) {
+            float distance = copy * (10f + transform.trailStrength * 11f);
+            int alpha = (int) (transform.trailStrength * (72f - copy * 10f));
+            drawHeroBitmap(canvas, bitmap,
+                    x + transform.offsetX + direction * distance,
+                    feetY,
+                    transform.scaleX,
+                    transform.scaleY,
+                    transform.rotation,
+                    right,
+                    alpha);
+        }
     }
 
     private void drawHeroBitmap(
@@ -233,30 +255,62 @@ public final class OfficialHeroOverlay extends View {
             float scaleX,
             float scaleY,
             float rotation,
-            boolean facingRight,
+            boolean right,
             int alpha
     ) {
-        paint.setAlpha(Math.max(0, Math.min(255, alpha)));
+        bitmapPaint.setAlpha(Math.max(0, Math.min(255, alpha)));
         canvas.save();
         canvas.translate(x, feetY);
         canvas.rotate(rotation);
-        canvas.scale(facingRight ? scaleX : -scaleX, scaleY);
-        canvas.drawBitmap(bitmap, source, localDestination, paint);
+        canvas.scale(right ? scaleX : -scaleX, scaleY);
+        canvas.drawBitmap(bitmap, source, localDestination, bitmapPaint);
         canvas.restore();
-        paint.setAlpha(255);
+        bitmapPaint.setAlpha(255);
     }
 
-    private void drawAura(Canvas canvas, int hero, float x, float feetY, float height, float animation) {
-        int color = HERO_COLORS[hero];
-        auraPaint.setColor(Color.argb(58, Color.red(color), Color.green(color), Color.blue(color)));
-        canvas.drawCircle(x, feetY - height * 0.48f,
-                height * (0.43f + (float) Math.sin(animation * 8f) * 0.025f), auraPaint);
-    }
-
-    private void drawModeEffectsBehind(
+    private void drawGroundContact(
             Canvas canvas,
-            V55RuntimeState.HeroAnimation mode,
-            float progress,
+            HeroAnimationDynamics.Transform transform,
+            int hero,
+            float x,
+            float feetY,
+            float height
+    ) {
+        if (transform.motion != HeroAnimationDynamics.Motion.LAND) return;
+        int color = HERO_COLORS[hero];
+        float radius = 28f + transform.effectStrength * 62f;
+        strokePaint.setStrokeWidth(4f);
+        strokePaint.setColor(Color.argb((int) (165f * transform.effectStrength),
+                Color.red(color), Color.green(color), Color.blue(color)));
+        effectRect.set(x - radius, feetY - 8f, x + radius, feetY + 11f);
+        canvas.drawOval(effectRect, strokePaint);
+    }
+
+    private void drawAura(
+            Canvas canvas,
+            int hero,
+            float x,
+            float feetY,
+            float height,
+            float animation,
+            float strength
+    ) {
+        int color = HERO_COLORS[hero];
+        float pulse = 0.5f + (float) Math.sin(animation * 8f) * 0.5f;
+        effectPaint.setColor(Color.argb((int) (35f + strength * 55f),
+                Color.red(color), Color.green(color), Color.blue(color)));
+        canvas.drawCircle(x, feetY - height * 0.48f,
+                height * (0.40f + pulse * 0.055f + strength * 0.03f), effectPaint);
+        strokePaint.setStrokeWidth(3f + strength * 2f);
+        strokePaint.setColor(Color.argb((int) (75f + strength * 105f),
+                Color.red(color), Color.green(color), Color.blue(color)));
+        canvas.drawCircle(x, feetY - height * 0.48f,
+                height * (0.45f + pulse * 0.035f), strokePaint);
+    }
+
+    private void drawBehindEffects(
+            Canvas canvas,
+            HeroAnimationDynamics.Transform transform,
             int hero,
             float x,
             float feetY,
@@ -264,21 +318,19 @@ public final class OfficialHeroOverlay extends View {
             float animation
     ) {
         int color = HERO_COLORS[hero];
-        if (mode == V55RuntimeState.HeroAnimation.VICTORY) {
-            stroke.setColor(Color.argb(155, Color.red(color), Color.green(color), Color.blue(color)));
-            stroke.setStrokeWidth(5f);
-            float radius = height * (0.35f + Math.abs((float) Math.sin(animation * 6f)) * 0.08f);
-            canvas.drawCircle(x, feetY - height * 0.48f, radius, stroke);
-        } else if (mode == V55RuntimeState.HeroAnimation.SPECIAL) {
-            auraPaint.setColor(Color.argb(48, Color.red(color), Color.green(color), Color.blue(color)));
-            canvas.drawCircle(x, feetY - height * 0.50f, height * (0.42f + progress * 0.20f), auraPaint);
+        if (transform.motion == HeroAnimationDynamics.Motion.SPECIAL
+                || transform.motion == HeroAnimationDynamics.Motion.VICTORY) {
+            float pulse = 0.5f + (float) Math.sin(animation * 7f) * 0.5f;
+            effectPaint.setColor(Color.argb((int) (35f + 45f * transform.effectStrength),
+                    Color.red(color), Color.green(color), Color.blue(color)));
+            canvas.drawCircle(x, feetY - height * 0.50f,
+                    height * (0.38f + pulse * 0.06f + transform.effectStrength * 0.12f), effectPaint);
         }
     }
 
-    private void drawModeEffectsFront(
+    private void drawFrontEffects(
             Canvas canvas,
-            V55RuntimeState.HeroAnimation mode,
-            float progress,
+            HeroAnimationDynamics.Transform transform,
             int hero,
             float x,
             float feetY,
@@ -286,26 +338,37 @@ public final class OfficialHeroOverlay extends View {
             float animation
     ) {
         int color = HERO_COLORS[hero];
-        if (mode == V55RuntimeState.HeroAnimation.PARRY) {
-            stroke.setColor(Color.argb(215, 220, 245, 255));
-            stroke.setStrokeWidth(6f);
+        if (transform.motion == HeroAnimationDynamics.Motion.PARRY) {
+            strokePaint.setStrokeWidth(5f + transform.effectStrength * 3f);
+            strokePaint.setColor(Color.argb((int) (125f + 110f * transform.effectStrength),
+                    220, 245, 255));
             float radius = height * 0.42f;
-            canvas.drawArc(new RectF(x - radius, feetY - height * 0.86f,
-                    x + radius, feetY - height * 0.10f), -75f, 205f, false, stroke);
-        } else if (mode == V55RuntimeState.HeroAnimation.OBSERVE) {
-            stroke.setColor(Color.argb(175, Color.red(color), Color.green(color), Color.blue(color)));
-            stroke.setStrokeWidth(3f);
+            effectRect.set(x - radius, feetY - height * 0.86f,
+                    x + radius, feetY - height * 0.10f);
+            canvas.drawArc(effectRect, -75f, 205f, false, strokePaint);
+        } else if (transform.motion == HeroAnimationDynamics.Motion.OBSERVE) {
+            strokePaint.setStrokeWidth(3f);
+            strokePaint.setColor(Color.argb(175, Color.red(color), Color.green(color), Color.blue(color)));
             canvas.drawCircle(x + height * 0.22f, feetY - height * 0.83f,
-                    9f + (float) Math.sin(animation * 6f) * 2f, stroke);
-        } else if (mode == V55RuntimeState.HeroAnimation.INTERACT) {
-            paint.setColor(Color.argb(185, 255, 235, 155));
-            canvas.drawCircle(x + (float) Math.sin(progress * Math.PI * 2f) * 12f,
-                    feetY - height * 0.92f, 5f, paint);
-        } else if (mode == V55RuntimeState.HeroAnimation.LAND) {
-            stroke.setColor(Color.argb(150, Color.red(color), Color.green(color), Color.blue(color)));
-            stroke.setStrokeWidth(4f);
-            float radius = 30f + progress * 58f;
-            canvas.drawOval(new RectF(x - radius, feetY - 8f, x + radius, feetY + 10f), stroke);
+                    9f + (float) Math.sin(animation * 6f) * 2f, strokePaint);
+        } else if (transform.motion == HeroAnimationDynamics.Motion.INTERACT) {
+            effectPaint.setColor(Color.argb(190, 255, 235, 155));
+            canvas.drawCircle(x + (float) Math.sin(transform.normalizedTime * Math.PI * 2f) * 12f,
+                    feetY - height * 0.92f, 5f, effectPaint);
+        } else if (transform.motion == HeroAnimationDynamics.Motion.ATTACK
+                && transform.effectStrength > 0.10f) {
+            strokePaint.setStrokeWidth(4f + transform.effectStrength * 4f);
+            strokePaint.setColor(Color.argb((int) (190f * transform.effectStrength),
+                    Color.red(color), Color.green(color), Color.blue(color)));
+            float reach = 34f + height * 0.36f * transform.effectStrength;
+            float start = facingRight ? -55f : 235f;
+            effectRect.set(x - reach, feetY - height * 0.74f,
+                    x + reach, feetY - height * 0.12f);
+            canvas.drawArc(effectRect, start, facingRight ? 125f : -125f, false, strokePaint);
+        } else if (transform.motion == HeroAnimationDynamics.Motion.HURT) {
+            effectPaint.setColor(Color.argb((int) (85f * transform.effectStrength), 255, 255, 255));
+            canvas.drawCircle(x, feetY - height * 0.48f,
+                    height * 0.38f, effectPaint);
         }
     }
 
@@ -343,9 +406,12 @@ public final class OfficialHeroOverlay extends View {
             cameraXField = field(type, "cameraX");
             cameraInputYField = field(type, "cameraInputY");
             jumpHeightField = field(type, "jumpHeight");
+            jumpVelocityField = field(type, "jumpVelocity");
             attackTimeField = field(type, "attackTime");
+            dodgeTimeField = field(type, "dodgeTime");
             hurtTimeField = field(type, "hurtTime");
             auraTimeField = field(type, "auraTime");
+            sprintingField = field(type, "sprinting");
             animationTimeField = field(type, "animationTime");
             defeatedBossesField = field(type, "defeatedBosses");
             reflectionReady = true;
