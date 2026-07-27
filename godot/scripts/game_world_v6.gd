@@ -53,7 +53,7 @@ func _build_player() -> void:
 	add_child(player)
 	player.configure(save_data)
 	player.set_difficulty(difficulty)
-	hero_animator = QuinetHeroAnimator.new()
+	hero_animator = QuinetHeroAnimatorV8.new()
 	hero_animator.name = "AnimationHéros"
 	player.add_child(hero_animator)
 	hero_animator.bind(player)
