@@ -7,9 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Spécifications non destructives des nouvelles animations et techniques.
- * Le catalogue ne remplace aucun asset : il décrit les extensions à charger
- * lorsque les bandes correspondantes existent et conserve les fallbacks actuels.
+ * Spécifications non destructives des nouvelles animations et techniques V5.5.
+ * Chaque entrée correspond exclusivement à un personnage déjà présent dans les catalogues du jeu.
  */
 public final class CharacterEnhancementCatalog {
     public static final class Spec {
@@ -53,15 +52,21 @@ public final class CharacterEnhancementCatalog {
             switch (enemy.rank) {
                 case BOSS -> {
                     animations = List.of("marche_lourde", "charge", "intimidation", "attaque_signature", "parade", "transformation", "execution");
-                    powers = List.of(powerName(enemy, "Forme souveraine"), powerName(enemy, "Ultime de zone"));
+                    powers = bossPowers(enemy);
                 }
                 case COMMANDER -> {
                     animations = List.of("marche_tactique", "course", "parade", "esquive", "cri_guerre", "execution_speciale", "victoire");
-                    powers = List.of(powerName(enemy, "Technique signature"), "Assaut combiné avec " + Enemy25DCatalog.bossForIsland(enemy.islandIndex).displayName);
+                    powers = List.of(
+                            "Art de " + enemy.weapon + " — " + enemy.displayName,
+                            "Assaut combiné avec " + Enemy25DCatalog.bossForIsland(enemy.islandIndex).displayName
+                    );
                 }
                 case SUBORDINATE -> {
                     animations = List.of("marche", "course", "patrouille", "attente", "esquive", "interaction", "victoire");
-                    powers = List.of(powerName(enemy, "Soutien tactique"), powerName(enemy, "Offensive spéciale"));
+                    powers = List.of(
+                            "Soutien tactique de " + enemy.displayName,
+                            "Offensive spéciale — " + enemy.weapon
+                    );
                 }
                 default -> throw new IllegalStateException("Rang inconnu");
             }
@@ -70,8 +75,21 @@ public final class CharacterEnhancementCatalog {
         return Collections.unmodifiableMap(result);
     }
 
-    private static String powerName(Enemy25DCatalog.Entry enemy, String family) {
-        return family + " — " + enemy.weapon;
+    private static List<String> bossPowers(Enemy25DCatalog.Entry enemy) {
+        return switch (enemy.id) {
+            case "brakor" -> List.of("Armure du Gardien", "Raz-de-Marée d'Ancre");
+            case "malkor" -> List.of("Forme Dragon-Serpent de la Jungle", "Domaine des Racines Venimeuses");
+            case "skarn" -> List.of("Forme Titan Polaire", "Tempête du Zéro Absolu");
+            case "zarok" -> List.of("Forme Sphinx des Dunes", "Mer de Sable Royale");
+            case "vulkar" -> List.of("Forme Dragon Magmatique", "Éruption du Souverain");
+            case "tempyr" -> List.of("Forme Seigneur de l'Orage", "Jugement des Cieux");
+            case "matriarche_sucree" -> List.of("Forme Impératrice Chimère", "Royaume Sucré Dévorant");
+            case "kaor_crane" -> List.of("Forme Dragon du Crâne", "Souffle Pourpre du Cataclysme");
+            default -> List.of(
+                    "Forme souveraine de " + enemy.displayName,
+                    "Ultime de zone — " + enemy.weapon
+            );
+        };
     }
 
     private static void add(Map<String, Spec> target, String id, String name,
