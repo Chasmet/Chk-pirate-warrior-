@@ -28,7 +28,7 @@ TargetHealthHud="*res://scripts/target_health_hud.gd"
 AAAPresentationDirector="*res://scripts/aaa_presentation_director.gd"
 Roster25DDirector="*res://scripts/roster_25d_director_v4.gd"
 CombatVarietyDirector="*res://scripts/combat_variety_director.gd"
-AdaptiveAudioDirectorV7="*res://scripts/adaptive_audio_director_v7.gd"
+AdaptiveAudio="*res://scripts/adaptive_audio_director_v7.gd"
 
 [display]
 
