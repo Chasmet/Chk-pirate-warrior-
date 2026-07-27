@@ -1,5 +1,5 @@
 ; CHK Pirate Warrior — Godot 4.6.3 stable
-; V7 Grand Archipel : îles éloignées, lumière adaptative et banque audio originale.
+; V8 Stabilité Android : jouabilité filtrée, caméra physique, héros au gouvernail et culling adaptatif.
 ; L’océan, les bateaux, bâtiments, animaux et collisions restent en 3D.
 ; Les héros et personnages importants utilisent une intégration 2.5D dans le monde.
 ; L’autoload AdaptiveAudio utilise la classe AdaptiveAudioDirectorV7.
@@ -8,7 +8,7 @@ config_version=5
 
 [application]
 
-config/name="CHK Pirate Warrior V7 Grand Archipel"
+config/name="CHK Pirate Warrior V8 Stabilité"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
