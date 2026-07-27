@@ -1,11 +1,15 @@
 class_name GeneralPolishDirectorV6
 extends Node3D
 
+const CHARACTER_SCAN_INTERVAL := 1.35
+const MAX_ANIMATED_SPRITES := 72
+
 var world: GameWorldV5
 var player: PlayerController
 var visuals: WorldVisualsV5
 var fill_light: DirectionalLight3D
 var animated_sprites: Array[Sprite3D] = []
+var animated_owners: Dictionary = {}
 var scan_timer := 0.0
 var local_time := 0.0
 
@@ -23,7 +27,7 @@ func _process(delta: float) -> void:
 	local_time += delta
 	scan_timer -= delta
 	if scan_timer <= 0.0:
-		scan_timer = 0.55
+		scan_timer = CHARACTER_SCAN_INTERVAL
 		_scan_animated_characters()
 	_update_lighting(delta)
 	_update_character_motion(delta)
@@ -82,10 +86,13 @@ func _update_lighting(delta: float) -> void:
 
 func _scan_animated_characters() -> void:
 	animated_sprites.clear()
+	animated_owners.clear()
 	var groups := ["enemies", "roster_25d", "crew_allies", "crew_neutral"]
 	var seen: Dictionary = {}
 	for group_name in groups:
 		for node in get_tree().get_nodes_in_group(group_name):
+			if animated_sprites.size() >= MAX_ANIMATED_SPRITES:
+				return
 			if not is_instance_valid(node) or node is MobileCrewMemberV6:
 				continue
 			var sprite := _find_sprite(node)
@@ -96,22 +103,21 @@ func _scan_animated_characters() -> void:
 				sprite.set_meta("base_y_v6", sprite.position.y)
 				sprite.set_meta("phase_v6", float(abs(String(node.name).hash()) % 1000) * 0.013)
 			animated_sprites.append(sprite)
-			if node is Node:
-				node.set_meta("animated_character_v6", true)
+			var owner := _find_character_owner(sprite)
+			if owner != null:
+				animated_owners[sprite.get_instance_id()] = owner
+			node.set_meta("animated_character_v6", true)
 
 func _update_character_motion(delta: float) -> void:
 	for sprite in animated_sprites:
 		if not is_instance_valid(sprite) or not sprite.is_visible_in_tree():
 			continue
-		var owner := sprite.get_parent()
-		while owner != null and not owner is CharacterBody3D:
-			owner = owner.get_parent()
+		var owner: CharacterBody3D = animated_owners.get(sprite.get_instance_id()) as CharacterBody3D
 		var speed_ratio := 0.0
 		var velocity_x := 0.0
-		if owner is CharacterBody3D:
-			var body := owner as CharacterBody3D
-			speed_ratio = clampf(Vector2(body.velocity.x, body.velocity.z).length() / 4.2, 0.0, 1.4)
-			velocity_x = body.velocity.x
+		if is_instance_valid(owner):
+			speed_ratio = clampf(Vector2(owner.velocity.x, owner.velocity.z).length() / 4.2, 0.0, 1.4)
+			velocity_x = owner.velocity.x
 		var phase := float(sprite.get_meta("phase_v6", 0.0))
 		var base_y := float(sprite.get_meta("base_y_v6", sprite.position.y))
 		var bob := absf(sin(local_time * (6.4 + speed_ratio * 2.0) + phase)) * 0.048 * speed_ratio
@@ -121,6 +127,12 @@ func _update_character_motion(delta: float) -> void:
 		sprite.rotation.z = lerpf(sprite.rotation.z, lean, 1.0 - exp(-7.0 * delta))
 		if absf(velocity_x) > 0.22:
 			sprite.flip_h = velocity_x < 0.0
+
+func _find_character_owner(node: Node) -> CharacterBody3D:
+	var current := node.get_parent()
+	while current != null and not current is CharacterBody3D:
+		current = current.get_parent()
+	return current as CharacterBody3D
 
 func _find_sprite(node: Node) -> Sprite3D:
 	for child in node.get_children():
