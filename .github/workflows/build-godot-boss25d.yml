@@ -1,4 +1,4 @@
-name: Construire CHK Pirate Warrior V7 Grand Archipel
+name: Construire CHK Pirate Warrior V8 Stabilité Android
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: chk-godot-v7-grand-archipel-${{ github.ref }}
+  group: chk-godot-v8-stabilite-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -33,7 +33,7 @@ jobs:
         with:
           lfs: true
 
-      - name: Auditer la base V7 et les rosters
+      - name: Auditer la base V8 et les rosters
         shell: bash
         run: |
           set -euxo pipefail
@@ -45,19 +45,22 @@ jobs:
           done
           test -s godot/scripts/main_v5.gd
           test -s godot/scripts/game_world_v6.gd
+          test -s godot/scripts/player_controller_v8.gd
+          test -s godot/scripts/runtime_performance_director_v8.gd
           test -s godot/scripts/runtime_stability_guard_v6.gd
           test -s godot/scripts/adaptive_lighting_director_v7.gd
           test -s godot/scripts/adaptive_audio_director_v7.gd
           test -s godot/scripts/world_visuals_v5.gd
           test -s godot/scripts/save_system.gd
           test -s godot/tests/v7_world_audio_test.gd
+          test -s godot/tests/v8_gameplay_stability_test.gd
           test -s tools/generate_audio_v7.py
           grep -q 'main_v5.gd' godot/scenes/main.tscn
-          grep -q 'V7 Grand Archipel' godot/project.godot
+          grep -q 'V8 Stabilité' godot/project.godot
           grep -q 'AdaptiveAudioDirectorV7' godot/project.godot
           grep -Fq 'include_filter="*.b64,*.wav"' godot/export_presets.cfg
-          grep -q 'version/code=13' godot/export_presets.cfg
-          grep -q 'version/name="7.0.0-grand-archipel"' godot/export_presets.cfg
+          grep -q 'version/code=14' godot/export_presets.cfg
+          grep -q 'version/name="8.0.0-stabilite-android"' godot/export_presets.cfg
           grep -q 'package/unique_name="fr.chk.piratewarrior.v2"' godot/export_presets.cfg
 
       - name: Installer Java 17
@@ -118,7 +121,7 @@ jobs:
           cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
           test -s "$TEMPLATE_DIR/android_debug.apk"
 
-      - name: Générer la banque audio originale V7
+      - name: Générer la banque audio originale V7 conservée
         shell: bash
         run: |
           set -euxo pipefail
@@ -144,7 +147,7 @@ jobs:
           "$GODOT_BIN" --headless --path godot --script res://tests/v7_world_audio_test.gd 2>&1 | tee godot-v7-world-audio-test.log
           grep -q 'CHK_V7_GRAND_ARCHIPEL_AUDIO_READY' godot-v7-world-audio-test.log
 
-      - name: Tester la stabilité V6 conservée
+      - name: Tester la stabilité historique conservée
         shell: bash
         run: |
           set -o pipefail
@@ -172,15 +175,24 @@ jobs:
           "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
           grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
-      - name: Construire l’APK Android V7 Grand Archipel
+      - name: Tester jouabilité V8 stabilité et héros au gouvernail
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v8_gameplay_stability_test.gd 2>&1 | tee godot-v8-gameplay-test.log
+          grep -q 'CHK_V8_GAMEPLAY_STABILITY_READY' godot-v8-gameplay-test.log
+          grep -q 'CHK_V8_SELECTED_HERO_AT_HELM_READY' godot-v8-gameplay-test.log
+          grep -q 'CHK_V8_ANDROID_PERFORMANCE_READY' godot-v8-gameplay-test.log
+
+      - name: Construire l’APK Android V8 Stabilité
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk" 2>&1 | tee godot-export.log
-          APK="build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk"
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V8-Stabilite-Android-debug.apk" 2>&1 | tee godot-export.log
+          APK="build/CHK-Pirate-Warrior-V8-Stabilite-Android-debug.apk"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           APK_BYTES="$(stat -c%s "$APK")"
@@ -196,29 +208,29 @@ jobs:
           APK_SHA="$(cut -d' ' -f1 build/SHA256.txt)"
           AUDIO_SIZE="$(cut -d= -f2 audio-size.log)"
           cat > build/RELEASE_NOTES.md <<EOF
-          # CHK Pirate Warrior V7 Grand Archipel
+          # CHK Pirate Warrior V8 Stabilité Android
 
-          APK Android Godot arm64 compilée et validée par GitHub Actions.
+          APK Android Godot compilée et validée par GitHub Actions.
 
-          - Version Android : 7.0.0-grand-archipel
-          - Code Android : 13
+          - Version Android : 8.0.0-stabilite-android
+          - Code Android : 14
           - Package conservé : fr.chk.piratewarrior.v2
           - Taille APK : ${APK_SIZE} octets
-          - Banque audio originale : ${AUDIO_SIZE} octets
+          - Banque audio originale conservée : ${AUDIO_SIZE} octets
           - SHA-256 : ${APK_SHA}
           - Commit : ${GITHUB_SHA}
 
-          Améliorations : îles éloignées de 800 à plus de 1 300 mètres, océan de 6,8 km, mini-carte recalibrée, éclairage adaptatif jour/nuit/météo, éclairs de tempête, musique d’exploration/combat/boss, ambiances îles/océan/bateau et effets sonores.
+          Corrections ciblées : commandes du bateau filtrées, caméra synchronisée au pas physique, suppression des positions concurrentes du pilote, héros sélectionné visible au gouvernail, mise en sommeil des îles éloignées et qualité adaptative Android. Aucun héros, asset, système de combat, sauvegarde, île ou audio n’a été supprimé.
 
-          Les protections de sauvegarde, caméra, navigation, transitions d’île et récupération des valeurs invalides restent actives. Cette APK debug doit encore être contrôlée visuellement et auditivement sur téléphone.
+          Cette APK debug doit encore être contrôlée sur téléphone pour confirmer la fluidité réelle selon le modèle Android.
           EOF
 
-      - name: Publier l’APK V7 dans les artefacts
+      - name: Publier l’APK V8 dans les artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V7-Grand-Archipel-APK
+          name: CHK-Pirate-Warrior-V8-Stabilite-Android-APK
           path: |
-            build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk
+            build/CHK-Pirate-Warrior-V8-Stabilite-Android-debug.apk
             build/SHA256.txt
             build/APK_SIZE.txt
             build/RELEASE_NOTES.md
@@ -231,51 +243,52 @@ jobs:
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
+            godot-v8-gameplay-test.log
             godot-export.log
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publier l’APK V7 dans GitHub Releases
+      - name: Publier l’APK V8 dans GitHub Releases
         if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          TAG="v7-grand-archipel-latest"
+          TAG="v8-stabilite-android-latest"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -f "$TAG" "$GITHUB_SHA"
           git push origin "refs/tags/$TAG" --force
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" \
-              build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk \
+              build/CHK-Pirate-Warrior-V8-Stabilite-Android-debug.apk \
               build/SHA256.txt \
               build/APK_SIZE.txt \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
             gh release edit "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --title "CHK Pirate Warrior V7 Grand Archipel" \
+              --title "CHK Pirate Warrior V8 Stabilité Android" \
               --notes-file build/RELEASE_NOTES.md \
               --prerelease
           else
             gh release create "$TAG" \
-              build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk \
+              build/CHK-Pirate-Warrior-V8-Stabilite-Android-debug.apk \
               build/SHA256.txt \
               build/APK_SIZE.txt \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "CHK Pirate Warrior V7 Grand Archipel" \
+              --title "CHK Pirate Warrior V8 Stabilité Android" \
               --notes-file build/RELEASE_NOTES.md \
               --prerelease
           fi
 
-      - name: Publier les diagnostics V7
+      - name: Publier les diagnostics V8
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V7-diagnostics
+          name: CHK-Pirate-Warrior-V8-diagnostics
           path: |
             audio-generation.log
             audio-size.log
@@ -287,6 +300,7 @@ jobs:
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
+            godot-v8-gameplay-test.log
             godot-export.log
           if-no-files-found: ignore
           retention-days: 14
