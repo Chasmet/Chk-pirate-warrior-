@@ -8,7 +8,7 @@ const SAMPLE_INTERVAL := 0.45
 const NEARBY_ZONE_MARGIN := 210.0
 const RECOVERY_DELAY := 3.2
 
-var world: GameWorldV6
+var world: GameWorldV5
 var player: PlayerController
 var visuals: WorldVisualsV5
 var zone_roots: Dictionary = {}
@@ -19,7 +19,7 @@ var quality_level := 0
 var last_focus_key := ""
 var last_quality_level := -1
 
-func configure(target_world: GameWorldV6, target_player: PlayerController, target_visuals: WorldVisualsV5) -> void:
+func configure(target_world: GameWorldV5, target_player: PlayerController, target_visuals: WorldVisualsV5) -> void:
 	world = target_world
 	player = target_player
 	visuals = target_visuals
