@@ -1,4 +1,4 @@
-name: Construire CHK Pirate Warrior V5 Final Qualité
+name: Construire CHK Pirate Warrior V6 Stabilité
 
 on:
   push:
@@ -14,11 +14,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: chk-godot-v5-final-${{ github.ref }}
+  group: chk-godot-v6-stabilite-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validation-et-apk:
@@ -31,7 +31,7 @@ jobs:
         with:
           lfs: true
 
-      - name: Auditer la base V5 et les neuf rosters
+      - name: Auditer la base V6 et les neuf rosters
         shell: bash
         run: |
           set -euxo pipefail
@@ -42,19 +42,24 @@ jobs:
             test "$(stat -c%s "$source")" -gt 1000
           done
           test -s godot/scripts/main_v5.gd
-          test -s godot/scripts/game_world_v5.gd
+          test -s godot/scripts/game_world_v6.gd
+          test -s godot/scripts/runtime_stability_guard_v6.gd
           test -s godot/scripts/world_visuals_v5.gd
           test -s godot/scripts/game_ui_v5.gd
+          test -s godot/scripts/save_system.gd
           test -s godot/scripts/crew_25d_catalog_v5.gd
           test -s godot/scripts/crew_25d_asset_factory_v5.gd
-          test -s godot/scripts/crew_encounter_director_v5.gd
+          test -s godot/scripts/crew_encounter_director_v6.gd
           test -s godot/scripts/ambient_fleet_v5.gd
           test -s godot/tests/v5_final_quality_test.gd
           grep -q 'main_v5.gd' godot/scenes/main.tscn
-          grep -q 'V5 Final Qualité' godot/project.godot
+          grep -q 'V6 Stabilité' godot/project.godot
           grep -q 'archipelago_minimap_v4.gd' godot/project.godot
           grep -q 'roster_25d_director_v4.gd' godot/project.godot
           grep -Fq 'include_filter="*.b64"' godot/export_presets.cfg
+          grep -q 'version/code=12' godot/export_presets.cfg
+          grep -q 'version/name="6.0.0-stabilite"' godot/export_presets.cfg
+          grep -q 'package/unique_name="fr.chk.piratewarrior.v2"' godot/export_presets.cfg
 
       - name: Installer Java 17
         uses: actions/setup-java@v4
@@ -121,12 +126,13 @@ jobs:
           timeout 360s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Tester la V5 Final Qualité
+      - name: Tester la V6 Stabilité
         shell: bash
         run: |
           set -o pipefail
-          "$GODOT_BIN" --headless --path godot --script res://tests/v5_final_quality_test.gd 2>&1 | tee godot-v5-final-test.log
-          grep -q 'CHK_V5_FINAL_QUALITY_READY' godot-v5-final-test.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/v5_final_quality_test.gd 2>&1 | tee godot-v6-stability-test.log
+          grep -q 'CHK_V5_FINAL_QUALITY_READY' godot-v6-stability-test.log
+          grep -q 'CHK_RUNTIME_STABILITY_V6_READY' godot-v6-stability-test.log
 
       - name: Tester les neuf îles et les systèmes historiques
         shell: bash
@@ -134,8 +140,8 @@ jobs:
           set -o pipefail
           "$GODOT_BIN" --headless --path godot --script res://tests/nine_islands_expansion_test.gd 2>&1 | tee godot-nine-islands-test.log
           grep -q 'CHK_NINE_ISLANDS_READY' godot-nine-islands-test.log
-          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v5-roster-test.log
-          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v5-roster-test.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v6-roster-test.log
+          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v6-roster-test.log
           "$GODOT_BIN" --headless --path godot --script res://tests/boss_25d_visual_test.gd 2>&1 | tee godot-boss25d-test.log
           grep -q 'BRAKOR 2.5D DANS MONDE 3D RÉUSSI' godot-boss25d-test.log
 
@@ -148,47 +154,107 @@ jobs:
           "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
           grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
-      - name: Construire l’APK Android V5 Final Qualité
+      - name: Construire l’APK Android V6 Stabilité
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk" 2>&1 | tee godot-export.log
-          test -s build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk
-          unzip -t build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk >/dev/null
-          sha256sum build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk | tee build/SHA256.txt
-          stat -c 'APK_BYTES=%s' build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk | tee build/APK_SIZE.txt
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk
+          unzip -t build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk >/dev/null
+          sha256sum build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk | tee build/SHA256.txt
+          stat -c 'APK_BYTES=%s' build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk | tee build/APK_SIZE.txt
 
-      - name: Publier l’APK V5 testée
+      - name: Préparer les notes de version
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK_SIZE="$(cut -d= -f2 build/APK_SIZE.txt)"
+          APK_SHA="$(cut -d' ' -f1 build/SHA256.txt)"
+          cat > build/RELEASE_NOTES.md <<EOF
+          # CHK Pirate Warrior V6 Stabilité
+
+          APK Android Godot arm64 compilée et validée par GitHub Actions.
+
+          - Version Android : 6.0.0-stabilite
+          - Code Android : 12
+          - Package conservé : fr.chk.piratewarrior.v2
+          - Taille : ${APK_SIZE} octets
+          - SHA-256 : ${APK_SHA}
+          - Commit : ${GITHUB_SHA}
+
+          Corrections principales : sauvegarde atomique avec backup, récupération des positions et vitesses invalides, protection des transitions d’île, nettoyage des références détruites et réduction des scans CPU Android.
+
+          Cette APK est une version debug destinée au test sur téléphone avant validation finale.
+          EOF
+
+      - name: Publier l’APK V6 dans les artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V5-Final-Qualite-APK
+          name: CHK-Pirate-Warrior-V6-Stabilite-APK
           path: |
-            build/CHK-Pirate-Warrior-V5-Final-Qualite-debug.apk
+            build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk
             build/SHA256.txt
             build/APK_SIZE.txt
-            godot-v5-final-test.log
+            build/RELEASE_NOTES.md
+            godot-v6-stability-test.log
             godot-nine-islands-test.log
-            godot-v5-roster-test.log
+            godot-v6-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
             godot-export.log
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
-      - name: Publier les diagnostics V5
+      - name: Publier l’APK V6 dans GitHub Releases
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG="v6-stabilite-latest"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG" --force
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk \
+              build/SHA256.txt \
+              build/APK_SIZE.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+            gh release edit "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "CHK Pirate Warrior V6 Stabilité" \
+              --notes-file build/RELEASE_NOTES.md \
+              --prerelease
+          else
+            gh release create "$TAG" \
+              build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk \
+              build/SHA256.txt \
+              build/APK_SIZE.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "CHK Pirate Warrior V6 Stabilité" \
+              --notes-file build/RELEASE_NOTES.md \
+              --prerelease
+          fi
+
+      - name: Publier les diagnostics V6
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V5-diagnostics
+          name: CHK-Pirate-Warrior-V6-diagnostics
           path: |
             godot-import.log
-            godot-v5-final-test.log
+            godot-v6-stability-test.log
             godot-nine-islands-test.log
-            godot-v5-roster-test.log
+            godot-v6-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
