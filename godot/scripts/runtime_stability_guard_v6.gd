@@ -33,7 +33,8 @@ func configure(target_world: GameWorldV6, target_player: PlayerController) -> vo
 	set_process(true)
 	set_meta("runtime_stability_v6", true)
 	set_meta("grand_archipelago_bounds_v7", true)
-	print("CHK_RUNTIME_STABILITY_V7_READY interval=%.2f bounds=[%.0f,%.0f]x[%.0f,%.0f]" % [CHECK_INTERVAL, MIN_WORLD_X, MAX_WORLD_X, MIN_WORLD_Z, MAX_WORLD_Z])
+	# Le marqueur V6 reste volontairement présent pour les tests historiques.
+	print("CHK_RUNTIME_STABILITY_V6_READY interval=%.2f grand_archipelago_v7=true bounds=[%.0f,%.0f]x[%.0f,%.0f]" % [CHECK_INTERVAL, MIN_WORLD_X, MAX_WORLD_X, MIN_WORLD_Z, MAX_WORLD_Z])
 
 func _process(delta: float) -> void:
 	check_timer -= delta
