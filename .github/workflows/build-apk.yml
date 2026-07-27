@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: journal-compilation
+          name: journal-compilation-v5.5
           path: gradle-build.log
           if-no-files-found: warn
           retention-days: 7
@@ -64,12 +64,12 @@ jobs:
         run: exit 1
 
       - name: Renommer l'APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V5.5.apk
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V2-APK
-          path: CHK-Pirate-Warrior-V2.apk
+          name: CHK-Pirate-Warrior-V5.5-APK
+          path: CHK-Pirate-Warrior-V5.5.apk
           if-no-files-found: error
           retention-days: 30
