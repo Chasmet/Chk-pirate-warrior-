@@ -1,22 +1,30 @@
 extends Node
 
-# Finition visuelle exécutée après le contrôleur : le pilote, la roue et la
-# coque restent lisibles depuis la caméra arrière trois-quarts sur Android.
+# Finition visuelle du bateau. Le contrôleur joueur reste désormais l'unique
+# autorité de position du héros au gouvernail afin d'éviter les corrections
+# contradictoires et les micro-saccades observées sur Android.
 
 var player: PlayerController
 var adjusted_boat_id := 0
+var check_timer := 0.0
+var last_boat_mode := false
 
 func _ready() -> void:
 	process_priority = 1950
 	process_physics_priority = 1950
-	set_process(true)
+	set_process(false)
 	set_physics_process(true)
+	set_meta("single_pilot_authority_v8", true)
 
-func _process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	check_timer -= delta
+	var mode_changed := is_instance_valid(player) and player.boat_mode != last_boat_mode
+	if check_timer > 0.0 and not mode_changed:
+		return
+	check_timer = 0.25
 	_update_presentation()
-
-func _physics_process(_delta: float) -> void:
-	_update_presentation()
+	if is_instance_valid(player):
+		last_boat_mode = player.boat_mode
 
 func _update_presentation() -> void:
 	if not is_instance_valid(player):
@@ -36,16 +44,14 @@ func _update_presentation() -> void:
 
 	player.boat_visual.visible = true
 	if is_instance_valid(player.hero_visual):
-		# Le pilote est placé devant la cabine, au contact de la roue. La cabine
-		# ne masque donc plus ses jambes dans la vue extérieure.
 		player.hero_visual.visible = true
-		player.hero_visual.position = Vector3(0.0, 0.72, 0.18)
 		var sprite := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 		if sprite != null:
 			sprite.visible = true
 			sprite.modulate = Color.WHITE
 			sprite.no_depth_test = false
 			sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			sprite.render_priority = 10
 
 func _adjust_boat_once(boat: Node3D) -> void:
 	var helm_station := boat.get_node_or_null("PosteDePilotage") as Node3D
@@ -77,8 +83,6 @@ func _adjust_boat_once(boat: Node3D) -> void:
 			var part := node as Node3D
 			var label := String(part.name)
 			if label.begins_with("BandeVoile_"):
-				# Voile principale plus haute et moins massive : l'horizon et la
-				# prochaine île restent visibles sous la vergue.
 				part.position.x *= 0.80
 				part.position.y += 1.02
 				part.position.z = -1.42
@@ -98,7 +102,7 @@ func _adjust_boat_once(boat: Node3D) -> void:
 	if stern != null:
 		stern.scale = Vector3(0.96, 0.82, 0.80)
 
-	print("CHK_BOAT_PRESENTATION_READY sail_clear=1 pilot_clear=1")
+	print("CHK_BOAT_PRESENTATION_V8_READY sail_clear=1 pilot_authority=player")
 
 func _find_player(node: Node) -> PlayerController:
 	if node is PlayerController:
