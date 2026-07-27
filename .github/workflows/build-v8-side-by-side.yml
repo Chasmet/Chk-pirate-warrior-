@@ -8,6 +8,13 @@ on:
       - 'godot/scripts/**'
       - 'godot/tests/v8_gameplay_stability_test.gd'
       - '.github/workflows/build-v8-side-by-side.yml'
+  pull_request:
+    branches: [ godot-final-polish ]
+    paths:
+      - 'godot/export_presets.cfg'
+      - 'godot/scripts/**'
+      - 'godot/tests/v8_gameplay_stability_test.gd'
+      - '.github/workflows/build-v8-side-by-side.yml'
   workflow_dispatch:
 
 concurrency:
