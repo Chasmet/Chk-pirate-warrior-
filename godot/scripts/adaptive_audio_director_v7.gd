@@ -14,8 +14,15 @@ const AMBIENCE_PATHS := {
 	"island_day": AUDIO_ROOT + "ambience_island_day.wav",
 	"island_night": AUDIO_ROOT + "ambience_island_night.wav",
 	"boat": AUDIO_ROOT + "ambience_boat.wav",
-	"deep_ocean": AUDIO_ROOT + "ambience_deep_ocean.wav"
+	"deep_ocean": AUDIO_ROOT + "ambience_deep_ocean.wav",
+	"port": AUDIO_ROOT + "ambience_port.wav",
+	"jungle": AUDIO_ROOT + "ambience_jungle.wav",
+	"snow": AUDIO_ROOT + "ambience_snow.wav",
+	"desert": AUDIO_ROOT + "ambience_desert.wav",
+	"volcano": AUDIO_ROOT + "ambience_volcano.wav",
+	"fortress": AUDIO_ROOT + "ambience_fortress.wav"
 }
+const ZONE_AMBIENCES := ["port", "jungle", "snow", "desert", "volcano", "fortress"]
 const SFX_PATHS := {
 	"attack": AUDIO_ROOT + "sfx_attack.wav",
 	"skill": AUDIO_ROOT + "sfx_skill.wav",
@@ -52,7 +59,7 @@ func _ready() -> void:
 	rng.seed = 19820415
 	_build_players()
 	set_process(true)
-	print("CHK_AUDIO_V7_READY adaptive=true lazy_streaming=true")
+	print("CHK_AUDIO_V7_READY adaptive=true island_ambiences=6 lazy_streaming=true")
 
 func _build_players() -> void:
 	for index in range(2):
@@ -100,7 +107,8 @@ func _resolve_runtime_nodes() -> void:
 func _probe_state() -> void:
 	if not is_instance_valid(player) or not is_instance_valid(world):
 		return
-	var zone := clampi(int(world.get("current_zone")), 0, 8)
+	var zone_value: Variant = world.get("current_zone")
+	var zone := clampi(int(zone_value) if zone_value != null else 0, 0, 8)
 	var weather := _current_weather()
 	var boss_active := _boss_near_player(95.0)
 	var combat_active := boss_active or _enemy_near_player(22.0)
@@ -112,7 +120,12 @@ func _probe_state() -> void:
 		desired_ambience = "storm"
 	else:
 		var daylight := _daylight_ratio()
-		desired_ambience = "island_day" if daylight >= 0.22 else "island_night"
+		if daylight < 0.18:
+			desired_ambience = "island_night"
+		elif zone < ZONE_AMBIENCES.size():
+			desired_ambience = String(ZONE_AMBIENCES[zone])
+		else:
+			desired_ambience = "island_day"
 	if desired_music != current_music:
 		_switch_music(desired_music)
 	if desired_ambience != current_ambience:
