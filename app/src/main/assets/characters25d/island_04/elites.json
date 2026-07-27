@@ -1,0 +1,67 @@
+{
+  "island": 3,
+  "name": "Désert des Corsaires",
+  "status": "integration_in_progress",
+  "boss": {
+    "id": "zarok",
+    "name": "Zarok, Khan des Sables",
+    "weapon": "double cimeterre lourd",
+    "combatRole": "boss_controller",
+    "signature": "mirages, tempête de sable, frappe circulaire et rage"
+  },
+  "commanders": [
+    {
+      "id": "sabir",
+      "name": "Sabir le Dromadaire",
+      "weapon": "mousquet du désert",
+      "combatRole": "ranged",
+      "signature": "tir spécial, recul tactique et salves longues"
+    },
+    {
+      "id": "razka",
+      "name": "Razka la Lame de Sable",
+      "weapon": "deux sabres courbes",
+      "combatRole": "assassin",
+      "signature": "dash, combo rapide et lame de sable"
+    },
+    {
+      "id": "al_varis",
+      "name": "Al-Varis l'Artificier",
+      "weapon": "lance-grenade et mines",
+      "combatRole": "controller",
+      "signature": "pièges, mines et explosions de zone"
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "chaal",
+      "name": "Chaal le Rapace",
+      "weapon": "deux lames courtes",
+      "combatRole": "assassin",
+      "signature": "esquive, attaque bondissante et repli",
+      "sourceUpload": "Sprite Perso 1 ile 4.png"
+    },
+    {
+      "id": "machoire_desert",
+      "name": "Mâchoire du Désert",
+      "weapon": "masse lourde",
+      "combatRole": "tank",
+      "signature": "charge, brise-garde et interruption",
+      "sourceUpload": "Sprite Perso 2 ile 4.png"
+    },
+    {
+      "id": "veilleuse_dunes",
+      "name": "Veilleuse des Dunes",
+      "weapon": "lanterne et bâton",
+      "combatRole": "controller",
+      "signature": "signal lumineux, aveuglement et soutien à distance",
+      "sourceUpload": "Sprite Perso 4 ile 4.png"
+    }
+  ],
+  "validation": {
+    "expectedRoster": 7,
+    "transparentDirectionalStripsComplete": false,
+    "visibleThroughFallback": true,
+    "note": "L'île ne doit pas être déclarée terminée avant validation des quatre directions et de toutes les animations."
+  }
+}

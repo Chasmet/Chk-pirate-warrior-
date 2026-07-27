@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "islandIndex": 7,
+  "islandName": "Citadelle du Crâne",
+  "biome": "forteresse crânienne, roche noire, mer de magma, fumée et cendres",
+  "sourceReferences": [
+    "1000124422.png - forteresse en forme de crâne",
+    "1000124376.png - roster 2.5D reçu",
+    "1000124380.png - planche d'action reçue"
+  ],
+  "runtimeAtlas": "characters25d/pdf_atlas/island_08_atlas.webp.b64",
+  "fallback": "PdfAtlas25D.createSkullFallbackAtlas",
+  "characters": [
+    {
+      "id": "kaor_crane",
+      "name": "Kaor, Seigneur du Crâne",
+      "rank": "BOSS",
+      "slot": 0,
+      "weapon": "kanabo colossal et chaînes volcaniques",
+      "abilities": ["onde pourpre", "souffle draconique", "rage du magma", "ultime du crâne"]
+    },
+    {
+      "id": "archonte_aile_noire",
+      "name": "Archonte de l'Aile Noire",
+      "rank": "COMMANDER",
+      "slot": 1,
+      "weapon": "lance noire et armure ailée"
+    },
+    {
+      "id": "ravageur_cornu",
+      "name": "Ravageur Cornu",
+      "rank": "COMMANDER",
+      "slot": 2,
+      "weapon": "massue incendiaire"
+    },
+    {
+      "id": "canon_cendres",
+      "name": "Canon des Cendres",
+      "rank": "COMMANDER",
+      "slot": 3,
+      "weapon": "canon lourd et poings renforcés"
+    },
+    {
+      "id": "roi_des_braises",
+      "name": "Roi des Braises",
+      "rank": "SUBORDINATE",
+      "slot": 4,
+      "weapon": "sabre court et cape royale"
+    },
+    {
+      "id": "oracle_pourpre",
+      "name": "Oracle Pourpre",
+      "rank": "SUBORDINATE",
+      "slot": 5,
+      "weapon": "bâton rituel"
+    },
+    {
+      "id": "gardien_bestial",
+      "name": "Gardien Bestial",
+      "rank": "SUBORDINATE",
+      "slot": 6,
+      "weapon": "griffes et chaîne"
+    }
+  ],
+  "requiredAnimations": [
+    "idle", "walk", "run", "attack", "power", "special", "dodge",
+    "hurt", "knockback", "defeat", "intro"
+  ],
+  "bossExtraAnimations": ["rage", "phase2", "area_attack", "ultimate"],
+  "directions": ["front", "back", "left", "right"],
+  "status": "integrated_with_runtime_fallback_pending_final_transparent_strips"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "seigneur_magma",
+  "name": "Seigneur Magma",
+  "rank": "BOSS",
+  "island": 3,
+  "visualIdentity": {
+    "silhouette": "guerrier très large, armure volcanique fissurée, posture lourde et menaçante",
+    "face": "visage sombre, barbe épaisse, fissures rougeoyantes sur le front",
+    "hair": "crâne partiellement rasé avec crête noire brûlée",
+    "clothing": "armure noire et rouge, plaques de roche, ceinture métallique, bottes renforcées",
+    "weapon": "hallebarde volcanique à lame asymétrique",
+    "accessories": ["chaîne autour du torse", "épaulière gauche en roche", "cristaux de lave au dos"],
+    "palette": ["#FF7A3D", "#7A1F22", "#2B2020", "#F9B04A"]
+  },
+  "scale": {"heightMeters": 2.24, "collisionRadiusMeters": 0.72, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "halberd_guard", "lava_slam", "molten_armor_phase", "defeat"],
+  "gameplay": {
+    "phase1": ["halberd_sweep", "lava_line", "ground_slam"],
+    "phase2": ["molten_armor", "falling_rocks", "persistent_lava", "ultimate_volcano_heart"],
+    "weakness": "fissures du torse ouvertes après l'attaque de zone"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["épaulière de roche uniquement à gauche", "hallebarde tenue main droite en pose neutre", "fissures identiques entre les frames", "cristaux dorsaux plus lumineux en phase 2"]
+}

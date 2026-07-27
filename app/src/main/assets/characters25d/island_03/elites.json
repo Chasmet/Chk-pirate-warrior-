@@ -1,0 +1,68 @@
+{
+  "island": 2,
+  "name": "Désert des corsaires",
+  "commanders": [
+    {
+      "id": "zahir",
+      "name": "Zahir",
+      "silhouette": "assassin mince, manteau sable découpé et jambes très mobiles",
+      "face": "visage partiellement masqué, yeux noirs, cicatrice sur le front",
+      "weapon": "deux lames courbes",
+      "combatRole": "teleport_assassin",
+      "signature": "courte disparition puis attaque dans le dos",
+      "continuity": ["lame longue main droite", "masque brun", "cape courte"]
+    },
+    {
+      "id": "noura",
+      "name": "Noura",
+      "silhouette": "tireuse droite et élégante avec longue cape claire",
+      "face": "cheveux noirs attachés, monocle mécanique sur l'œil gauche",
+      "weapon": "fusil long de précision",
+      "combatRole": "sniper",
+      "signature": "vise longtemps puis tire un projectile très rapide",
+      "continuity": ["fusil porté épaule droite", "monocle à gauche", "cape ivoire"]
+    },
+    {
+      "id": "grom",
+      "name": "Grom",
+      "silhouette": "colosse large, torse couvert de plaques de cuivre",
+      "face": "crâne rasé, moustache épaisse, nez large",
+      "weapon": "masse désertique lourde",
+      "combatRole": "ground_smasher",
+      "signature": "frappe au sol créant trois fissures",
+      "continuity": ["masse main droite", "épaulette cuivre gauche", "ceinture rouge"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "kef",
+      "name": "Kef",
+      "linkedCommander": "zahir",
+      "silhouette": "petit combattant nerveux vêtu de noir et sable",
+      "weapon": "deux poignards",
+      "combatRole": "backstabber",
+      "signature": "attaque après l'esquive du joueur",
+      "continuity": ["poignard dentelé main gauche", "capuche noire", "bracelets cuivre"]
+    },
+    {
+      "id": "mira",
+      "name": "Mira",
+      "linkedCommander": "noura",
+      "silhouette": "tireuse légère avec lunettes et foulard bleu",
+      "weapon": "pistolet de précision",
+      "combatRole": "target_marker",
+      "signature": "marque le héros pour augmenter les dégâts de Noura",
+      "continuity": ["pistolet main droite", "foulard bleu", "lunettes rondes"]
+    },
+    {
+      "id": "roc",
+      "name": "Roc",
+      "linkedCommander": "grom",
+      "silhouette": "brute trapue avec protections de cuir épaisses",
+      "weapon": "massue de pierre",
+      "combatRole": "charger",
+      "signature": "charge rectiligne difficile à arrêter",
+      "continuity": ["massue main gauche", "casque de cuir", "genouillère droite"]
+    }
+  ]
+}

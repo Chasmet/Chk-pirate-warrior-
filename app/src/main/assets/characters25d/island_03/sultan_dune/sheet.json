@@ -1,0 +1,27 @@
+{
+  "id": "sultan_dune",
+  "name": "Sultan des Dunes",
+  "rank": "BOSS",
+  "island": 2,
+  "visualIdentity": {
+    "silhouette": "corsaire élancé, posture royale, vêtements flottants lisibles au vent",
+    "face": "visage anguleux, moustache fine, regard doré, tatouage sous l'œil gauche",
+    "hair": "cheveux noirs bouclés sous un turban renforcé",
+    "clothing": "manteau sable et cuivre, pantalon ample, bottes hautes, tissus superposés",
+    "weapon": "cimeterre royal incurvé avec poignée noire et gemme ambrée",
+    "accessories": ["turban blindé", "pendentif scarabée", "petites fioles de sable"],
+    "palette": ["#E6B85C", "#A85D2A", "#3F2B23", "#F3D99A"]
+  },
+  "scale": {"heightMeters": 1.96, "collisionRadiusMeters": 0.54, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "cimeterre_guard", "mirage_cast", "sandstorm_phase", "defeat"],
+  "gameplay": {
+    "phase1": ["curved_blade_combo", "sand_clone", "buried_dash"],
+    "phase2": ["full_sandstorm", "three_mirages", "ground_eruptions", "ultimate_dune_palace"],
+    "weakness": "vrai corps identifiable par l'ombre au sol"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["tatouage toujours sous l'œil gauche", "gemme du cimeterre toujours ambrée", "pendentif centré", "turban conserve la même forme dans toutes les frames"]
+}

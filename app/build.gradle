@@ -4,14 +4,14 @@ plugins {
 
 android {
     namespace 'fr.chk.piratewarrior'
-    compileSdk 36
+    compileSdk 34
 
     defaultConfig {
         applicationId 'fr.chk.piratewarrior'
-        minSdk 26
-        targetSdk 36
-        versionCode 1
-        versionName '1.0.0'
+        minSdk 21
+        targetSdk 34
+        versionCode 55
+        versionName '5.5.0'
     }
 
     buildTypes {
@@ -24,6 +24,7 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
     }
 
     testOptions {
@@ -32,5 +33,6 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     testImplementation 'junit:junit:4.13.2'
 }

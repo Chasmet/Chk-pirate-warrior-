@@ -1,0 +1,68 @@
+{
+  "island": 5,
+  "name": "Mer de la tempête",
+  "commanders": [
+    {
+      "id": "volt",
+      "name": "Volt",
+      "silhouette": "épéiste mince avec manteau court et éclairs autour des bottes",
+      "face": "cheveux noirs dressés, cicatrice en zigzag sur la joue droite",
+      "weapon": "épée électrique droite",
+      "combatRole": "electric_dasher",
+      "signature": "dash instantané suivi d'un étourdissement",
+      "continuity": ["épée main droite", "cicatrice joue droite", "manteau bleu foncé"]
+    },
+    {
+      "id": "zephira",
+      "name": "Zéphira",
+      "silhouette": "combattante légère avec deux éventails larges et cape flottante",
+      "face": "cheveux argentés attachés haut, marques bleues sous les yeux",
+      "weapon": "deux éventails métalliques",
+      "combatRole": "wind_controller",
+      "signature": "repousse le héros et esquive avec une bourrasque",
+      "continuity": ["éventail long main droite", "cape claire", "marques bleues symétriques"]
+    },
+    {
+      "id": "tonnerre",
+      "name": "Tonnerre",
+      "silhouette": "canonnier massif avec arme portée contre l'épaule",
+      "face": "barbe noire carrée, cache-œil gauche, casque métallique",
+      "weapon": "canon portatif alimenté par une bobine",
+      "combatRole": "artillery",
+      "signature": "tir de zone annoncé par un viseur au sol",
+      "continuity": ["cache-œil gauche", "canon épaule droite", "bobine dans le dos"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "etincelle",
+      "name": "Étincelle",
+      "linkedCommander": "volt",
+      "silhouette": "combattant très léger avec deux dagues bleues",
+      "weapon": "deux dagues conductrices",
+      "combatRole": "combo_assassin",
+      "signature": "enchaînement rapide après le dash de Volt",
+      "continuity": ["dague longue main droite", "gants bleus", "ceinture argentée"]
+    },
+    {
+      "id": "rafale",
+      "name": "Rafale",
+      "linkedCommander": "zephira",
+      "silhouette": "éclaireur souple avec lames courtes et foulard blanc",
+      "weapon": "deux lames légères",
+      "combatRole": "whirlwind_skirmisher",
+      "signature": "tourbillon court qui traverse la cible",
+      "continuity": ["foulard blanc", "lames aux deux mains", "bottes noires"]
+    },
+    {
+      "id": "mousse_noir",
+      "name": "Mousse Noir",
+      "linkedCommander": "tonnerre",
+      "silhouette": "mousquetaire compact avec manteau noir et sac de poudre",
+      "weapon": "mousquet de tempête",
+      "combatRole": "suppressive_shooter",
+      "signature": "tirs répétés pour bloquer les déplacements",
+      "continuity": ["mousquet tenu à deux mains", "manteau noir", "sac côté gauche"]
+    }
+  ]
+}

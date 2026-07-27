@@ -12,7 +12,7 @@ import java.util.Locale;
 public final class MainActivity extends Activity implements PirateGameView.VoiceNarrator {
     private TextToSpeech textToSpeech;
     private boolean voiceReady;
-    private PirateGameView gameView;
+    private PirateGameContainer gameView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,13 +35,13 @@ public final class MainActivity extends Activity implements PirateGameView.Voice
             }
         });
 
-        gameView = new PirateGameView(this, this);
+        gameView = new PirateGameContainer(this, this);
         setContentView(gameView);
     }
 
     @Override
     public void speak(String text) {
-        if (voiceReady && text != null && !text.isBlank()) {
+        if (voiceReady && text != null && !text.trim().isEmpty()) {
             textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "chk-pirate-voice");
         }
     }

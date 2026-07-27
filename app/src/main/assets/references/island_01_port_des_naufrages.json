@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "status": "official_reference_locked",
+  "islandIndex": 0,
+  "islandName": "Port des Naufragés",
+  "sourceFiles": [
+    "1000123799.png",
+    "1000124203.png"
+  ],
+  "protectedHeroes": ["CHEIKH", "YVANE", "NELVYN"],
+  "boss25d": {
+    "id": "brakor",
+    "name": "Brakor, Gardien du Port",
+    "silhouette": "massive, broad shoulders, heavy dock armor, long dark beard",
+    "weapon": "large anchor attached to a heavy chain",
+    "combatRole": "heavy melee boss and area controller",
+    "requiredAnimations": ["idle", "walk", "run", "attack", "power", "special", "dodge", "hurt", "knockback", "defeat", "intro", "rage", "phase2", "area_attack", "ultimate"]
+  },
+  "commanders25d": [
+    {
+      "id": "tireur_quais",
+      "name": "Tireur des Quais",
+      "weapon": "long rifle",
+      "combatRole": "precision ranged commander"
+    },
+    {
+      "id": "maitre_croc",
+      "name": "Maître Croc",
+      "weapon": "curved sabre and hook",
+      "combatRole": "aggressive duelist commander"
+    },
+    {
+      "id": "ingenieur_amarres",
+      "name": "Ingénieur des Amarres",
+      "weapon": "mechanical tools, chains and heavy mace",
+      "combatRole": "trap and crowd-control commander"
+    }
+  ],
+  "nakamas25d": [
+    {
+      "id": "voleur_agile",
+      "name": "Voleur Agile",
+      "weapon": "dual blades",
+      "combatRole": "dodge and backstab"
+    },
+    {
+      "id": "porte_chaine",
+      "name": "Porte-Chaîne",
+      "weapon": "chain mace",
+      "combatRole": "circular interruption attacks"
+    },
+    {
+      "id": "guetteur_phare",
+      "name": "Guetteur du Phare",
+      "weapon": "spyglass, pistol and short blade",
+      "combatRole": "target marking and ranged support"
+    }
+  ],
+  "animals3d": [
+    {
+      "id": "crabe_blinde",
+      "name": "Crabe Blindé",
+      "model": "creatures3d/island_01/crabe_blinde.glb"
+    },
+    {
+      "id": "chien_quais",
+      "name": "Chien des Quais",
+      "model": "creatures3d/island_01/chien_quais.glb"
+    },
+    {
+      "id": "rat_cales",
+      "name": "Rat des Cales",
+      "model": "creatures3d/island_01/rat_cales.glb"
+    },
+    {
+      "id": "lezard_jetees",
+      "name": "Lézard des Jetées",
+      "model": "creatures3d/island_01/lezard_jetees.glb"
+    }
+  ],
+  "shipReference": {
+    "sourceFile": "1000123837.webp",
+    "usage": "shape and gameplay readability reference only",
+    "commercialRule": "create an original hull, figurehead, sails and insignia; no direct copy"
+  }
+}

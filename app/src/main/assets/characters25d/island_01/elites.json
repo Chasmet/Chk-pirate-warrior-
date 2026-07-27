@@ -1,0 +1,69 @@
+{
+  "island": 0,
+  "name": "Port des Naufragés",
+  "source": "asset chk pirate.pdf - page 2",
+  "commanders": [
+    {
+      "id": "tireur_quais",
+      "name": "Tireur des Quais",
+      "silhouette": "tireur longiligne en manteau bleu sombre, chapeau et lunettes",
+      "face": "visage partiellement masqué, lunettes rondes, expression concentrée",
+      "weapon": "fusil long avec baïonnette",
+      "combatRole": "precision_ranged",
+      "signature": "salve de couverture puis tir puissant à longue distance",
+      "continuity": ["fusil tenu à deux mains", "manteau bleu sombre", "lunettes toujours présentes"]
+    },
+    {
+      "id": "maitre_croc",
+      "name": "Maître Croc",
+      "silhouette": "duelliste compact, armure à pointes et masque métallique",
+      "face": "masque en forme de mâchoire, cheveux attachés",
+      "weapon": "deux sabres courbes",
+      "combatRole": "aggressive_duelist",
+      "signature": "enchaînement croisé et crochet d'attraction",
+      "continuity": ["deux sabres visibles", "masque métallique", "épaulettes à pointes"]
+    },
+    {
+      "id": "ingenieur_amarres",
+      "name": "Ingénieur des Amarres",
+      "silhouette": "technicien robuste avec bras mécanique, outils et chaînes",
+      "face": "barbe courte, lunettes sombres, expression sévère",
+      "weapon": "masse mécanique et lance-chaîne",
+      "combatRole": "technical_controller",
+      "signature": "pose un piège d'amarre puis immobilise la cible",
+      "continuity": ["bras mécanique côté gauche", "lunettes sombres", "chaînes visibles à la ceinture"]
+    }
+  ],
+  "subordinates": [
+    {
+      "id": "voleur_agile",
+      "name": "Voleur Agile",
+      "linkedCommander": "tireur_quais",
+      "silhouette": "assassin mince à capuche bleu-vert",
+      "weapon": "deux lames courtes",
+      "combatRole": "flanker",
+      "signature": "esquive latérale puis attaque dans le dos",
+      "continuity": ["capuche fermée", "deux lames", "tenue bleu-vert"]
+    },
+    {
+      "id": "porte_chaine",
+      "name": "Porte-Chaîne",
+      "linkedCommander": "maitre_croc",
+      "silhouette": "combattant massif, épaules blindées et chaînes lourdes",
+      "weapon": "crochet et masse-chaîne",
+      "combatRole": "heavy_interrupter",
+      "signature": "attaque circulaire qui repousse les cibles proches",
+      "continuity": ["crâne rasé", "chaînes aux deux bras", "armure noire et brune"]
+    },
+    {
+      "id": "guetteur_phare",
+      "name": "Guetteur du Phare",
+      "linkedCommander": "ingenieur_amarres",
+      "silhouette": "guetteur encapuchonné en manteau jaune usé",
+      "weapon": "pistolet, lance courte et lanterne",
+      "combatRole": "scout_marker",
+      "signature": "marque le héros puis guide les tirs ennemis",
+      "continuity": ["manteau jaune", "lanterne main gauche", "capuche toujours portée"]
+    }
+  ]
+}

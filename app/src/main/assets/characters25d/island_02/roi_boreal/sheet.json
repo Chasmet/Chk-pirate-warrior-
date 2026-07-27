@@ -1,0 +1,27 @@
+{
+  "id": "roi_boreal",
+  "name": "Roi Boréal",
+  "rank": "BOSS",
+  "island": 1,
+  "visualIdentity": {
+    "silhouette": "roi guerrier massif sous une armure de glace, taille imposante mais humaine",
+    "face": "visage pâle, barbe blanche courte, œil droit bleu lumineux",
+    "hair": "cheveux blancs mi-longs balayés vers l'arrière",
+    "clothing": "armure bleu acier, fourrure blanche aux épaules, cape déchirée",
+    "weapon": "grande épée translucide de glace avec cœur sombre",
+    "accessories": ["couronne de glace brisée", "fourrure polaire", "cristaux sur l'avant-bras gauche"],
+    "palette": ["#DFF4FF", "#6AAED6", "#263B59", "#FFFFFF"]
+  },
+  "scale": {"heightMeters": 2.18, "collisionRadiusMeters": 0.66, "pivot": "feet_center"},
+  "referencePoses": ["front_neutral", "back_neutral", "left_profile", "right_profile", "greatsword_guard", "ice_wall_cast", "white_storm_phase", "defeat"],
+  "gameplay": {
+    "phase1": ["greatsword_sweep", "ice_spikes", "frost_charge"],
+    "phase2": ["whiteout_storm", "moving_ice_walls", "frozen_ground", "ultimate_boreal_break"],
+    "weakness": "dos exposé après la frappe verticale"
+  },
+  "runtime": {
+    "directions": ["front", "back", "left", "right"],
+    "animations": {"idle":4,"walk":6,"run":6,"attack":6,"power":8,"special":8,"dodge":5,"hurt":4,"knockback":5,"defeat":8,"intro":8,"rage":8,"phase2":8,"area_attack":8,"ultimate":12}
+  },
+  "continuityRules": ["œil lumineux toujours à droite", "couronne asymétrique inchangée", "cristaux uniquement sur le bras gauche", "épée tenue à deux mains pendant les attaques lourdes"]
+}

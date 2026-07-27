@@ -1,0 +1,21 @@
+{
+  "islandIndex": 6,
+  "islandName": "Île des Gâteaux",
+  "theme": "monde ouvert 3D pâtissier avec personnages importants en 2.5D",
+  "runtime": {
+    "activeCharacterBudget": 7,
+    "ordinaryEnemies": "3D",
+    "atlas": "characters25d/pdf_atlas/island_07_atlas.webp.b64",
+    "actionReference": "characters25d/island_07/reference_action.webp.b64",
+    "sourceDimensions": [1536, 1024],
+    "atlasSlots": [
+      {"slot":0,"id":"matriarche_sucree","name":"Matriarche Sucrée","rank":"BOSS","sourceRect":[380,60,1050,860],"weapon":"sceptre pâtissier et nuages sucrés","ability":"vague de crème, invocation gourmande, contrôle de zone et banquet ultime"},
+      {"slot":1,"id":"prince_mochi","name":"Prince Mochi","rank":"COMMANDER","sourceRect":[80,320,420,865],"weapon":"poings extensibles","ability":"enchaînements rapides, projection et immobilisation élastique"},
+      {"slot":2,"id":"duc_biscuit","name":"Duc Biscuit","rank":"COMMANDER","sourceRect":[540,400,860,865],"weapon":"épée de sucre cristallisé","ability":"garde lourde, contre tranchant et mur de biscuit"},
+      {"slot":3,"id":"chevalier_caramel","name":"Chevalier Caramel","rank":"COMMANDER","sourceRect":[1160,290,1515,870],"weapon":"grande lame caramélisée","ability":"charge brûlante, garde et zone collante"},
+      {"slot":4,"id":"maitre_bonbon","name":"Maître Bonbon","rank":"SUBORDINATE","sourceRect":[770,260,1020,760],"weapon":"canne et projectiles sucrés","ability":"tirs courbes, pièges et ralentissement"},
+      {"slot":5,"id":"gardienne_meringue","name":"Gardienne Meringue","rank":"SUBORDINATE","sourceRect":[10,430,190,870],"weapon":"lame légère et rubans de crème","ability":"esquive aérienne, rafale et soutien"},
+      {"slot":6,"id":"tireur_praline","name":"Tireur Praliné","rank":"SUBORDINATE","sourceRect":[960,360,1245,870],"weapon":"mousquet praliné","ability":"salves, recul tactique et éclats de noisette"}
+    ]
+  }
+}

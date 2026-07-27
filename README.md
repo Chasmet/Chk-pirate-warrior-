@@ -18,6 +18,22 @@ Cette première APK contient :
 - narration par synthèse vocale française Android ;
 - fonctionnement sans compte, sans publicité et sans serveur.
 
+## Branche V2 en développement
+
+La branche `agent/real-3d-foundation-v2` conserve Cheikh, Yvane et Nelvyn et ajoute :
+
+- une boucle de jeu stabilisée à pas fixe ;
+- une caméra tactile indépendante ;
+- des déplacements, esquives, sauts et collisions améliorés ;
+- le catalogue des **42 personnages ennemis importants en 2.5D** ;
+- les fiches techniques des **6 boss, 18 commandants et 18 subordonnés** ;
+- le chargeur mobile des bandes d'animation 2.5D ;
+- le catalogue de **48 espèces ou variantes animales en 3D** ;
+- les tests automatiques associés ;
+- la feuille de route `ROADMAP_ASSETS_25D.md`.
+
+Les fichiers JSON sont des référentiels techniques. Les planches artistiques WEBP et les modèles GLB ne sont pas déclarés terminés tant qu'ils ne sont pas réellement intégrés, compilés et testés sur téléphone.
+
 ## Installer l'APK depuis un téléphone
 
 1. Ouvrir l'onglet **Actions** du dépôt.
