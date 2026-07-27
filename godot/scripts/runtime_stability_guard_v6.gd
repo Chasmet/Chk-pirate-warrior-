@@ -5,8 +5,14 @@ const CHECK_INTERVAL := 0.20
 const ENEMY_SWEEP_INTERVAL := 1.25
 const MAX_LAND_VELOCITY := 44.0
 const MAX_BOAT_VELOCITY := 34.0
-const MAX_WORLD_X := 2750.0
-const MAX_WORLD_Z := 1400.0
+# Limites du grand archipel V7. Les anciennes limites V6 s'arrêtaient à
+# x=2750 et immobilisaient le bateau exactement sur la route Forteresse ->
+# Île des Gâteaux, à environ 474 m de l'arrivée.
+const MIN_WORLD_X := -650.0
+const MAX_WORLD_X := 5700.0
+const MIN_WORLD_Z := -1500.0
+const MAX_WORLD_Z := 1600.0
+const WORLD_SWEEP_MARGIN := 420.0
 const MIN_WORLD_Y := -24.0
 const MAX_WORLD_Y := 320.0
 
@@ -26,7 +32,8 @@ func configure(target_world: GameWorldV6, target_player: PlayerController) -> vo
 	_capture_safe_transform(true)
 	set_process(true)
 	set_meta("runtime_stability_v6", true)
-	print("CHK_RUNTIME_STABILITY_V6_READY interval=%.2f" % CHECK_INTERVAL)
+	set_meta("grand_archipelago_bounds_v7", true)
+	print("CHK_RUNTIME_STABILITY_V7_READY interval=%.2f bounds=[%.0f,%.0f]x[%.0f,%.0f]" % [CHECK_INTERVAL, MIN_WORLD_X, MAX_WORLD_X, MIN_WORLD_Z, MAX_WORLD_Z])
 
 func _process(delta: float) -> void:
 	check_timer -= delta
@@ -101,8 +108,10 @@ func _player_state_is_finite() -> bool:
 
 func _position_inside_world(value: Vector3) -> bool:
 	return value.is_finite() \
-		and absf(value.x) <= MAX_WORLD_X \
-		and absf(value.z) <= MAX_WORLD_Z \
+		and value.x >= MIN_WORLD_X \
+		and value.x <= MAX_WORLD_X \
+		and value.z >= MIN_WORLD_Z \
+		and value.z <= MAX_WORLD_Z \
 		and value.y >= MIN_WORLD_Y \
 		and value.y <= MAX_WORLD_Y
 
@@ -137,7 +146,7 @@ func _recover_player(reason: String) -> void:
 	if player.has_method("_snap_camera_to_player"):
 		player.call("_snap_camera_to_player")
 	recovery_count += 1
-	print("CHK_RUNTIME_RECOVERY_V6 reason=%s count=%d" % [reason, recovery_count])
+	print("CHK_RUNTIME_RECOVERY_V7 reason=%s count=%d position=%s" % [reason, recovery_count, str(recovery_position)])
 
 func _zone_spawn() -> Vector3:
 	if is_instance_valid(world) and not world.zones_v5.is_empty():
@@ -152,7 +161,11 @@ func _sweep_invalid_enemies() -> void:
 		if not is_instance_valid(node) or not node is Node3D:
 			continue
 		var actor := node as Node3D
-		if not actor.global_position.is_finite() or absf(actor.global_position.x) > MAX_WORLD_X * 1.2 or absf(actor.global_position.z) > MAX_WORLD_Z * 1.2:
+		var outside_extended_world := actor.global_position.x < MIN_WORLD_X - WORLD_SWEEP_MARGIN \
+			or actor.global_position.x > MAX_WORLD_X + WORLD_SWEEP_MARGIN \
+			or actor.global_position.z < MIN_WORLD_Z - WORLD_SWEEP_MARGIN \
+			or actor.global_position.z > MAX_WORLD_Z + WORLD_SWEEP_MARGIN
+		if not actor.global_position.is_finite() or outside_extended_world:
 			if player.assisted_target == node:
 				player.assisted_target = null
 			node.queue_free()
