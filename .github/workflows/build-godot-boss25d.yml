@@ -1,20 +1,22 @@
-name: Construire CHK Pirate Warrior V6 Stabilité
+name: Construire CHK Pirate Warrior V7 Grand Archipel
 
 on:
   push:
     branches: [ agent/godot-real-assets-v3 ]
     paths:
       - 'godot/**'
+      - 'tools/**'
       - '.github/workflows/build-godot-boss25d.yml'
   pull_request:
     branches: [ godot-final-polish ]
     paths:
       - 'godot/**'
+      - 'tools/**'
       - '.github/workflows/build-godot-boss25d.yml'
   workflow_dispatch:
 
 concurrency:
-  group: chk-godot-v6-stabilite-${{ github.ref }}
+  group: chk-godot-v7-grand-archipel-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -23,7 +25,7 @@ permissions:
 jobs:
   validation-et-apk:
     runs-on: ubuntu-22.04
-    timeout-minutes: 70
+    timeout-minutes: 90
 
     steps:
       - name: Récupérer le véritable projet Godot
@@ -31,7 +33,7 @@ jobs:
         with:
           lfs: true
 
-      - name: Auditer la base V6 et les neuf rosters
+      - name: Auditer la base V7 et les rosters
         shell: bash
         run: |
           set -euxo pipefail
@@ -44,21 +46,18 @@ jobs:
           test -s godot/scripts/main_v5.gd
           test -s godot/scripts/game_world_v6.gd
           test -s godot/scripts/runtime_stability_guard_v6.gd
+          test -s godot/scripts/adaptive_lighting_director_v7.gd
+          test -s godot/scripts/adaptive_audio_director_v7.gd
           test -s godot/scripts/world_visuals_v5.gd
-          test -s godot/scripts/game_ui_v5.gd
           test -s godot/scripts/save_system.gd
-          test -s godot/scripts/crew_25d_catalog_v5.gd
-          test -s godot/scripts/crew_25d_asset_factory_v5.gd
-          test -s godot/scripts/crew_encounter_director_v6.gd
-          test -s godot/scripts/ambient_fleet_v5.gd
-          test -s godot/tests/v5_final_quality_test.gd
+          test -s godot/tests/v7_world_audio_test.gd
+          test -s tools/generate_audio_v7.py
           grep -q 'main_v5.gd' godot/scenes/main.tscn
-          grep -q 'V6 Stabilité' godot/project.godot
-          grep -q 'archipelago_minimap_v4.gd' godot/project.godot
-          grep -q 'roster_25d_director_v4.gd' godot/project.godot
-          grep -Fq 'include_filter="*.b64"' godot/export_presets.cfg
-          grep -q 'version/code=12' godot/export_presets.cfg
-          grep -q 'version/name="6.0.0-stabilite"' godot/export_presets.cfg
+          grep -q 'V7 Grand Archipel' godot/project.godot
+          grep -q 'AdaptiveAudioDirectorV7' godot/project.godot
+          grep -Fq 'include_filter="*.b64,*.wav"' godot/export_presets.cfg
+          grep -q 'version/code=13' godot/export_presets.cfg
+          grep -q 'version/name="7.0.0-grand-archipel"' godot/export_presets.cfg
           grep -q 'package/unique_name="fr.chk.piratewarrior.v2"' godot/export_presets.cfg
 
       - name: Installer Java 17
@@ -119,29 +118,48 @@ jobs:
           cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
           test -s "$TEMPLATE_DIR/android_debug.apk"
 
+      - name: Générer la banque audio originale V7
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m pip install --disable-pip-version-check numpy
+          rm -rf godot/assets/audio_v7
+          python3 tools/generate_audio_v7.py --output godot/assets/audio_v7 | tee audio-generation.log
+          AUDIO_BYTES="$(du -sb godot/assets/audio_v7 | cut -f1)"
+          echo "AUDIO_BYTES=$AUDIO_BYTES" | tee audio-size.log
+          test "$AUDIO_BYTES" -ge 95000000
+          test "$(find godot/assets/audio_v7 -maxdepth 1 -name '*.wav' | wc -l)" -ge 16
+
       - name: Importer les ressources et vérifier tous les scripts
         shell: bash
         run: |
           set -o pipefail
-          timeout 360s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
+          timeout 600s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
 
-      - name: Tester la V6 Stabilité
+      - name: Tester le grand archipel la lumière et l’audio
         shell: bash
         run: |
           set -o pipefail
-          "$GODOT_BIN" --headless --path godot --script res://tests/v5_final_quality_test.gd 2>&1 | tee godot-v6-stability-test.log
-          grep -q 'CHK_V5_FINAL_QUALITY_READY' godot-v6-stability-test.log
-          grep -q 'CHK_RUNTIME_STABILITY_V6_READY' godot-v6-stability-test.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/v7_world_audio_test.gd 2>&1 | tee godot-v7-world-audio-test.log
+          grep -q 'CHK_V7_GRAND_ARCHIPEL_AUDIO_READY' godot-v7-world-audio-test.log
 
-      - name: Tester les neuf îles et les systèmes historiques
+      - name: Tester la stabilité V6 conservée
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v5_final_quality_test.gd 2>&1 | tee godot-v7-stability-test.log
+          grep -q 'CHK_V5_FINAL_QUALITY_READY' godot-v7-stability-test.log
+          grep -q 'CHK_RUNTIME_STABILITY_V6_READY' godot-v7-stability-test.log
+
+      - name: Tester les neuf zones et les systèmes historiques
         shell: bash
         run: |
           set -o pipefail
           "$GODOT_BIN" --headless --path godot --script res://tests/nine_islands_expansion_test.gd 2>&1 | tee godot-nine-islands-test.log
           grep -q 'CHK_NINE_ISLANDS_READY' godot-nine-islands-test.log
-          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v6-roster-test.log
-          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v6-roster-test.log
+          "$GODOT_BIN" --headless --path godot --script res://tests/v3_roster_25d_test.gd 2>&1 | tee godot-v7-roster-test.log
+          grep -q 'V3 ROSTER 2.5D ET BATEAU RÉUSSI' godot-v7-roster-test.log
           "$GODOT_BIN" --headless --path godot --script res://tests/boss_25d_visual_test.gd 2>&1 | tee godot-boss25d-test.log
           grep -q 'BRAKOR 2.5D DANS MONDE 3D RÉUSSI' godot-boss25d-test.log
 
@@ -154,18 +172,21 @@ jobs:
           "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
           grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
 
-      - name: Construire l’APK Android V6 Stabilité
+      - name: Construire l’APK Android V7 Grand Archipel
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p build
           "$GODOT_BIN" --headless --path godot \
             --export-debug 'Android V2 Debug' \
-            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk" 2>&1 | tee godot-export.log
-          test -s build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk
-          unzip -t build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk >/dev/null
-          sha256sum build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk | tee build/SHA256.txt
-          stat -c 'APK_BYTES=%s' build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk | tee build/APK_SIZE.txt
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk" 2>&1 | tee godot-export.log
+          APK="build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          APK_BYTES="$(stat -c%s "$APK")"
+          test "$APK_BYTES" -ge 100000000
+          sha256sum "$APK" | tee build/SHA256.txt
+          printf 'APK_BYTES=%s\n' "$APK_BYTES" | tee build/APK_SIZE.txt
 
       - name: Préparer les notes de version
         shell: bash
@@ -173,35 +194,40 @@ jobs:
           set -euxo pipefail
           APK_SIZE="$(cut -d= -f2 build/APK_SIZE.txt)"
           APK_SHA="$(cut -d' ' -f1 build/SHA256.txt)"
+          AUDIO_SIZE="$(cut -d= -f2 audio-size.log)"
           cat > build/RELEASE_NOTES.md <<EOF
-          # CHK Pirate Warrior V6 Stabilité
+          # CHK Pirate Warrior V7 Grand Archipel
 
           APK Android Godot arm64 compilée et validée par GitHub Actions.
 
-          - Version Android : 6.0.0-stabilite
-          - Code Android : 12
+          - Version Android : 7.0.0-grand-archipel
+          - Code Android : 13
           - Package conservé : fr.chk.piratewarrior.v2
-          - Taille : ${APK_SIZE} octets
+          - Taille APK : ${APK_SIZE} octets
+          - Banque audio originale : ${AUDIO_SIZE} octets
           - SHA-256 : ${APK_SHA}
           - Commit : ${GITHUB_SHA}
 
-          Corrections principales : sauvegarde atomique avec backup, récupération des positions et vitesses invalides, protection des transitions d’île, nettoyage des références détruites et réduction des scans CPU Android.
+          Améliorations : îles éloignées de 800 à plus de 1 300 mètres, océan de 6,8 km, mini-carte recalibrée, éclairage adaptatif jour/nuit/météo, éclairs de tempête, musique d’exploration/combat/boss, ambiances îles/océan/bateau et effets sonores.
 
-          Cette APK est une version debug destinée au test sur téléphone avant validation finale.
+          Les protections de sauvegarde, caméra, navigation, transitions d’île et récupération des valeurs invalides restent actives. Cette APK debug doit encore être contrôlée visuellement et auditivement sur téléphone.
           EOF
 
-      - name: Publier l’APK V6 dans les artefacts
+      - name: Publier l’APK V7 dans les artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V6-Stabilite-APK
+          name: CHK-Pirate-Warrior-V7-Grand-Archipel-APK
           path: |
-            build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk
+            build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk
             build/SHA256.txt
             build/APK_SIZE.txt
             build/RELEASE_NOTES.md
-            godot-v6-stability-test.log
+            audio-generation.log
+            audio-size.log
+            godot-v7-world-audio-test.log
+            godot-v7-stability-test.log
             godot-nine-islands-test.log
-            godot-v6-roster-test.log
+            godot-v7-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
@@ -209,52 +235,55 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publier l’APK V6 dans GitHub Releases
+      - name: Publier l’APK V7 dans GitHub Releases
         if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          TAG="v6-stabilite-latest"
+          TAG="v7-grand-archipel-latest"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -f "$TAG" "$GITHUB_SHA"
           git push origin "refs/tags/$TAG" --force
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" \
-              build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk \
+              build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk \
               build/SHA256.txt \
               build/APK_SIZE.txt \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
             gh release edit "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --title "CHK Pirate Warrior V6 Stabilité" \
+              --title "CHK Pirate Warrior V7 Grand Archipel" \
               --notes-file build/RELEASE_NOTES.md \
               --prerelease
           else
             gh release create "$TAG" \
-              build/CHK-Pirate-Warrior-V6-Stabilite-debug.apk \
+              build/CHK-Pirate-Warrior-V7-Grand-Archipel-debug.apk \
               build/SHA256.txt \
               build/APK_SIZE.txt \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "CHK Pirate Warrior V6 Stabilité" \
+              --title "CHK Pirate Warrior V7 Grand Archipel" \
               --notes-file build/RELEASE_NOTES.md \
               --prerelease
           fi
 
-      - name: Publier les diagnostics V6
+      - name: Publier les diagnostics V7
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V6-diagnostics
+          name: CHK-Pirate-Warrior-V7-diagnostics
           path: |
+            audio-generation.log
+            audio-size.log
             godot-import.log
-            godot-v6-stability-test.log
+            godot-v7-world-audio-test.log
+            godot-v7-stability-test.log
             godot-nine-islands-test.log
-            godot-v6-roster-test.log
+            godot-v7-roster-test.log
             godot-boss25d-test.log
             godot-camera-test.log
             godot-final-test.log
