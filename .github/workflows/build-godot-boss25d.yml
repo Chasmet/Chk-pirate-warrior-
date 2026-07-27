@@ -150,7 +150,7 @@ jobs:
           set -o pipefail
           "$GODOT_BIN" --headless --path godot --script res://tests/v5_final_quality_test.gd 2>&1 | tee godot-v7-stability-test.log
           grep -q 'CHK_V5_FINAL_QUALITY_READY' godot-v7-stability-test.log
-          grep -q 'CHK_RUNTIME_STABILITY_V6_READY' godot-v7-stability-test.log
+          grep -Eq 'CHK_RUNTIME_STABILITY_V(6|7)_READY' godot-v7-stability-test.log
 
       - name: Tester les neuf zones et les systèmes historiques
         shell: bash
