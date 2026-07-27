@@ -2,14 +2,14 @@ extends Control
 
 const ZONE_POINTS := [
 	Vector2(0.0, 0.0),
-	Vector2(315.0, -175.0),
-	Vector2(655.0, -72.0),
-	Vector2(275.0, 260.0),
-	Vector2(625.0, 295.0),
-	Vector2(955.0, 105.0),
-	Vector2(1260.0, -225.0),
-	Vector2(1560.0, 180.0),
-	Vector2(1900.0, -110.0)
+	Vector2(720.0, -420.0),
+	Vector2(1580.0, -160.0),
+	Vector2(700.0, 720.0),
+	Vector2(1580.0, 820.0),
+	Vector2(2460.0, 260.0),
+	Vector2(3300.0, -560.0),
+	Vector2(4140.0, 540.0),
+	Vector2(5050.0, -220.0)
 ]
 const ZONE_LABELS := ["PORT", "JUNGLE", "NEIGE", "DÉSERT", "VOLCAN", "FORT", "GÂTEAUX", "CRÂNE", "CIEL"]
 const ZONE_COLORS := [
@@ -17,9 +17,9 @@ const ZONE_COLORS := [
 	Color("d6a15a"), Color("bb4d32"), Color("536b80"),
 	Color("df8fb5"), Color("6f3028"), Color("86c8ec")
 ]
-const ZONE_RADII := [11.0, 12.0, 11.0, 12.0, 11.0, 13.0, 12.0, 13.0, 13.0]
-const MAP_MIN := Vector2(-120.0, -340.0)
-const MAP_MAX := Vector2(2040.0, 390.0)
+const ZONE_RADII := [10.0, 11.0, 10.0, 11.0, 10.0, 12.0, 11.0, 12.0, 12.0]
+const MAP_MIN := Vector2(-350.0, -950.0)
+const MAP_MAX := Vector2(5400.0, 1120.0)
 
 var player: PlayerController
 var world: Node
@@ -39,8 +39,8 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	var viewport_size := get_viewport_rect().size
-	position = Vector2(viewport_size.x - 360.0, 88.0)
-	size = Vector2(336.0, 208.0)
+	position = Vector2(viewport_size.x - 380.0, 88.0)
+	size = Vector2(356.0, 218.0)
 	queue_redraw()
 
 func _draw() -> void:
@@ -49,7 +49,7 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2(4.0, 4.0), size - Vector2(8.0, 8.0)), Color(0.02, 0.09, 0.14, 0.72), true)
 	draw_rect(panel, Color("d6a63d"), false, 2.0)
 	var font := ThemeDB.fallback_font
-	draw_string(font, Vector2(12.0, 22.0), "ARCHIPEL DES QUINET • 9 ÎLES", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, Color("f5d985"))
+	draw_string(font, Vector2(12.0, 22.0), "GRAND ARCHIPEL • NAVIGATION RÉELLE", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 14, Color("f5d985"))
 	_draw_compass(font)
 
 	var current_zone := 0
