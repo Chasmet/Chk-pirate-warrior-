@@ -1,0 +1,42 @@
+name: Exporter la base Godot réelle
+
+on:
+  push:
+    branches: [ agent/godot-real-assets-v3 ]
+  pull_request:
+    branches: [ godot-final-polish ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Créer l’archive de travail
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build
+          tar \
+            --exclude='.git' \
+            --exclude='build' \
+            -czf build/chk-pirate-warrior-godot-source.tar.gz .
+          sha256sum build/chk-pirate-warrior-godot-source.tar.gz > build/SHA256.txt
+          du -h build/chk-pirate-warrior-godot-source.tar.gz
+
+      - name: Publier la base source
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-Godot-Source
+          path: |
+            build/chk-pirate-warrior-godot-source.tar.gz
+            build/SHA256.txt
+          if-no-files-found: error
+          retention-days: 7

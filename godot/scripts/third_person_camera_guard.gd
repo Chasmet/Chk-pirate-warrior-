@@ -1,7 +1,8 @@
 extends Node
 
 # Autorité unique de caméra troisième personne.
-# Aucun autre script ne doit déplacer CameraJoueur directement.
+# Le placement s'effectue uniquement pendant le pas physique pour éviter que
+# le contrôleur et la caméra écrivent entre deux images différentes.
 const LAND_DISTANCE := 3.05
 const LAND_RUN_DISTANCE := 3.40
 const BOAT_DISTANCE := 9.8
@@ -17,16 +18,19 @@ var player_logged := false
 
 func _ready() -> void:
 	process_priority = 1700
-	set_process(true)
+	process_physics_priority = 1700
+	set_process(false)
+	set_physics_process(true)
+	set_meta("physics_camera_authority_v8", true)
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		player = _find_player_recursive(get_tree().root)
 		if not is_instance_valid(player):
 			return
 		if not player_logged:
 			player_logged = true
-			print("CHK_CAMERA_SINGLE_AUTHORITY player=%s" % player.name)
+			print("CHK_CAMERA_SINGLE_AUTHORITY_V8 player=%s physics=1" % player.name)
 
 	if not is_instance_valid(player.camera_pivot) or not is_instance_valid(player.camera_arm) or not is_instance_valid(player.camera):
 		return
@@ -82,8 +86,10 @@ func _update_boat_camera(delta: float, snap_now: bool) -> void:
 	var horizontal_distance := cos(pitch) * distance
 	var vertical_offset := 2.55 - sin(pitch) * 3.6 + speed_ratio * 0.20
 	var desired_position := anchor + back * horizontal_distance + Vector3.UP * vertical_offset + right * 0.80
+	# En mer, la hauteur minimale suffit ; le second rayon vertical historique
+	# était inutile au-dessus de l'océan et ajoutait une requête physique par image.
 	desired_position = _collision_safe_position(anchor, desired_position, BOAT_CAMERA_FLOOR, 4.0)
-	desired_position = _lift_above_surface(desired_position, BOAT_CAMERA_FLOOR, 1.10)
+	desired_position.y = maxf(desired_position.y, BOAT_CAMERA_FLOOR)
 
 	_move_camera(desired_position, delta, snap_now, 12.0)
 	player.camera.look_at(anchor + velocity_flat * 0.025 + Vector3(0.0, -0.12, -0.28), Vector3.UP)
@@ -144,12 +150,10 @@ func _lift_above_surface(position: Vector3, minimum_y: float, clearance: float) 
 	corrected.y = maxf(corrected.y, minimum_y)
 	return corrected
 
-func _force_hero_visible(on_boat: bool) -> void:
+func _force_hero_visible(_on_boat: bool) -> void:
 	if not is_instance_valid(player.hero_visual):
 		return
 	player.hero_visual.visible = true
-	if on_boat:
-		player.hero_visual.position = player.hero_visual.position.lerp(Vector3(0.0, 0.72, 1.48), 0.35)
 	var sprite := player.hero_visual.get_node_or_null("RigVisuel/CharacterArt") as Sprite3D
 	if sprite == null:
 		return
@@ -160,7 +164,7 @@ func _force_hero_visible(on_boat: bool) -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	sprite.alpha_scissor_threshold = 0.060
-	sprite.render_priority = 8
+	sprite.render_priority = 10 if player.boat_mode else 8
 	sprite.pixel_size = float(profile["pixel_size"])
 
 func _find_player_recursive(node: Node) -> PlayerController:
