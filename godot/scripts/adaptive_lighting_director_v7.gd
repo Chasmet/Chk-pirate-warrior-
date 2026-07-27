@@ -1,7 +1,7 @@
 class_name AdaptiveLightingDirectorV7
 extends Node3D
 
-var world: GameWorldV6
+var world: Node
 var player: PlayerController
 var visuals: WorldVisualsV5
 var zones: Array = []
@@ -15,7 +15,7 @@ var lightning_timer := 8.0
 var lightning_flash := 0.0
 var rng := RandomNumberGenerator.new()
 
-func configure(target_world: GameWorldV6, target_player: PlayerController, target_visuals: WorldVisualsV5, zone_definitions: Array) -> void:
+func configure(target_world: Node, target_player: PlayerController, target_visuals: WorldVisualsV5, zone_definitions: Array) -> void:
 	world = target_world
 	player = target_player
 	visuals = target_visuals
@@ -24,7 +24,8 @@ func configure(target_world: GameWorldV6, target_player: PlayerController, targe
 	_build_directional_lights()
 	_build_lantern_pool()
 	_prepare_environment()
-	set_active_zone(int(world.current_zone))
+	var zone_value: Variant = world.get("current_zone") if is_instance_valid(world) else 0
+	set_active_zone(int(zone_value) if zone_value != null else 0)
 	set_process(true)
 	set_meta("adaptive_lighting_v7", true)
 	print("CHK_LIGHTING_V7_READY dynamic=true mobile_budget=true")
@@ -41,15 +42,15 @@ func _process(delta: float) -> void:
 	_update_lightning(delta, weather)
 
 func set_active_zone(zone_index: int) -> void:
-	active_zone = clampi(zone_index, 0, max(0, zones.size() - 1))
+	active_zone = clampi(zone_index, 0, maxi(0, zones.size() - 1))
 	if zones.is_empty():
 		return
-	var zone: Dictionary = zones[active_zone]
+	var zone := zones[active_zone] as Dictionary
 	var center := Vector3(zone.get("center", Vector3.ZERO))
 	var direction := Vector3(zone.get("dock_dir", Vector3.FORWARD)).normalized()
 	var side := Vector3(-direction.z, 0.0, direction.x)
 	var radius := float(zone.get("radius", 100.0))
-	var positions := [
+	var positions: Array[Vector3] = [
 		center + direction * (radius - 19.0) + Vector3.UP * 5.2,
 		center + side * radius * 0.34 + Vector3.UP * 6.6,
 		center - side * radius * 0.31 + Vector3.UP * 6.1,
@@ -109,7 +110,6 @@ func _prepare_environment() -> void:
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.10
 	environment.tonemap_white = 2.35
-	# En compatibilité OpenGL, le glow est coûteux et instable sur certains GPU.
 	if RenderingServer.get_current_rendering_method() == "gl_compatibility":
 		environment.glow_enabled = false
 	else:
