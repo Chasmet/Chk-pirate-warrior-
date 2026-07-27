@@ -58,6 +58,27 @@ func _run() -> void:
 	await process_frame
 	await physics_frame
 	var player := world.get_player()
+	var hero_animator := world.hero_animator as QuinetHeroAnimator
+	_check(hero_animator != null, "contrôleur d’animation héros présent")
+	var required_animation_states := PackedStringArray([
+		"intro", "idle", "walk", "run", "jump", "attack", "power", "special",
+		"dodge", "hurt", "knockback", "land", "defeat", "victory", "boat"
+	])
+	var supported_animation_states := hero_animator.supported_states() if hero_animator != null else PackedStringArray()
+	for animation_state in required_animation_states:
+		_check(supported_animation_states.has(animation_state), "animation héros disponible : " + animation_state)
+	if hero_animator != null:
+		hero_animator._process(0.016)
+		_check(bool(player.hero_visual.get_meta("animation_pipeline_v6", false)), "machine d’animation V6 active dans le monde")
+		player.attack()
+		hero_animator._process(0.016)
+		_check(hero_animator.current_state_name() == "attack", "attaque reliée à l’animation")
+		player.dodge_cooldown = 0.0
+		player.dodge_time = 0.0
+		player.dodge()
+		hero_animator._process(0.016)
+		_check(hero_animator.current_state_name() == "dodge", "esquive reliée à l’animation")
+
 	_check(bool(world.get_meta("v5_final_quality", false)), "base V5 conservée")
 	_check(bool(world.get_meta("general_polish_v6", false)), "amélioration générale V6 active")
 	_check(world.zones_v5.size() == 9, "neuf îles conservées")
@@ -96,6 +117,7 @@ func _run() -> void:
 	if failures == 0:
 		print("CHK_V5_FINAL_QUALITY_READY")
 		print("CHK_V6_GENERAL_POLISH_READY")
+		print("CHK_HERO_ANIMATION_V6_READY")
 	else:
 		push_error("%d vérification(s) ont échoué" % failures)
 	quit(failures)
