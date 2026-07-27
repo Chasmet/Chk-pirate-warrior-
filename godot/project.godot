@@ -1,13 +1,13 @@
 ; CHK Pirate Warrior — Godot 4.6.3 stable
-; V6 Stabilité : monde ouvert 3D mobile en français.
-; Les neuf îles agrandies, l’océan, les bateaux, bâtiments, animaux et collisions restent en 3D.
+; V7 Grand Archipel : îles éloignées, lumière adaptative et banque audio originale.
+; L’océan, les bateaux, bâtiments, animaux et collisions restent en 3D.
 ; Les héros et personnages importants utilisent une intégration 2.5D dans le monde.
 
 config_version=5
 
 [application]
 
-config/name="CHK Pirate Warrior V6 Stabilité"
+config/name="CHK Pirate Warrior V7 Grand Archipel"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 config/icon="res://assets/ui/icon_512.png"
@@ -28,6 +28,7 @@ TargetHealthHud="*res://scripts/target_health_hud.gd"
 AAAPresentationDirector="*res://scripts/aaa_presentation_director.gd"
 Roster25DDirector="*res://scripts/roster_25d_director_v4.gd"
 CombatVarietyDirector="*res://scripts/combat_variety_director.gd"
+AdaptiveAudioDirectorV7="*res://scripts/adaptive_audio_director_v7.gd"
 
 [display]
 
@@ -65,6 +66,8 @@ common/physics_ticks_per_second=60
 [audio]
 
 general/text_to_speech=true
+driver/enable_input=false
+default_bus_layout="res://default_bus_layout.tres"
 
 [input]
 
