@@ -75,7 +75,10 @@ func _apply_world_space_rules() -> void:
 	source_sprite.double_sided = true
 	source_sprite.shaded = false
 	source_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	source_sprite.render_priority = 4
+	# Sur le bateau, la cabine, la roue et la voile occupent la même zone de
+	# profondeur. Une priorité plus haute garde le héros choisi lisible tout en
+	# conservant le test de profondeur et l'intégration réelle dans le monde 3D.
+	source_sprite.render_priority = 10 if player.boat_mode else 4
 	player.camera.cull_mask |= VISIBLE_LAYER
 
 func _sync_material(force: bool = false) -> void:
