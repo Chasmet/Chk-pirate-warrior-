@@ -145,7 +145,8 @@ func _build_sun_disk_v5() -> void:
 
 func _build_cloud_layer_v5() -> void:
 	cloud_root = Node3D.new()
-	cloud_root.name = "NuagesDynamiquesV7"
+	cloud_root.name = "NuagesDynamiquesV5"
+	cloud_root.set_meta("expanded_clouds_v7", true)
 	add_child(cloud_root)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 19820415
