@@ -4,8 +4,7 @@ import android.content.Context;
 import android.widget.FrameLayout;
 
 /**
- * Conserve le moteur V2, les assets officiels et ajoute héros, pouvoirs, carte et navigation
- * sans repartir de zéro.
+ * Conserve le moteur V2 et superpose les améliorations V5.5 sans repartir de zéro.
  */
 public final class PirateGameContainer extends FrameLayout {
     private final PirateGameViewV2 gameView;
@@ -16,15 +15,18 @@ public final class PirateGameContainer extends FrameLayout {
         ExtendedIslandOverlay extendedIslandOverlay = new ExtendedIslandOverlay(context, gameView);
         OfficialHeroOverlay heroOverlay = new OfficialHeroOverlay(context, gameView);
         PirateGameAssetOverlay assetOverlay = new PirateGameAssetOverlay(context, gameView);
-        HeroPowerOverlay powerOverlay = new HeroPowerOverlay(context, gameView);
+        V55EnemyAbilityOverlay enemyAbilityOverlay = new V55EnemyAbilityOverlay(context, gameView);
+        V55HeroPowerOverlay powerOverlay = new V55HeroPowerOverlay(context, gameView);
         WorldMapOverlay mapOverlay = new WorldMapOverlay(context, gameView);
         OceanTravelOverlay oceanOverlay = new OceanTravelOverlay(context, gameView);
 
         addView(gameView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        // Recouvre uniquement les îles 7 et 8, puis laisse les héros et ennemis officiels au-dessus.
+        // Les îles supplémentaires restent sous les personnages officiels.
         addView(extendedIslandOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(heroOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(assetOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        // Les télégraphes ennemis sont visibles au-dessus des sprites, sans masquer les contrôles.
+        addView(enemyAbilityOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(powerOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(mapOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(oceanOverlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
