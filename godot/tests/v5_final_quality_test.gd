@@ -46,6 +46,19 @@ func _run() -> void:
 	var defaults := SaveSystem.default_data()
 	_check(int(defaults.get("save_version", 0)) == 5, "format sauvegarde V5 conservé")
 	_check(defaults.has("exact_position") and defaults.has("crew_relations"), "position et relations persistées")
+	var corrupted := defaults.duplicate(true)
+	corrupted["hero"] = "inconnu"
+	corrupted["zone"] = 999
+	corrupted["coins"] = -800
+	corrupted["difficulty"] = "impossible"
+	corrupted["has_exact_position"] = true
+	corrupted["exact_position"] = [INF, -999.0, 9000.0]
+	var sanitized := SaveSystem.sanitize_data(corrupted)
+	_check(String(sanitized["hero"]) == "cheikh" and int(sanitized["zone"]) == 8, "sauvegarde corrompue normalisée")
+	_check(int(sanitized["coins"]) == 0 and not bool(sanitized["has_exact_position"]), "valeurs dangereuses de sauvegarde rejetées")
+	_check(SaveSystem.save_data(defaults), "écriture atomique de la sauvegarde")
+	var reloaded := SaveSystem.load_data()
+	_check(String(reloaded["hero"]) == "cheikh" and int(reloaded["zone"]) == 0, "relecture de la sauvegarde atomique")
 
 	var save := SaveSystem.default_data()
 	save["zone"] = 0
@@ -81,19 +94,33 @@ func _run() -> void:
 
 	_check(bool(world.get_meta("v5_final_quality", false)), "base V5 conservée")
 	_check(bool(world.get_meta("general_polish_v6", false)), "amélioration générale V6 active")
+	_check(bool(world.get_meta("runtime_stability_v6", false)), "garde de stabilité V6 active")
+	_check(world.stability_guard is RuntimeStabilityGuardV6, "contrôleur de récupération présent")
+	var safe_position := player.global_position
+	player.velocity = Vector3(INF, 4.0, 0.0)
+	player.camera_yaw = INF
+	world.stability_guard.run_check_for_test()
+	_check(player.velocity.is_finite() and is_finite(player.camera_yaw), "récupération des valeurs NaN/INF")
+	player.global_position = Vector3(9000.0, 8.0, 0.0)
+	world.stability_guard.run_check_for_test()
+	_check(player.global_position.is_finite() and absf(player.global_position.x) < 2750.0, "retour depuis les limites invalides")
+	_check(player.global_position.distance_to(safe_position) < 40.0, "dernier point sûr restauré")
+
 	_check(world.zones_v5.size() == 9, "neuf îles conservées")
 	_check(player.is_in_group("player_actor") and bool(player.get_meta("physics_v6", false)), "physique joueur renforcée")
 	_check(player.floor_snap_length >= 0.80 and player.max_slides >= 7, "collisions et pentes améliorées")
 	_check(world.visuals is WorldVisualsV5, "météo et soleil V5 conservés")
 	_check(world.polish_director != null and world.polish_director.fill_light != null, "éclairage de remplissage V6")
+	_check(world.polish_director.animated_sprites.size() <= GeneralPolishDirectorV6.MAX_ANIMATED_SPRITES, "charge animation secondaire plafonnée")
 	_check(world.visuals.get_node_or_null("SoleilV5") != null, "soleil visuel présent")
 	_check(world.visuals.get_node_or_null("NuagesDynamiquesV5") != null, "nuages dynamiques présents")
 	_check(world.island_life != null and world.island_life.active_animated_count() >= 10, "île active enrichie avec animations")
 	_check(world.ambient_fleet != null and world.ambient_fleet.ships.size() >= 12, "flotte ambiante conservée")
 	_check(world.crew_director is CrewEncounterDirectorV6, "directeur d’équipages mobiles V6")
 	_check(world.crew_director.members.size() == 12, "douze personnages itinérants actifs")
-	_check(get_nodes_in_group("ambient_animals").size() >= 70, "faune 3D enrichie")
-	var animal := get_nodes_in_group("ambient_animals")[0] if not get_nodes_in_group("ambient_animals").is_empty() else null
+	var ambient_animals := get_nodes_in_group("ambient_animals")
+	_check(ambient_animals.size() >= 70, "faune 3D enrichie")
+	var animal := ambient_animals[0] if not ambient_animals.is_empty() else null
 	_check(animal is QuinetAmbientAnimal and bool(animal.get_meta("animated_physics", false)), "faune avec physique et animation")
 
 	var mobile_count := 0
@@ -118,6 +145,7 @@ func _run() -> void:
 		print("CHK_V5_FINAL_QUALITY_READY")
 		print("CHK_V6_GENERAL_POLISH_READY")
 		print("CHK_HERO_ANIMATION_V6_READY")
+		print("CHK_RUNTIME_STABILITY_V6_TEST_READY")
 	else:
 		push_error("%d vérification(s) ont échoué" % failures)
 	quit(failures)
