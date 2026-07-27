@@ -47,7 +47,7 @@ func _run() -> void:
 	]
 	for path in audio_paths:
 		_check(ResourceLoader.exists(path), "asset audio importé : " + path.get_file())
-	var audio_director := root.get_node_or_null("AdaptiveAudioDirectorV7")
+	var audio_director := root.get_node_or_null("AdaptiveAudio")
 	_check(audio_director is AdaptiveAudioDirectorV7, "autoload audio adaptatif actif")
 	if audio_director is AdaptiveAudioDirectorV7:
 		(audio_director as AdaptiveAudioDirectorV7)._process(0.4)
