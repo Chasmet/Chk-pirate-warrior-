@@ -1,43 +1,77 @@
-# CHK Pirate Warrior — L'Archipel des Quinet
+# CHK Pirate Warrior — L'Archipel des Onze Royaumes
 
-Jeu d'action-aventure Android en français, pensé uniquement pour téléphone et jouable hors connexion.
+Jeu d'action-aventure Android natif en Java, jouable hors connexion.
 
-## Version 1.0 jouable
+## V2 — reconstruction majeure
 
-Cette première APK contient :
+La branche `v2-major-rebuild` remplace le prototype V1 par une nouvelle boucle de jeu structurée autour de 11 îles/royaumes.
 
-- trois héros jouables : **Cheikh**, **Yvane** et **Nelvyn** ;
-- commandes tactiles en mode paysage ;
-- monde ouvert découpé en cinq grandes régions ;
-- soleil, pluie, neige, tempête, cendres et cycle jour/nuit ;
-- ennemis évolutifs et cinq capitaines de région ;
-- attaques, pouvoirs, combos et déferlements d'énergie ;
-- progression individuelle, niveaux et entraînement ;
-- carte permettant de voyager entre les régions ;
-- sauvegarde automatique locale ;
-- narration par synthèse vocale française Android ;
-- fonctionnement sans compte, sans publicité et sans serveur.
+### Campagne
 
-## Installer l'APK depuis un téléphone
+1. Royaume des Palmes
+2. Royaume des Roches
+3. Royaume de Nourriture
+4. Jungle Interdite
+5. Royaume des Glaces
+6. Terres du Volcan
+7. Archipel du Ciel
+8. Cité Néon
+9. Mer des Spectres
+10. Empire Ancien
+11. Royaume Troublé
 
-1. Ouvrir l'onglet **Actions** du dépôt.
-2. Ouvrir la dernière exécution **Construire APK Android** avec une coche verte.
-3. Descendre jusqu'à **Artifacts**.
-4. Télécharger **CHK-Pirate-Warrior-APK**.
-5. Ouvrir le fichier ZIP téléchargé.
-6. Installer `CHK-Pirate-Warrior-V1.apk`.
+Chaque île dispose de son biome, sa météo, son objectif, ses ennemis, son boss et sa direction artistique. La dernière île contient l'objet rare qui conclut la campagne.
 
-Android peut demander l'autorisation d'installer une application provenant du navigateur ou de GitHub.
+### Systèmes V2
+
+- trois héros : Cheikh, Yvane et Nelvyn ;
+- déplacement tactile relatif à la caméra ;
+- caméra orientable par glissement sur la partie droite de l'écran ;
+- combat normal, pouvoir et déferlement ;
+- ennemis et boss avec montée en difficulté ;
+- progression, XP, niveaux, pièces et combos ;
+- carte complète des 11 îles avec déblocage progressif ;
+- pontons, embarquement et débarquement ;
+- bateau contrôlable au joystick ;
+- environnements procéduraux par biome ;
+- pluie, tempête, neige, cendres et brume dorée ;
+- sauvegarde locale automatique ;
+- narration française Android TTS ;
+- fonctionnement sans compte, publicité ou serveur ;
+- nouveau logo CHK et nouvelle interface plein écran.
+
+## Technique
+
+- Android natif ;
+- Java uniquement ;
+- minSdk 21 ;
+- targetSdk 34 ;
+- compileSdk 34 ;
+- Java 17 ;
+- Gradle 8.9 / Android Gradle Plugin 8.7.3.
+
+## Compilation
+
+GitHub Actions exécute réellement :
+
+```bash
+./gradlew clean testDebugUnitTest lintDebug assembleDebug
+```
+
+L'APK de debug est publié comme Artifact sous le nom `CHK-Pirate-Warrior-V2-APK`.
 
 ## Commandes
 
-- Joystick gauche : déplacement.
-- **ATTAQUE** : coup normal.
-- **POUVOIR** : technique spéciale consommant de l'énergie.
-- **DÉFERLER** : activation de l'aura lorsque la jauge est pleine.
-- **CARTE** : voyage entre les cinq régions.
+- joystick gauche : déplacement du héros ou du bateau ;
+- glissement à droite : rotation de caméra ;
+- **ATTAQUE** : attaque principale ;
+- **POUVOIR** : technique spéciale ;
+- **AURA** : déferlement lorsque la jauge est pleine ;
+- **BATEAU** : embarquer près d'un ponton ;
+- **DÉBARQ.** : débarquer en revenant au ponton ;
+- **CARTE** : choisir une île débloquée ;
 - **PAUSE** : sauvegarde et menu.
 
-## Direction du projet
+## Important
 
-L'univers est original. Il reprend l'esprit d'une grande aventure de pirates animée sans utiliser de personnages, logos ou contenus officiels d'une licence existante.
+La V1 reste dans `PirateGameView.java` comme référence historique, mais l'application V2 démarre désormais sur `WorldGameView.java` via `MainActivity`.
