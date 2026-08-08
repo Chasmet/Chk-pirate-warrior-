@@ -35,6 +35,7 @@ func _run() -> void:
 
 	_check(bool(world.get_meta("open_world_foundation_v11", false)), "le monde V11 est actif")
 	_check(bool(world.get_meta("final_kingdom_dockable_v11", false)), "le Royaume Troublé possède une logique d'accostage")
+	_check(bool(world.get_meta("final_dock_hud_v11", false)), "le HUD connaît le quai du Royaume Troublé")
 	_check(world.open_world_director is OpenWorldRegionDirectorV11, "le directeur V11 remplace la fondation V9")
 	_check(world.final_landmass is FinalKingdomLandmassV11, "un terrain physique dédié est construit pour l'île finale")
 	_check(bool(world.final_landmass.get_meta("playable_final_landmass_v11", false)), "le terrain final est marqué jouable")
@@ -64,6 +65,18 @@ func _run() -> void:
 	_check(water_dock.distance_to(land_dock) > 40.0, "le quai possède une zone mer et une zone terre distinctes")
 	_check(world._is_on_final_region(RegionCatalogV11.final_relic_position()), "la relique est bien placée sur l'île jouable")
 
+	# Test réel du bouton tactile : en bateau au quai, l'action doit devenir ACCOSTER et être cliquable.
+	world.final_departure_guard = false
+	world.player.enter_boat(water_dock, world.get_dock_position(world.destination_zone, true))
+	world._update_navigation()
+	_check(world.player.boat_mode, "le test d'accostage démarre réellement en bateau")
+	_check(world.last_boat_label == "ACCOSTER" and world.last_boat_available, "le HUD tactile active ACCOSTER devant le Royaume Troublé")
+	world.toggle_boat()
+	await physics_frame
+	_check(not world.player.boat_mode and world.final_region_active, "le bouton ACCOSTER débarque réellement sur le onzième royaume")
+	world._update_navigation()
+	_check(world.last_boat_label == "EMBARQUER" and world.last_boat_available, "le HUD tactile permet aussi de repartir depuis le Pont du Retour Impossible")
+
 	world.player.teleport_to_world_position(RegionCatalogV11.final_relic_position())
 	world.final_region_active = true
 	director.force_region_for_test(RegionCatalogV11.FINAL_REGION_INDEX)
@@ -88,6 +101,7 @@ func _run() -> void:
 		print("CHK_V11_HUMANOID_NPCS_READY")
 		print("CHK_V11_INTERFACE_LOGO_READY")
 		print("CHK_V11_FINAL_RELIC_READY")
+		print("CHK_V11_TOUCH_DOCK_READY")
 	else:
 		push_error("%d vérification(s) V11 ont échoué" % failures)
 	quit(failures)
