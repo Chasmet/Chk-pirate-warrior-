@@ -1,10 +1,22 @@
-name: Construire APK Android
+name: Construire APK Android V1
 
 on:
   push:
-    branches: [ main, v2-major-rebuild ]
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/build-apk.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +29,7 @@ jobs:
 
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Installer Java 17
         uses: actions/setup-java@v4
@@ -25,42 +37,36 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Installer Gradle 8.9
+      - name: Installer Gradle 9.5
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '9.5.0'
 
-      - name: Installer le SDK Android 34
+      - name: Installer le SDK Android 36
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" >/dev/null
 
-      - name: Générer le wrapper Gradle
-        run: gradle wrapper --gradle-version 8.9
-
-      - name: Autoriser gradlew
-        run: chmod +x gradlew
-
-      - name: Tests, lint et compilation
+      - name: Tests et compilation
         shell: bash
         run: |
           set +e
-          ./gradlew --no-daemon --console=plain clean testDebugUnitTest lintDebug assembleDebug > gradle-build.log 2>&1
+          gradle --no-daemon --console=plain clean testDebugUnitTest lintDebug assembleDebug > gradle-build.log 2>&1
           STATUS=$?
           echo "STATUS=$STATUS" >> "$GITHUB_ENV"
           if [ "$STATUS" -ne 0 ]; then
             echo "===== ERREUR DE COMPILATION ====="
-            grep -E -B 4 -A 12 "(^e: |error:|FAILURE:|What went wrong|Execution failed|BUILD FAILED|Could not|Exception)" gradle-build.log | tail -n 240 || tail -n 240 gradle-build.log
+            grep -E -B 4 -A 12 "(^e: |error:|FAILURE:|What went wrong|Execution failed|BUILD FAILED|Could not|Exception)" gradle-build.log | tail -n 220 || tail -n 220 gradle-build.log
           else
-            tail -n 80 gradle-build.log
+            tail -n 60 gradle-build.log
           fi
 
       - name: Publier le journal de compilation
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: journal-compilation-v2
+          name: journal-compilation
           path: gradle-build.log
           if-no-files-found: warn
           retention-days: 7
@@ -70,12 +76,12 @@ jobs:
         run: exit 1
 
       - name: Renommer l'APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk CHK-Pirate-Warrior-V1.apk
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4
         with:
-          name: CHK-Pirate-Warrior-V2-APK
-          path: CHK-Pirate-Warrior-V2.apk
+          name: CHK-Pirate-Warrior-APK
+          path: CHK-Pirate-Warrior-V1.apk
           if-no-files-found: error
           retention-days: 30

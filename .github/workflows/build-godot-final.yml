@@ -1,0 +1,202 @@
+name: Construire CHK Pirate Warrior final
+
+on:
+  push:
+    branches: [ godot-final-polish ]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/build-godot-final.yml'
+  pull_request:
+    branches: [ v2-godot-3d, main ]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/build-godot-final.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: chk-pirate-warrior-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validation-et-apk:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Récupérer les six atlas 2.5D validés
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p godot/assets/roster25d
+          : > roster25d-download.log
+          bases=(
+            'https://chk-pirate-warrior-assets-2ggx225me-chasmets-projects.vercel.app/roster25d'
+            'https://chk-pirate-warrior-assets-chasmets-projects.vercel.app/roster25d'
+            'https://chk-pirate-warrior-assets-chasmet-chasmets-projects.vercel.app/roster25d'
+          )
+          failed=0
+          for zone in 0 1 2 3 4 5; do
+            target="godot/assets/roster25d/island_${zone}_atlas.png"
+            rm -f "$target"
+            downloaded=0
+            for base in "${bases[@]}"; do
+              url="$base/island_${zone}_atlas_320q48.png"
+              echo "GET $url" | tee -a roster25d-download.log
+              code="$(curl -sS -L --retry 2 --retry-all-errors --connect-timeout 15 --max-time 90 \
+                -w '%{http_code}' -o "$target" "$url" 2>>roster25d-download.log || true)"
+              size="$(stat -c%s "$target" 2>/dev/null || echo 0)"
+              header="$(xxd -p -l 8 "$target" 2>/dev/null || true)"
+              echo "HTTP=$code SIZE=$size HEADER=$header" | tee -a roster25d-download.log
+              if [ "$code" = '200' ] && [ "$size" -gt 9000 ] && [ "$header" = '89504e470d0a1a0a' ]; then
+                downloaded=1
+                break
+              fi
+              rm -f "$target"
+            done
+            if [ "$downloaded" -ne 1 ]; then
+              echo "ÉCHEC ATLAS ÎLE $zone" | tee -a roster25d-download.log
+              failed=1
+            fi
+          done
+          cat roster25d-download.log
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+          sha256sum godot/assets/roster25d/*.png | tee roster25d-assets-sha256.log
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Préparer Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Installer Android et créer la signature debug
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.1'
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname 'CN=CHK Pirate Warrior,O=Chasmet,C=FR'
+          fi
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+
+      - name: Installer Godot 4.6.3 stable
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 \
+            -o godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          GODOT_BIN="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_v4.6.3-stable_linux*' | head -n 1)"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version
+
+      - name: Installer les modèles d'export Android 4.6.3
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 \
+            -o templates.tpz \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
+          mkdir -p "$RUNNER_TEMP/templates"
+          unzip -q templates.tpz -d "$RUNNER_TEMP/templates"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
+          test -s "$TEMPLATE_DIR/android_debug.apk"
+
+      - name: Importer les ressources et vérifier les scripts
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 300s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-import.log
+
+      - name: Tester réellement le démarrage
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 240s "$GODOT_BIN" --headless --path godot --quit-after 240 2>&1 | tee godot-runtime.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|ERROR:' godot-runtime.log
+
+      - name: Tester caméra océan relief et cadrage
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/camera_regression_test.gd 2>&1 | tee godot-camera-test.log
+          grep -q 'CAMERA REGRESSION TEST RÉUSSI' godot-camera-test.log
+
+      - name: Tester le pipeline complet
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/final_pipeline_test.gd 2>&1 | tee godot-final-test.log
+          grep -q 'PIPELINE FINAL RÉUSSI' godot-final-test.log
+
+      - name: Construire l'APK Android finale
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build
+          "$GODOT_BIN" --headless --path godot \
+            --export-debug 'Android V2 Debug' \
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-Final-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-Final-debug.apk
+          unzip -t build/CHK-Pirate-Warrior-Final-debug.apk >/dev/null
+          sha256sum build/CHK-Pirate-Warrior-Final-debug.apk | tee build/SHA256.txt
+
+      - name: Publier l'APK testée
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-Tested-APK
+          path: |
+            build/CHK-Pirate-Warrior-Final-debug.apk
+            build/SHA256.txt
+            roster25d-download.log
+            roster25d-assets-sha256.log
+            godot-camera-test.log
+            godot-final-test.log
+            godot-export.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publier les diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-Test-diagnostics
+          path: |
+            roster25d-download.log
+            roster25d-assets-sha256.log
+            godot-import.log
+            godot-runtime.log
+            godot-camera-test.log
+            godot-final-test.log
+            godot-export.log
+          if-no-files-found: ignore
+          retention-days: 14

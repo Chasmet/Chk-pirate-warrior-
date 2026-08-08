@@ -1,0 +1,487 @@
+name: Valider et construire V2 Godot 3D
+
+on:
+  push:
+    branches: [ v2-godot-3d ]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/validate-v2-godot.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/validate-v2-godot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validation-et-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v6
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Préparer Android et la signature debug
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.1" \
+            "cmdline-tools;latest" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709" >/dev/null
+
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=CHK Pirate Warrior,C=FR" >/dev/null 2>&1
+          fi
+
+          mkdir -p "$HOME/.local/share/godot/keystores"
+          cp "$HOME/.android/debug.keystore" "$HOME/.local/share/godot/keystores/debug.keystore"
+
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+
+          test -x "$ANDROID_SDK_ROOT/platform-tools/adb"
+          test -d "$ANDROID_SDK_ROOT/platforms/android-35"
+          test -x "$ANDROID_SDK_ROOT/build-tools/35.0.1/aapt"
+          test -s "$HOME/.android/debug.keystore"
+
+      - name: Installer Godot 4.7.1 officiel
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            -o godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          GODOT_BIN=$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_v4.7.1-stable_linux*' | head -n 1)
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version
+
+      - name: Installer les modèles d’export Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            -o templates.tpz \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
+          rm -rf "$RUNNER_TEMP/export-templates"
+          mkdir -p "$RUNNER_TEMP/export-templates"
+          unzip -q templates.tpz -d "$RUNNER_TEMP/export-templates"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.7.1.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "$RUNNER_TEMP/export-templates/templates/." "$TEMPLATE_DIR/"
+          test -s "$TEMPLATE_DIR/android_debug.apk"
+          test -s "$TEMPLATE_DIR/android_release.apk"
+          test -s "$TEMPLATE_DIR/version.txt"
+
+      - name: Importer et analyser le projet
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 240s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-validation.log
+          if grep -E "SCRIPT ERROR|Parse Error|Parser Error|Failed to load script|ERROR:" godot-validation.log; then
+            echo "Des erreurs Godot ont été détectées."
+            exit 1
+          fi
+
+      - name: Tester le démarrage réel du jeu
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --quit-after 180 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|Attempt to call|ERROR:" godot-runtime.log; then
+            echo "Une erreur est apparue pendant le démarrage du jeu."
+            exit 1
+          fi
+
+      - name: Tester le gameplay et les trois héros
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot \
+            --script res://tests/smoke_test.gd 2>&1 | tee godot-smoke-test.log
+          if grep -E "SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid access|ÉCHEC|ERROR:" godot-smoke-test.log; then
+            echo "Le test fonctionnel du gameplay a échoué."
+            exit 1
+          fi
+          grep -q "SMOKE TEST RÉUSSI" godot-smoke-test.log
+
+      - name: Construire l’APK Godot V2
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "Keystore=$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          "$GODOT_BIN" --verbose --headless --path godot \
+            --export-debug "Android V2 Debug" \
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V2-debug.apk" 2>&1 | tee godot-export.log
+          test -s build/CHK-Pirate-Warrior-V2-debug.apk
+
+      - name: Vérifier l’APK et le mode paysage
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=build/CHK-Pirate-Warrior-V2-debug.apk
+          AAPT="$ANDROID_SDK_ROOT/build-tools/35.0.1/aapt"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          unzip -l "$APK" | grep -q 'assets/project.binary'
+          unzip -l "$APK" | grep -q 'assets/scripts/main.gdc'
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libgodot_android.so'
+          unzip -l "$APK" | grep -q 'lib/x86_64/libgodot_android.so'
+          unzip -l "$APK" | grep -q 'META-INF/ANDROIDD.RSA'
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | tee apk-manifest.txt
+          grep -E 'android:screenOrientation.*(landscape|0x0)' apk-manifest.txt
+          sha256sum "$APK" | tee apk-sha256.txt
+
+      - name: Publier l’APK V2 compilée
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-V2-APK
+          path: build/CHK-Pirate-Warrior-V2-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Installer le téléphone Android virtuel
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+          export ANDROID_SDK_HOME="$HOME"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_SDK_HOME=$ANDROID_SDK_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" "emulator" "system-images;android-35;google_apis;x86_64" 2>&1 | tee emulator-install.log
+
+          AVDMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager"
+          echo no | "$AVDMANAGER" create avd \
+            --force \
+            --name chk_pixel \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_7_pro" 2>&1 | tee emulator-avd.log
+
+          # Le profil Pixel 7 Pro réserve sinon plus de 7 Go pour userdata.
+          # Deux gigaoctets suffisent largement à l’APK de validation et
+          # empêchent l’émulateur d’échouer sur l’espace disque du runner.
+          AVD_CONFIG="$ANDROID_AVD_HOME/chk_pixel.avd/config.ini"
+          test -f "$AVD_CONFIG"
+          if grep -q '^disk.dataPartition.size=' "$AVD_CONFIG"; then
+            sed -i 's/^disk.dataPartition.size=.*/disk.dataPartition.size=2048M/' "$AVD_CONFIG"
+          else
+            printf '\ndisk.dataPartition.size=2048M\n' >> "$AVD_CONFIG"
+          fi
+          grep '^disk.dataPartition.size=2048M$' "$AVD_CONFIG"
+
+          "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | tee emulator-avd-list.log
+          grep -qx 'chk_pixel' emulator-avd-list.log
+          test -f "$ANDROID_AVD_HOME/chk_pixel.ini" || test -d "$ANDROID_AVD_HOME/chk_pixel.avd"
+
+      - name: Lancer et tester le jeu sur Android virtuel
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_HOME="${ANDROID_SDK_HOME:-$HOME}"
+          export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+          EMULATOR="$ANDROID_SDK_ROOT/emulator/emulator"
+          ADB="$ANDROID_SDK_ROOT/platform-tools/adb"
+
+          "$EMULATOR" \
+            -avd chk_pixel \
+            -no-window \
+            -gpu lavapipe \
+            -noaudio \
+            -no-boot-anim \
+            -no-snapshot \
+            -camera-back none \
+            -accel on > emulator-runtime.log 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+
+          DEVICE_READY=0
+          for attempt in $(seq 1 120); do
+            if "$ADB" devices | grep -q '^emulator-'; then
+              DEVICE_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$DEVICE_READY" -ne 1 ]; then
+            echo "Le téléphone virtuel n’est pas apparu."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
+
+          "$ADB" wait-for-device
+          BOOT_READY=0
+          for attempt in $(seq 1 150); do
+            BOOT_COMPLETED=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOT_COMPLETED" = "1" ]; then
+              BOOT_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$BOOT_READY" -ne 1 ]; then
+            echo "Android n’a pas terminé son démarrage."
+            tail -n 200 emulator-runtime.log
+            exit 1
+          fi
+
+          "$ADB" shell settings put system accelerometer_rotation 0
+          "$ADB" shell settings put system user_rotation 1
+          "$ADB" shell wm size 2400x1080
+          "$ADB" shell wm density 420
+          # Évite que l’aide Android « Viewing full screen » masque le jeu et
+          # intercepte les gestes pendant le premier lancement de l’émulateur.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+          sleep 5
+          "$ADB" install -r build/CHK-Pirate-Warrior-V2-debug.apk
+          sleep 5
+          "$ADB" logcat -c
+          "$ADB" shell am force-stop fr.chk.piratewarrior.v2
+          "$ADB" shell am start -W \
+            -n fr.chk.piratewarrior.v2/com.godot.game.GodotAppLauncher
+
+          APP_READY=0
+          for attempt in $(seq 1 60); do
+            WINDOW_STATE=$("$ADB" shell dumpsys window displays 2>/dev/null || true)
+            if [[ "$WINDOW_STATE" == *"ImmersiveModeConfirmation"* ]]; then
+              "$ADB" shell input keyevent 66
+              sleep 2
+              WINDOW_STATE=$("$ADB" shell dumpsys window displays 2>/dev/null || true)
+            fi
+            if [[ "$WINDOW_STATE" == *"mCurrentFocus"*"fr.chk.piratewarrior.v2"* ]] &&
+               "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null; then
+              APP_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$APP_READY" -ne 1 ]; then
+            echo "Le jeu Android ne reste pas au premier plan."
+            "$ADB" shell dumpsys activity activities | head -n 120
+            "$ADB" shell dumpsys window displays |
+              grep -E 'mCurrentFocus|mFocusedApp' || true
+            "$ADB" logcat -d | tail -n 400
+            exit 1
+          fi
+          sleep 5
+          WINDOW_STATE=$("$ADB" shell dumpsys window displays)
+          if [[ "$WINDOW_STATE" == *"ImmersiveModeConfirmation"* ]]; then
+            echo "Le panneau système plein écran masque encore le jeu."
+            exit 1
+          fi
+          "$ADB" logcat -d > android-logcat.txt
+          if grep -E \
+              'Program linking failed|shader failed to compile|FATAL EXCEPTION|AndroidRuntime: FATAL|ERROR: Condition "!_start_success"' \
+              android-logcat.txt; then
+            echo "Le rendu graphique Android n’a pas démarré correctement."
+            exit 1
+          fi
+
+          MENU_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" exec-out screencap -p > android-menu.png
+            if [ "$(stat -c %s android-menu.png)" -gt 100000 ]; then
+              MENU_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$MENU_READY" -ne 1 ]; then
+            echo "Le menu Android n’a pas fini de s’afficher."
+            exit 1
+          fi
+
+          # Nouvelle partie ouvre d’abord le choix des trois difficultés.
+          "$ADB" shell input tap 490 260
+          sleep 3
+          "$ADB" exec-out screencap -p > android-difficulty.png
+          # Carte centrale : mode INTERMÉDIAIRE.
+          "$ADB" shell input tap 1200 835
+          GAME_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt; then
+              GAME_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$GAME_READY" -ne 1 ]; then
+            echo "Le bouton Jouer n’a pas ouvert la partie."
+            exit 1
+          fi
+
+          HERO_FRAMED=0
+          for attempt in $(seq 1 45); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_HERO_FRAMED hero=cheikh' android-logcat.txt; then
+              HERO_FRAMED=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$HERO_FRAMED" -ne 1 ]; then
+            echo "La caméra n’a pas cadré le héros à la troisième personne."
+            exit 1
+          fi
+
+          if ! grep -q 'CHK_WORLD_HERO_READY hero=cheikh depth_test=1' android-logcat.txt; then
+            echo "Le héros n’a pas été rendu dans le monde 3D avec occultation."
+            exit 1
+          fi
+
+          GAME_VISUAL_READY=0
+          for attempt in $(seq 1 75); do
+            "$ADB" exec-out screencap -p > android-gameplay.png
+            if [ "$(stat -c %s android-gameplay.png)" -gt 100000 ] &&
+               ! cmp -s android-menu.png android-gameplay.png; then
+              GAME_VISUAL_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$GAME_VISUAL_READY" -ne 1 ]; then
+            echo "La scène 3D n’a pas remplacé visuellement le menu."
+            exit 1
+          fi
+
+          "$ADB" shell input swipe 180 920 180 690 800
+          # Tourner aussi le second stick placé à gauche pour valider la
+          # caméra 360° indépendante du déplacement.
+          "$ADB" shell input swipe 480 920 610 920 550
+          "$ADB" shell input tap 2280 955
+          sleep 4
+          "$ADB" shell pidof fr.chk.piratewarrior.v2 >/dev/null
+          WINDOW_STATE=$("$ADB" shell dumpsys window displays)
+          [[ "$WINDOW_STATE" == *"mCurrentFocus"*"fr.chk.piratewarrior.v2"* ]]
+          "$ADB" exec-out screencap -p > android-gameplay.png
+
+          # Ce raccourci n’existe que dans les builds debug. Il place le joueur
+          # au poste de pilotage afin de prouver sur Android que le héros, le
+          # gouvernail et le navire entier sont bien visibles.
+          "$ADB" shell input keyevent 44
+          BOAT_READY=0
+          for attempt in $(seq 1 30); do
+            "$ADB" logcat -d > android-logcat.txt
+            if grep -q 'CHK_BOAT_PREVIEW_READY hero=cheikh' android-logcat.txt &&
+               grep -q 'CHK_BOAT_PILOT_3D_READY hero=cheikh' android-logcat.txt &&
+               grep -q 'CHK_BOAT_HELMSMAN_READY hero=cheikh world3d=1' android-logcat.txt; then
+              BOAT_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$BOAT_READY" -ne 1 ]; then
+            echo "Le héros n’a pas pris la barre pendant le test Android."
+            exit 1
+          fi
+          "$ADB" shell input swipe 180 920 275 710 1800
+          sleep 3
+          "$ADB" exec-out screencap -p > android-sailing.png
+          test "$(stat -c %s android-sailing.png)" -gt 100000
+          if cmp -s android-gameplay.png android-sailing.png; then
+            echo "La navigation n’a pas remplacé visuellement la vue à pied."
+            exit 1
+          fi
+
+          "$ADB" shell wm size | tee android-window.txt
+          "$ADB" shell dumpsys activity activities | grep -E -m 5 'ACTIVITY|fr.chk.piratewarrior.v2|mResumedActivity' | tee -a android-window.txt || true
+          "$ADB" shell dumpsys window displays | grep -E -m 8 'orientation|mCurrentFocus|mFocusedApp|DisplayFrames' | tee -a android-window.txt || true
+          "$ADB" logcat -d > android-logcat.txt
+          grep -q 'CHK_GAMEPLAY_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_HERO_FRAMED hero=cheikh' android-logcat.txt
+          grep -q 'CHK_WORLD_HERO_READY hero=cheikh depth_test=1' android-logcat.txt
+          grep -q 'CHK_BOAT_PREVIEW_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_BOAT_PILOT_3D_READY hero=cheikh' android-logcat.txt
+          grep -q 'CHK_BOAT_HELMSMAN_READY hero=cheikh world3d=1' android-logcat.txt
+          if cmp -s android-menu.png android-gameplay.png; then
+            echo "La capture de gameplay est identique au menu."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          for name in ('android-menu.png', 'android-difficulty.png', 'android-gameplay.png', 'android-sailing.png'):
+              path = Path(name)
+              assert path.stat().st_size > 100000, (
+                  f'Capture Android vide ou masquée par un panneau système: {name}'
+              )
+              with path.open('rb') as stream:
+                  stream.seek(16)
+                  width, height = struct.unpack('>II', stream.read(8))
+              print(f'{name}: {width}x{height}')
+              assert width > height, f'Le jeu n’est pas en paysage: {width}x{height}'
+          PY
+
+          if grep -E \
+              'Program linking failed|shader failed to compile|FATAL EXCEPTION|AndroidRuntime: FATAL|Process(:)? fr.chk.piratewarrior.v2.*has died|Force quitting Godot instance|ERROR: Condition "!_start_success"' \
+              android-logcat.txt; then
+            echo 'Erreur de rendu ou crash Android détecté.'
+            exit 1
+          fi
+          grep -E -q \
+            'mCurrentFocus=.*fr.chk.piratewarrior.v2' \
+            android-window.txt
+
+      - name: Publier les journaux et les captures Android
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journaux-v2-godot
+          path: |
+            godot-validation.log
+            godot-runtime.log
+            godot-smoke-test.log
+            godot-export.log
+            apk-manifest.txt
+            apk-sha256.txt
+            emulator-install.log
+            emulator-avd.log
+            emulator-avd-list.log
+            emulator-runtime.log
+            android-window.txt
+            android-logcat.txt
+            android-menu.png
+            android-difficulty.png
+            android-gameplay.png
+            android-sailing.png
+          if-no-files-found: warn
+          retention-days: 7

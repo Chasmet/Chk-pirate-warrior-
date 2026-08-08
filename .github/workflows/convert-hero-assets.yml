@@ -1,0 +1,120 @@
+name: Convertir les héros pour Android
+
+on:
+  push:
+    branches: [ v2-godot-3d ]
+    paths:
+      - '.github/workflows/convert-hero-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  conversion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer la branche 3D
+        uses: actions/checkout@v6
+        with:
+          ref: v2-godot-3d
+          fetch-depth: 0
+
+      - name: Installer Pillow
+        run: python3 -m pip install --quiet pillow
+
+      - name: Créer les textures JPEG détourées
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import hashlib
+
+          root = Path('godot/assets/heroes')
+          key_color = (255, 0, 255)
+          for source in sorted(root.glob('*.webp')):
+              rgba = Image.open(source).convert('RGBA').resize((888, 444), Image.Resampling.LANCZOS)
+              rgb_source = rgba.convert('RGB')
+              mask = rgba.getchannel('A').point(lambda value: 255 if value > 8 else 0)
+              output = Image.new('RGB', rgba.size, key_color)
+              output.paste(rgb_source, mask=mask)
+              destination = source.with_suffix('.jpg')
+              output.save(destination, 'JPEG', quality=98, subsampling=0, optimize=True)
+
+              resource_path = f'res://assets/heroes/{destination.name}'
+              path_hash = hashlib.md5(resource_path.encode('utf-8')).hexdigest()
+              uid = hashlib.sha256(resource_path.encode('utf-8')).hexdigest()[:13]
+              imported_path = f'res://.godot/imported/{destination.name}-{path_hash}.ctex'
+              import_text = f'''[remap]
+
+          importer="texture"
+          type="CompressedTexture2D"
+          uid="uid://{uid}"
+          path="{imported_path}"
+          metadata={{
+          "vram_texture": false
+          }}
+
+          [deps]
+
+          source_file="{resource_path}"
+          dest_files=["{imported_path}"]
+
+          [params]
+
+          compress/mode=0
+          compress/high_quality=false
+          compress/lossy_quality=0.7
+          compress/uastc_level=0
+          compress/rdo_quality_loss=0.0
+          compress/hdr_compression=1
+          compress/normal_map=0
+          compress/channel_pack=0
+          mipmaps/generate=true
+          mipmaps/limit=-1
+          roughness/mode=0
+          roughness/src_normal=""
+          process/channel_remap/red=0
+          process/channel_remap/green=1
+          process/channel_remap/blue=2
+          process/channel_remap/alpha=3
+          process/fix_alpha_border=false
+          process/premult_alpha=false
+          process/normal_map_invert_y=false
+          process/hdr_as_srgb=false
+          process/hdr_clamp_exposure=false
+          process/size_limit=0
+          detect_3d/compress_to=0
+          '''
+              destination.with_suffix('.jpg.import').write_text(import_text, encoding='utf-8')
+              print(f'{source.name} -> {destination.name}, fond magenta détournable')
+
+          factory = Path('godot/scripts/hero_factory.gd')
+          text = factory.read_text(encoding='utf-8')
+          text = text.replace('.webp"', '.jpg"').replace('.png"', '.jpg"')
+          factory.write_text(text, encoding='utf-8')
+
+          smoke = Path('godot/tests/smoke_test.gd')
+          test_text = smoke.read_text(encoding='utf-8')
+          test_text = test_text.replace('texture PNG Android', 'texture JPEG Android')
+          test_text = test_text.replace('cheikh_poses.png', 'cheikh_poses.jpg')
+          test_text = test_text.replace('nelvyn_steering_v24.png', 'nelvyn_steering_v24.jpg')
+          test_text = test_text.replace('pose de pilotage PNG', 'pose de pilotage JPEG')
+          smoke.write_text(test_text, encoding='utf-8')
+          PY
+
+      - name: Commiter les JPEG détourés
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "CHK Pirate Warrior CI"
+          git config user.email "actions@github.com"
+          git add godot/assets/heroes/*.jpg godot/assets/heroes/*.jpg.import godot/scripts/hero_factory.gd godot/tests/smoke_test.gd
+          if git diff --cached --quiet; then
+            echo "Aucun changement à commiter."
+            exit 0
+          fi
+          git commit -m "fix(assets): utiliser des héros JPEG détourés sur Android"
+          git push origin HEAD:v2-godot-3d
