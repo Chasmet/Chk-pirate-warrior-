@@ -55,8 +55,10 @@ static func is_final_region(region_index: int) -> bool:
 	return region_index == FINAL_REGION_INDEX
 
 static func final_relic_position() -> Vector3:
+	var center := Vector3(FINAL_REGION["center"])
 	var sanctuary: Dictionary = FINAL_REGION["pois"][9]
-	return Vector3(FINAL_REGION["center"]) + Vector3(sanctuary["offset"]) + Vector3(0.0, 2.4, 0.0)
+	var offset := Vector3(sanctuary["offset"])
+	return Vector3(center.x + offset.x, float(FINAL_REGION["elevation"]) + 2.6, center.z + offset.z)
 
 static func validate() -> Array[String]:
 	var errors := RegionCatalogV9.validate()
