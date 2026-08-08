@@ -12,6 +12,7 @@ var open_world_director: OpenWorldRegionDirectorV11
 var final_landmass: FinalKingdomLandmassV11
 var final_region_active := false
 var final_relic_collected := false
+var final_departure_guard := false
 
 func configure(data: Dictionary) -> void:
 	super.configure(data)
@@ -38,6 +39,7 @@ func configure(data: Dictionary) -> void:
 	set_meta("final_kingdom_dockable_v11", true)
 	set_meta("final_landmass_collision_v11", true)
 	set_meta("final_relic_persistent_v11", true)
+	set_meta("final_dock_hud_v11", true)
 	print("CHK_WORLD_V11_READY regions=%d final_dock=true relic_saved=%s" % [RegionCatalogV11.REGION_COUNT, str(final_relic_collected)])
 
 func _activate_zone(index: int, announce: bool, from_boat: bool) -> void:
@@ -52,7 +54,7 @@ func toggle_boat() -> void:
 		return
 	if player.boat_mode:
 		var final_water_dock := get_final_dock_position(true)
-		if player.global_position.distance_to(final_water_dock) <= 36.0:
+		if not final_departure_guard and player.global_position.distance_to(final_water_dock) <= 36.0:
 			_enter_final_region_from_boat()
 			return
 	else:
@@ -65,20 +67,62 @@ func toggle_boat() -> void:
 			return
 	super.toggle_boat()
 
+func _update_navigation() -> void:
+	if not is_instance_valid(player):
+		return
+	var final_water_dock := get_final_dock_position(true)
+	var final_land_dock := get_final_dock_position(false)
+	var final_center := Vector3(RegionCatalogV11.FINAL_REGION["center"])
+	var final_center_distance := Vector2(player.global_position.x - final_center.x, player.global_position.z - final_center.z).length()
+	if final_departure_guard and final_center_distance > float(RegionCatalogV11.FINAL_REGION["radius"]) + 260.0:
+		final_departure_guard = false
+
+	if player.boat_mode and not final_departure_guard:
+		var dock_distance := player.global_position.distance_to(final_water_dock)
+		if final_center_distance <= float(RegionCatalogV11.FINAL_REGION["radius"]) + 350.0:
+			var action_available := dock_distance <= 36.0
+			var text := "ROYAUME TROUBLÉ • BRUME DORÉE • QUAI %d m" % roundi(dock_distance)
+			if action_available:
+				text = "ROYAUME TROUBLÉ • ACCOSTAGE POSSIBLE"
+			navigation_changed.emit(text, player.navigation_bearing(final_water_dock), dock_distance)
+			_emit_boat_action_v11("ACCOSTER", action_available)
+			return
+	elif not player.boat_mode and (final_region_active or _is_on_final_region(player.global_position)):
+		var dock_distance := player.global_position.distance_to(final_land_dock)
+		var action_available := dock_distance <= 21.0
+		var text := "PONT DU RETOUR IMPOSSIBLE • %d m" % roundi(dock_distance)
+		if action_available:
+			text = "PONT DU RETOUR IMPOSSIBLE • EMBARQUEMENT POSSIBLE"
+		navigation_changed.emit(text, player.navigation_bearing(final_land_dock), dock_distance)
+		_emit_boat_action_v11("EMBARQUER", action_available)
+		return
+
+	super._update_navigation()
+
+func _emit_boat_action_v11(label: String, available: bool) -> void:
+	if label != last_boat_label or available != last_boat_available or player.boat_mode != last_boat_mode:
+		last_boat_label = label
+		last_boat_available = available
+		last_boat_mode = player.boat_mode
+		boat_action_changed.emit(label, available, player.boat_mode)
+
 func _enter_final_region_from_boat() -> void:
 	_clear_enemies()
 	player.exit_boat(get_final_dock_position(false))
 	final_region_active = true
+	final_departure_guard = false
 	if is_instance_valid(open_world_director):
 		open_world_director.force_region_for_test(RegionCatalogV11.FINAL_REGION_INDEX)
 	_set_mission("ROYAUME TROUBLÉ • Traverse la brume dorée et retrouve le Cœur des Souvenirs.")
 	VoiceFR.speak("Royaume Troublé. Aucun habitant. Aucun animal. Retrouve le Cœur des Souvenirs.")
 	final_region_state_changed.emit(true)
+	_update_navigation()
 	print("CHK_V11_FINAL_REGION_DOCKED position=%s" % str(player.global_position))
 
 func _leave_final_region_by_boat() -> void:
 	var target := get_dock_position(destination_zone, true)
 	player.set_sea_conditions(visuals.weather_for_zone(current_zone))
+	final_departure_guard = true
 	player.enter_boat(get_final_dock_position(true), target)
 	final_region_active = false
 	if is_instance_valid(open_world_director):
@@ -86,6 +130,7 @@ func _leave_final_region_by_boat() -> void:
 	_set_mission("EN MER • Retour vers %s." % String(zones_v5[destination_zone]["name"]))
 	VoiceFR.speak("Retour en mer. Cap vers " + String(zones_v5[destination_zone]["name"]) + ".")
 	final_region_state_changed.emit(false)
+	_update_navigation()
 
 func get_final_dock_position(water_side: bool) -> Vector3:
 	var data: Dictionary = RegionCatalogV11.FINAL_REGION
