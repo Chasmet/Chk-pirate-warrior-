@@ -1,0 +1,187 @@
+name: Construire CHK Pirate Warrior V11 Onze Royaumes
+
+on:
+  push:
+    branches: [ agent/v11-onze-royaumes-polish ]
+    paths:
+      - 'godot/project.godot'
+      - 'godot/export_presets.cfg'
+      - 'godot/scenes/main.tscn'
+      - 'godot/scripts/**'
+      - 'godot/tests/**'
+      - 'godot/assets/**'
+      - 'tools/generate_audio_v7.py'
+      - '.github/workflows/build-v11-onze-royaumes.yml'
+  pull_request:
+    branches: [ main, agent/open-world-v9-foundation ]
+    paths:
+      - 'godot/project.godot'
+      - 'godot/export_presets.cfg'
+      - 'godot/scenes/main.tscn'
+      - 'godot/scripts/**'
+      - 'godot/tests/**'
+      - 'godot/assets/**'
+      - 'tools/generate_audio_v7.py'
+      - '.github/workflows/build-v11-onze-royaumes.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: chk-v11-onze-royaumes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tester-et-compiler:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Récupérer le projet complet
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Vérifier la configuration V11
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q 'name="Android V11 Onze Royaumes"' godot/export_presets.cfg
+          grep -q 'package/unique_name="fr.chk.piratewarrior.v11test"' godot/export_presets.cfg
+          grep -q 'res://scripts/main_v11.gd' godot/scenes/main.tscn
+          test -s godot/scripts/game_world_v11.gd
+          test -s godot/scripts/open_world_region_director_v11.gd
+          test -s godot/scripts/region_catalog_v11.gd
+          test -s godot/scripts/ambient_citizen_v11.gd
+          test -s godot/scripts/final_kingdom_landmass_v11.gd
+          test -s godot/scripts/menu_ui_v11.gd
+          test -s godot/scripts/game_ui_v11.gd
+          test -s godot/tests/v11_onze_royaumes_test.gd
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Préparer Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Installer Android et une signature debug
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.1'
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname 'CN=CHK Pirate Warrior V11,O=Chasmet,C=FR'
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+
+      - name: Installer Godot 4.6.3 stable
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 \
+            -o godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          GODOT_BIN="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot_v4.6.3-stable_linux*' | head -n 1)"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          "$GODOT_BIN" --version
+
+      - name: Installer les modèles d'export Android
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 \
+            -o templates.tpz \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
+          mkdir -p "$RUNNER_TEMP/templates"
+          unzip -q templates.tpz -d "$RUNNER_TEMP/templates"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
+          test -s "$TEMPLATE_DIR/android_debug.apk"
+
+      - name: Générer la banque audio complète
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m pip install --disable-pip-version-check numpy
+          rm -rf godot/assets/audio_v7
+          python3 tools/generate_audio_v7.py --output godot/assets/audio_v7
+          test "$(du -sb godot/assets/audio_v7 | cut -f1)" -ge 95000000
+
+      - name: Importer et analyser tous les scripts Godot
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 700s "$GODOT_BIN" --headless --editor --path godot --quit 2>&1 | tee godot-v11-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load|ERROR:' godot-v11-import.log
+
+      - name: Régression V8 Android
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v8_gameplay_stability_test.gd 2>&1 | tee godot-v8-regression.log
+          grep -q 'CHK_V8_GAMEPLAY_STABILITY_READY' godot-v8-regression.log
+          grep -q 'CHK_V8_ANDROID_PERFORMANCE_READY' godot-v8-regression.log
+
+      - name: Régression V9 monde ouvert
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v9_open_world_foundation_test.gd 2>&1 | tee godot-v9-regression.log
+          grep -q 'CHK_V9_OPEN_WORLD_FOUNDATION_READY' godot-v9-regression.log
+          grep -q 'CHK_V9_200_NPCS_SIMULATION_READY' godot-v9-regression.log
+
+      - name: Tester la V11 Onze Royaumes
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path godot --script res://tests/v11_onze_royaumes_test.gd 2>&1 | tee godot-v11-test.log
+          grep -q 'CHK_V11_ONZE_ROYAUMES_READY' godot-v11-test.log
+          grep -q 'CHK_V11_FINAL_KINGDOM_READY' godot-v11-test.log
+          grep -q 'CHK_V11_HUMANOID_NPCS_READY' godot-v11-test.log
+          grep -q 'CHK_V11_INTERFACE_LOGO_READY' godot-v11-test.log
+          grep -q 'CHK_V11_FINAL_RELIC_READY' godot-v11-test.log
+
+      - name: Construire le vrai APK V11
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build
+          "$GODOT_BIN" --headless --path godot \
+            --export-debug 'Android V11 Onze Royaumes' \
+            "$GITHUB_WORKSPACE/build/CHK-Pirate-Warrior-V11-Onze-Royaumes-debug.apk" 2>&1 | tee godot-v11-export.log
+          APK="build/CHK-Pirate-Warrior-V11-Onze-Royaumes-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          test "$(stat -c%s "$APK")" -ge 100000000
+          sha256sum "$APK" | tee build/SHA256-V11.txt
+          stat -c 'APK_BYTES=%s' "$APK" | tee build/APK_SIZE-V11.txt
+
+      - name: Publier l'APK et les diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHK-Pirate-Warrior-V11-Onze-Royaumes-APK
+          path: |
+            build/CHK-Pirate-Warrior-V11-Onze-Royaumes-debug.apk
+            build/SHA256-V11.txt
+            build/APK_SIZE-V11.txt
+            godot-v11-import.log
+            godot-v8-regression.log
+            godot-v9-regression.log
+            godot-v11-test.log
+            godot-v11-export.log
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,1 @@
+Atlas 2.5D embarqués en fragments afin de conserver tous les assets dans le dépôt et de ne charger que l’île active.

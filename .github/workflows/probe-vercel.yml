@@ -1,0 +1,30 @@
+name: Probe assets 2.5D
+on:
+  push:
+    branches: [ godot-final-polish ]
+    paths: [ '.github/workflows/probe-vercel.yml' ]
+  pull_request:
+    branches: [ v2-godot-3d, main ]
+    paths: [ '.github/workflows/probe-vercel.yml' ]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Vérifier le fichier test
+        shell: bash
+        run: |
+          set -x
+          for url in \
+            'https://chk-pirate-assets-probe-o96etxljy-chasmets-projects.vercel.app/hello.txt' \
+            'https://chk-pirate-assets-probe-chasmets-projects.vercel.app/hello.txt' \
+            'https://chk-pirate-assets-probe-chasmet-chasmets-projects.vercel.app/hello.txt'; do
+            echo "URL=$url"
+            curl -sS -L --max-time 60 -D headers.txt -o body.bin "$url" || true
+            cat headers.txt || true
+            wc -c body.bin || true
+            head -c 240 body.bin || true
+            echo
+          done

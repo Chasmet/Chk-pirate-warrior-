@@ -1,0 +1,83 @@
+extends SceneTree
+
+var failures := 0
+
+func _check(condition: bool, message: String) -> void:
+	if condition:
+		print("OK  ", message)
+	else:
+		failures += 1
+		push_error("ÉCHEC  " + message)
+
+func _find_collision(node: Node) -> CollisionShape3D:
+	if node is CollisionShape3D:
+		return node as CollisionShape3D
+	for child in node.get_children():
+		var found := _find_collision(child)
+		if found != null:
+			return found
+	return null
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	var target := Node3D.new()
+	target.name = "CibleTest"
+	root.add_child(target)
+
+	Enemy25DAssetBank.activate_zone(0)
+	var official_asset := Enemy25DAssetBank.asset_for_profile(Enemy25DCatalog.boss_for_zone(0))
+	var official_texture := official_asset.get("texture") as Texture2D
+	_check(official_texture != null, "l’asset officiel de Brakor est décodé depuis le dépôt")
+	if official_texture != null:
+		_check(official_texture.get_width() >= 150 and official_texture.get_height() >= 190, "Brakor conserve une définition adaptée au rendu mobile")
+
+	var gameplay_profile := EnemyFactory.boss_for_zone(0).duplicate(true)
+	gameplay_profile["difficulty"] = "intermediaire"
+	gameplay_profile["zone"] = 0
+	var boss := EnemyFactory.create_enemy(gameplay_profile, target)
+	root.add_child(boss)
+
+	var original_health := boss.max_health
+	var original_damage := boss.attack_damage
+	var original_collision := _find_collision(boss)
+	var visual_profile := Enemy25DCatalog.boss_for_zone(0)
+	var applied := Enemy25DVisual.apply(boss, visual_profile)
+	var collision_after := _find_collision(boss)
+	var sprite := boss.get_node_or_null("Visual25D/Character25D") as Sprite3D
+
+	_check(applied, "le véritable visuel de Brakor est appliqué au boss existant")
+	_check(boss is CharacterBody3D, "Brakor reste un CharacterBody3D dans le monde ouvert")
+	_check(original_collision != null and collision_after == original_collision and collision_after.shape != null, "la collision 3D de Brakor est conservée")
+	_check(is_equal_approx(boss.max_health, original_health), "la vie du boss n'est pas modifiée par son apparence")
+	_check(is_equal_approx(boss.attack_damage, original_damage), "les dégâts du boss ne sont pas modifiés par son apparence")
+	_check(sprite != null and sprite.texture != null, "Brakor possède un Sprite3D réel")
+	if sprite != null:
+		_check(sprite.billboard == BaseMaterial3D.BILLBOARD_FIXED_Y, "Brakor reste vertical pendant la rotation caméra 360°")
+		_check(not sprite.no_depth_test, "Brakor respecte la profondeur du monde 3D")
+		var visual_height := float(sprite.texture.get_height() / sprite.vframes) * sprite.pixel_size
+		_check(visual_height >= 2.60 and visual_height <= 3.50, "Brakor reste massif sans devenir un géant disproportionné")
+	_check(boss.get_meta("visual_pipeline", "") == "boss_2d_animated_in_3d", "le pipeline personnage 2.5D / monde 3D est actif")
+	_check(boss.get_meta("visual_asset_source", "") == "embedded_official_brakor", "aucun cube ou téléchargement externe ne remplace Brakor")
+
+	var ordinary_profile := EnemyFactory.profile_for_index(0).duplicate(true)
+	ordinary_profile["difficulty"] = "intermediaire"
+	ordinary_profile["zone"] = 0
+	var ordinary := EnemyFactory.create_enemy(ordinary_profile, target)
+	root.add_child(ordinary)
+	var ordinary_rejected := not Enemy25DVisual.apply(ordinary, ordinary_profile)
+	_check(ordinary_rejected, "le pipeline 2.5D important ne modifie pas un ennemi ordinaire")
+	_check(ordinary.get_node_or_null("Visual25D") == null, "aucun visuel important n'est copié sur les ennemis ordinaires")
+
+	boss.queue_free()
+	ordinary.queue_free()
+	target.queue_free()
+	Enemy25DAssetBank.clear_active_zone()
+	Boss25DEmbeddedAssets.clear_cache()
+	await process_frame
+	if failures == 0:
+		print("BRAKOR 2.5D DANS MONDE 3D RÉUSSI")
+	else:
+		push_error("%d vérification(s) Brakor ont échoué" % failures)
+	quit(failures)
