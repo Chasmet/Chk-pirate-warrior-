@@ -2,7 +2,7 @@ name: Construire CHK Pirate Warrior V11 Onze Royaumes
 
 on:
   push:
-    branches: [ agent/v11-onze-royaumes-polish ]
+    branches: [ main, agent/v11-onze-royaumes-polish ]
     paths:
       - 'godot/project.godot'
       - 'godot/export_presets.cfg'
