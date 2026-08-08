@@ -9,6 +9,7 @@ const FINAL_DOCK_WATER_OFFSET := 39.0
 const FINAL_DOCK_LAND_OFFSET := -18.0
 
 var open_world_director: OpenWorldRegionDirectorV11
+var final_landmass: FinalKingdomLandmassV11
 var final_region_active := false
 var final_relic_collected := false
 
@@ -16,6 +17,10 @@ func configure(data: Dictionary) -> void:
 	super.configure(data)
 	final_relic_collected = bool(data.get("final_relic_found", false))
 	final_region_active = _is_on_final_region(player.global_position) and not player.boat_mode
+
+	final_landmass = FinalKingdomLandmassV11.new()
+	add_child(final_landmass)
+	final_landmass.build()
 
 	open_world_director = OpenWorldRegionDirectorV11.new()
 	open_world_director.name = "MondeOuvertOnzeRoyaumesV11"
@@ -25,10 +30,13 @@ func configure(data: Dictionary) -> void:
 	open_world_director.final_relic_collected.connect(_on_final_relic_collected)
 	if final_relic_collected:
 		open_world_director.mark_final_relic_collected()
+	if final_region_active:
+		open_world_director.force_region_for_test(RegionCatalogV11.FINAL_REGION_INDEX)
 
 	set_meta("open_world_foundation_v11", true)
 	set_meta("eleven_kingdoms_v11", true)
 	set_meta("final_kingdom_dockable_v11", true)
+	set_meta("final_landmass_collision_v11", true)
 	set_meta("final_relic_persistent_v11", true)
 	print("CHK_WORLD_V11_READY regions=%d final_dock=true relic_saved=%s" % [RegionCatalogV11.REGION_COUNT, str(final_relic_collected)])
 
