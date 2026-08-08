@@ -13,7 +13,7 @@ func _build_visual() -> void:
 	visual_root.name = "HabitantStyliséV11"
 	add_child(visual_root)
 
-	var identity_seed := abs(String(profile.get("id", "habitant")).hash())
+	var identity_seed: int = absi(String(profile.get("id", "habitant")).hash())
 	var region_index := int(profile.get("region", 0))
 	base_color = Color(String(profile.get("color", "d7c6a5"))).darkened(float(region_index % 3) * 0.04)
 	var cloth_secondary := base_color.darkened(0.26)
@@ -21,7 +21,7 @@ func _build_visual() -> void:
 	var skin_palette := [Color("8c5b3d"), Color("b97850"), Color("d19a72"), Color("e3b58b"), Color("7a4a33")]
 	var skin: Color = skin_palette[identity_seed % skin_palette.size()]
 	var hair_palette := [Color("171513"), Color("35251c"), Color("5b3a24"), Color("81705f"), Color("c5b59a")]
-	var hair: Color = hair_palette[(identity_seed / 7) % hair_palette.size()]
+	var hair: Color = hair_palette[int(identity_seed / 7) % hair_palette.size()]
 
 	# Torse avec épaules lisibles : on abandonne la capsule monobloc de la V9.
 	body_mesh = _box_part("Torse", Vector3(0.70, 0.88, 0.38), base_color)
